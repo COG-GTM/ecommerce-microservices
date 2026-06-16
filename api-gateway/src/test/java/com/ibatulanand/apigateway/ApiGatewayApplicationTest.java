@@ -1,4 +1,4 @@
-package com.ibatulanand.inventoryservice;
+package com.ibatulanand.apigateway;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
@@ -7,7 +7,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class InventoryServiceApplicationTests {
+class ApiGatewayApplicationTest {
 
     @Test
     void contextLoads() {
@@ -16,11 +16,10 @@ class InventoryServiceApplicationTests {
     @Test
     void main_runsSpringApplication() {
         try (MockedStatic<SpringApplication> mocked = Mockito.mockStatic(SpringApplication.class)) {
-            mocked.when(() -> SpringApplication.run(InventoryServiceApplication.class, new String[]{}))
+            mocked.when(() -> SpringApplication.run(ApiGatewayApplication.class, new String[]{}))
                     .thenReturn(null);
-            InventoryServiceApplication.main(new String[]{});
-            mocked.verify(() -> SpringApplication.run(InventoryServiceApplication.class, new String[]{}));
+            ApiGatewayApplication.main(new String[]{});
+            mocked.verify(() -> SpringApplication.run(ApiGatewayApplication.class, new String[]{}));
         }
     }
-
 }
