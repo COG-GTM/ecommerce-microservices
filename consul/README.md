@@ -4,7 +4,11 @@ The JSON files in this directory are declarative Consul agent service
 definitions. They are mounted at `/consul/config` in the Consul container, so
 Consul registers the services without discovery-client code in the services.
 The services only need to expose their `/q/health` endpoints for the configured
-HTTP checks.
+HTTP checks. Each definition uses a one-hour
+`deregister_critical_service_after` grace period to cover service cold starts.
+Because these services are registered from config files, Consul will not
+re-read a file automatically after deregistration; run `consul reload` or
+restart the Consul agent to re-register the service.
 
 Clients resolve services through Stork with
 `service-discovery.type=consul`. Stork reads the Consul connection settings

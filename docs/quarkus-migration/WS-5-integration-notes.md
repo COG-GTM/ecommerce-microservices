@@ -132,5 +132,9 @@ may optionally add a Consul job scraping
 `consul:8500/v1/agent/metrics?format=prometheus`, but that is not required.
 
 Registration from these files is immediate, but health checks show `critical`
-until the services are actually running and serving `/q/health`. There is no
-backend for `/eureka/**` anymore; WS-6 repoints that route at the Consul UI.
+until the services are actually running and serving `/q/health`. The service
+definitions use a one-hour `deregister_critical_service_after` grace period to
+cover cold starts. If a config-file service is deregistered after that period,
+Consul will not re-read the files automatically; run `consul reload` or restart
+the Consul agent to re-register it. There is no backend for `/eureka/**`
+anymore; WS-6 repoints that route at the Consul UI.

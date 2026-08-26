@@ -7,7 +7,7 @@
       "http": "http://order-service:8080/q/health",
       "interval": "10s",
       "timeout": "5s",
-      "deregister_critical_service_after": "1m"
+      "deregister_critical_service_after": "1h"
     }
   }
 }
