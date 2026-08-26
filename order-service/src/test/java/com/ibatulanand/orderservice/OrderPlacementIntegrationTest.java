@@ -12,6 +12,9 @@ import okhttp3.mockwebserver.Dispatcher;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
+import org.apache.kafka.clients.admin.Admin;
+import org.apache.kafka.clients.admin.AdminClientConfig;
+import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -41,6 +44,7 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -54,7 +58,8 @@ class OrderPlacementIntegrationTest extends AbstractIntegrationTest {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final MockWebServer INVENTORY_SERVICE = new MockWebServer();
-    private static final AtomicReference<MockResponse> INVENTORY_RESPONSE = new AtomicReference<>();
+    private static final AtomicReference<String> INVENTORY_RESPONSE_BODY = new AtomicReference<>();
+    private static final String NOTIFICATION_TOPIC = "notificationTopic";
 
     @Autowired
     private TestRestTemplate restTemplate;
@@ -78,14 +83,28 @@ class OrderPlacementIntegrationTest extends AbstractIntegrationTest {
     @BeforeAll
     static void startInventoryStub() throws Exception {
         // A dispatcher (instead of a fixed queue) answers every attempt, so the test stays valid
-        // regardless of how many retries the circuit breaker configuration performs.
+        // regardless of how many retries the circuit breaker configuration performs. Each attempt
+        // gets its own MockResponse so no response body is consumed twice.
         INVENTORY_SERVICE.setDispatcher(new Dispatcher() {
             @Override
             public MockResponse dispatch(RecordedRequest request) {
-                return INVENTORY_RESPONSE.get();
+                return new MockResponse()
+                        .setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                        .setBody(INVENTORY_RESPONSE_BODY.get());
             }
         });
         INVENTORY_SERVICE.start();
+    }
+
+    @BeforeAll
+    static void createNotificationTopic() throws Exception {
+        // Created up front so the test consumer never depends on broker auto-topic-creation
+        try (Admin admin = Admin.create(
+                Map.of(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA.getBootstrapServers()))) {
+            admin.createTopics(List.of(new NewTopic(NOTIFICATION_TOPIC, 1, (short) 1)))
+                    .all()
+                    .get(30, TimeUnit.SECONDS);
+        }
     }
 
     @AfterAll
@@ -124,7 +143,7 @@ class OrderPlacementIntegrationTest extends AbstractIntegrationTest {
             });
 
             ConsumerRecord<String, String> record =
-                    KafkaTestUtils.getSingleRecord(consumer, "notificationTopic", Duration.ofSeconds(20));
+                    KafkaTestUtils.getSingleRecord(consumer, NOTIFICATION_TOPIC, Duration.ofSeconds(20));
             assertThat(record.value()).contains(order.getOrderNumber());
         }
     }
@@ -148,15 +167,13 @@ class OrderPlacementIntegrationTest extends AbstractIntegrationTest {
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         Consumer<String, String> consumer = new DefaultKafkaConsumerFactory<>(
                 props, new StringDeserializer(), new StringDeserializer()).createConsumer();
-        consumer.subscribe(List.of("notificationTopic"));
+        consumer.subscribe(List.of(NOTIFICATION_TOPIC));
         consumer.poll(Duration.ofSeconds(1));
         return consumer;
     }
 
     private static void stubInventoryResponse(InventoryResponse... responses) throws Exception {
-        INVENTORY_RESPONSE.set(new MockResponse()
-                .setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                .setBody(OBJECT_MAPPER.writeValueAsString(responses)));
+        INVENTORY_RESPONSE_BODY.set(OBJECT_MAPPER.writeValueAsString(responses));
     }
 
     private static OrderRequest orderRequest() {
