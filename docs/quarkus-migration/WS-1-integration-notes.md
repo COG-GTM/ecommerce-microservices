@@ -59,3 +59,20 @@ Change only its metrics path to:
 
 The service now listens on fixed port `8080` instead of Spring's
 `server.port=0`.
+
+## Build tooling
+
+The box's default `mvn` is Apache Maven 3.6.3. It cannot run the Quarkus
+3.15.6 plugin and fails with
+`java.lang.NoSuchMethodError: 'boolean org.apache.maven.settings.Mirror.isBlocked()'`.
+Maven 3.9.x is required for any module using the Quarkus build.
+
+WS-1 was built with Apache Maven 3.9.7 at:
+
+```text
+/home/ubuntu/.m2/wrapper/dists/apache-maven-3.9.7/2a4cb831/bin/mvn
+```
+
+The coordinator should either commit a Maven wrapper (`mvnw`, which is
+root-owned and outside WS-1 scope) or pin Maven 3.9.x in the CI/build setup.
+This requirement applies to every workstream, not only WS-1.

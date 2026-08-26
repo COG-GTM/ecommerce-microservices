@@ -91,6 +91,32 @@ class ProductServiceTest {
     }
 
     @Test
+    void missingFieldsReturnCreatedAndExplicitNulls() {
+        given()
+                .contentType("application/json")
+                .body("""
+                        {"name":"only-name"}
+                        """)
+                .when()
+                .post("/api/product")
+                .then()
+                .statusCode(201)
+                .body(is(emptyString()));
+
+        String body = given()
+                .when()
+                .get("/api/product")
+                .then()
+                .statusCode(200)
+                .extract()
+                .asString();
+
+        assertTrue(body.matches(
+                "\\[\\{\\\"id\\\":\\\"[0-9a-f]{24}\\\",\\\"name\\\":\\\"only-name\\\","
+                        + "\\\"description\\\":null,\\\"price\\\":null\\}\\]"));
+    }
+
+    @Test
     void toleratesUnknownJsonProperties() {
         given()
                 .contentType("application/json")
