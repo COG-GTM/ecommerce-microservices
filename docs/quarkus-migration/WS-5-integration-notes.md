@@ -4,6 +4,11 @@ The coordinating session should apply the following exact
 `docker-compose.yml` diff. This change is intentionally kept here rather than
 editing the Compose file in this session.
 
+Note: `docker-compose.yml` uses CRLF line endings while this document is LF,
+so extract the fenced diff to a file and apply it with
+`git apply --ignore-whitespace` (verified to apply cleanly that way against
+the current file).
+
 ```diff
 diff --git a/docker-compose.yml b/docker-compose.yml
 index 82606cf..9e910cf 100644
