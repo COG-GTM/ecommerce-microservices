@@ -1,13 +1,12 @@
 package com.ibatulanand.orderservice;
 
+import com.ibatulanand.orderservice.support.AbstractIntegrationTest;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
-class OrderServiceApplicationTests {
+class OrderServiceApplicationTests extends AbstractIntegrationTest {
 
-	@Test
-	void contextLoads() {
-	}
+    @Test
+    void contextLoads() {
+    }
 
 }
