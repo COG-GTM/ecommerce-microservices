@@ -12,6 +12,10 @@ import json,sys
 d=json.load(open('$(dirname "$0")/../realms/spring-boot-microservices-realm.json'))
 print(next(c['secret'] for c in d['clients'] if c['clientId']=='$CLIENT_ID'))
 " 2>/dev/null)}"
+if [ -z "$CLIENT_SECRET" ]; then
+  echo "ERROR: could not resolve CLIENT_SECRET (set the CLIENT_SECRET env var or ensure python3 and realms/spring-boot-microservices-realm.json are available)" >&2
+  exit 1
+fi
 SKU="e2e_sku_$$"
 OOS_SKU="e2e_oos_sku_$$"
 
@@ -50,7 +54,7 @@ docker exec mysql-inventory mysql -uibatulanand -ppassword inventory_service -e 
    INSERT INTO t_inventory (sku_code, quantity) VALUES ('$SKU', 10), ('$OOS_SKU', 0);" 2>/dev/null
 echo "Seeded inventory for skus $SKU (qty 10) and $OOS_SKU (qty 0)"
 
-ORDER_TS=$(date -u +%Y-%m-%dT%H:%M:%S)
+ORDER_TS=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
 body=$(curl -s -X POST "$GATEWAY/api/order" -H "$AUTH" -H "Content-Type: application/json" \
   -d "{\"orderLineItemsDtoList\":[{\"skuCode\":\"$SKU\",\"price\":1500,\"quantity\":1}]}")
