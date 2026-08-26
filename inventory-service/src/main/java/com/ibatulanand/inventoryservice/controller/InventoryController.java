@@ -2,23 +2,42 @@ package com.ibatulanand.inventoryservice.controller;
 
 import com.ibatulanand.inventoryservice.dto.InventoryResponse;
 import com.ibatulanand.inventoryservice.service.InventoryService;
-import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.*;
+import jakarta.ws.rs.BadRequestException;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.UriInfo;
 
+import java.util.Arrays;
 import java.util.List;
 
-@RestController
-@RequestMapping("/api/inventory")
-@RequiredArgsConstructor
+@Path("/api/inventory")
 public class InventoryController {
 
     private final InventoryService inventoryService;
 
-    // http://localhost:8082/api/inventory?skuCode=iphone_15&skuCode=iphone_15_pro
-    @GetMapping
-    @ResponseStatus(HttpStatus.OK)
-    public List<InventoryResponse> isInStock(@RequestParam List<String> skuCode) {
-        return inventoryService.isInStock(skuCode);
+    public InventoryController(InventoryService inventoryService) {
+        this.inventoryService = inventoryService;
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    public List<InventoryResponse> isInStock(
+            @QueryParam("skuCode") List<String> skuCode,
+            @Context UriInfo uriInfo) {
+        if (!uriInfo.getQueryParameters().containsKey("skuCode")) {
+            throw new BadRequestException();
+        }
+
+        List<String> expandedSkuCodes = skuCode == null
+                ? List.of()
+                : skuCode.stream()
+                        .flatMap(value -> Arrays.stream(value.split(",", -1)))
+                        .filter(value -> !value.isEmpty())
+                        .toList();
+        return inventoryService.isInStock(expandedSkuCodes);
     }
 }

@@ -1,11 +1,19 @@
 package com.ibatulanand.inventoryservice.repository;
 
 import com.ibatulanand.inventoryservice.model.Inventory;
-import org.springframework.data.jpa.repository.JpaRepository;
+import io.quarkus.hibernate.orm.panache.PanacheRepository;
+import io.quarkus.panache.common.Parameters;
+import jakarta.enterprise.context.ApplicationScoped;
 
 import java.util.List;
-import java.util.Optional;
 
-public interface InventoryRepository extends JpaRepository<Inventory, Long> {
-    List<Inventory> findBySkuCodeIn(List<String> skuCode);
+@ApplicationScoped
+public class InventoryRepository implements PanacheRepository<Inventory> {
+
+    public List<Inventory> findBySkuCodeIn(List<String> skuCodes) {
+        if (skuCodes.isEmpty()) {
+            return List.of();
+        }
+        return find("skuCode in :skuCodes order by id", Parameters.with("skuCodes", skuCodes)).list();
+    }
 }
