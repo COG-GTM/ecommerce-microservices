@@ -1,7 +1,9 @@
 package com.ibatulanand.productservice.repository;
 
 import com.ibatulanand.productservice.model.Product;
-import org.springframework.data.mongodb.repository.MongoRepository;
+import io.quarkus.mongodb.panache.PanacheMongoRepository;
+import jakarta.enterprise.context.ApplicationScoped;
 
-public interface ProductRepository extends MongoRepository<Product, String> {
+@ApplicationScoped
+public class ProductRepository implements PanacheMongoRepository<Product> {
 }
