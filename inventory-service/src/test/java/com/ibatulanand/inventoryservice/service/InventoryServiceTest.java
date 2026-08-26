@@ -11,6 +11,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -64,8 +65,8 @@ class InventoryServiceTest {
         assertThat(inventoryService.isInStock(skuCodes))
                 .extracting(response -> response.getSkuCode(), response -> response.isInStock())
                 .containsExactly(
-                        org.assertj.core.groups.Tuple.tuple("sku-first", true),
-                        org.assertj.core.groups.Tuple.tuple("sku-second", false));
+                        tuple("sku-first", true),
+                        tuple("sku-second", false));
         verify(inventoryRepository).findBySkuCodeIn(skuCodes);
     }
 

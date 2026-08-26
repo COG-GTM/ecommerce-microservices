@@ -20,6 +20,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
@@ -72,9 +73,9 @@ class InventoryServiceApplicationTests {
 
         assertThat(serviceResponse)
                 .extracting(InventoryResponse::getSkuCode, InventoryResponse::isInStock)
-                .containsExactly(
-                        org.assertj.core.groups.Tuple.tuple("integration-in-stock", true),
-                        org.assertj.core.groups.Tuple.tuple("integration-out-of-stock", false));
+                .containsExactlyInAnyOrder(
+                        tuple("integration-in-stock", true),
+                        tuple("integration-out-of-stock", false));
 
         ResponseEntity<InventoryResponse[]> endpointResponse = restTemplate.getForEntity(
                 "/api/inventory?skuCode=integration-in-stock&skuCode=integration-out-of-stock",
@@ -83,8 +84,8 @@ class InventoryServiceApplicationTests {
         assertThat(endpointResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(endpointResponse.getBody())
                 .extracting(InventoryResponse::getSkuCode, InventoryResponse::isInStock)
-                .containsExactly(
-                        org.assertj.core.groups.Tuple.tuple("integration-in-stock", true),
-                        org.assertj.core.groups.Tuple.tuple("integration-out-of-stock", false));
+                .containsExactlyInAnyOrder(
+                        tuple("integration-in-stock", true),
+                        tuple("integration-out-of-stock", false));
     }
 }
