@@ -8,8 +8,10 @@ import com.ibatulanand.orderservice.model.Order;
 import com.ibatulanand.orderservice.model.OrderLineItems;
 import com.ibatulanand.orderservice.repository.OrderRepository;
 import com.ibatulanand.orderservice.support.TestWebClients;
+import okhttp3.mockwebserver.Dispatcher;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
+import okhttp3.mockwebserver.RecordedRequest;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -39,6 +41,7 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -51,6 +54,7 @@ class OrderPlacementIntegrationTest extends AbstractIntegrationTest {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final MockWebServer INVENTORY_SERVICE = new MockWebServer();
+    private static final AtomicReference<MockResponse> INVENTORY_RESPONSE = new AtomicReference<>();
 
     @Autowired
     private TestRestTemplate restTemplate;
@@ -73,6 +77,14 @@ class OrderPlacementIntegrationTest extends AbstractIntegrationTest {
 
     @BeforeAll
     static void startInventoryStub() throws Exception {
+        // A dispatcher (instead of a fixed queue) answers every attempt, so the test stays valid
+        // regardless of how many retries the circuit breaker configuration performs.
+        INVENTORY_SERVICE.setDispatcher(new Dispatcher() {
+            @Override
+            public MockResponse dispatch(RecordedRequest request) {
+                return INVENTORY_RESPONSE.get();
+            }
+        });
         INVENTORY_SERVICE.start();
     }
 
@@ -88,7 +100,7 @@ class OrderPlacementIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void persistsOrderAndProducesOrderPlacedEventWhenProductsAreInStock() throws Exception {
-        enqueueInventoryResponse(new InventoryResponse("iphone_13", true));
+        stubInventoryResponse(new InventoryResponse("iphone_13", true));
 
         try (Consumer<String, String> consumer = notificationTopicConsumer()) {
             ResponseEntity<String> response =
@@ -119,10 +131,7 @@ class OrderPlacementIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void rejectsOrderAndPersistsNothingWhenProductIsOutOfStock() throws Exception {
-        // the controller retries the failing call, so the stub must answer every attempt
-        enqueueInventoryResponse(new InventoryResponse("iphone_13", false));
-        enqueueInventoryResponse(new InventoryResponse("iphone_13", false));
-        enqueueInventoryResponse(new InventoryResponse("iphone_13", false));
+        stubInventoryResponse(new InventoryResponse("iphone_13", false));
 
         ResponseEntity<String> response =
                 restTemplate.postForEntity("/api/order", orderRequest(), String.class);
@@ -144,8 +153,8 @@ class OrderPlacementIntegrationTest extends AbstractIntegrationTest {
         return consumer;
     }
 
-    private static void enqueueInventoryResponse(InventoryResponse... responses) throws Exception {
-        INVENTORY_SERVICE.enqueue(new MockResponse()
+    private static void stubInventoryResponse(InventoryResponse... responses) throws Exception {
+        INVENTORY_RESPONSE.set(new MockResponse()
                 .setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .setBody(OBJECT_MAPPER.writeValueAsString(responses)));
     }
