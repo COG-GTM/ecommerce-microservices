@@ -40,12 +40,8 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
                     <img alt="Java" src="https://img.shields.io/badge/Java-ED8B00?style=flat&logo=openjdk&logoColor=white"/>
                 </a>
                 &emsp;
-                <a href="https://spring.io/projects/spring-boot" target="_blank">
-                    <img alt="Spring Boot" src="https://img.shields.io/badge/Spring Boot-6DB33F?style=flat&logo=springboot&logoColor=white">
-                </a>
-                &emsp;
-                <a href="https://spring.io/projects/spring-cloud" target="_blank">
-                    <img alt="Spring Cloud" src="https://img.shields.io/badge/Spring Cloud-6DB33F?style=flat&logo=spring&logoColor=white">
+                <a href="https://quarkus.io/" target="_blank">
+                    <img alt="Quarkus" src="https://img.shields.io/badge/Quarkus-4695EB?style=flat&logo=quarkus&logoColor=white">
                 </a>
                 &emsp;
             </td>
@@ -74,8 +70,8 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
                 <strong>API Gateway</strong>
             </td>
             <td>
-                <a href="https://spring.io/projects/spring-cloud-gateway" target="_blank"> 
-                    <img alt="Spring Cloud Gateway" src="https://img.shields.io/badge/Spring Cloud Gateway-6DB33F.svg?&style=flat&logo=spring&logoColor=white"/>
+                <a href="https://quarkus.io/guides/reactive-routes" target="_blank">
+                    <img alt="Quarkus Reactive Routes" src="https://img.shields.io/badge/Quarkus%20Reactive%20Routes-4695EB.svg?&style=flat&logo=quarkus&logoColor=white"/>
                 </a>
                 &emsp;
             </td>
@@ -85,8 +81,12 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
                 <strong>Service Discovery</strong>
             </td>
             <td>
-                <a href="https://spring.io/projects/spring-cloud-netflix" target="_blank"> 
-                    <img alt="Netflix Eureka" src="https://img.shields.io/badge/Eureka-DF162B.svg?&style=flat&logo=netflix&logoColor=white"/>
+                <a href="https://www.consul.io/" target="_blank">
+                    <img alt="HashiCorp Consul" src="https://img.shields.io/badge/HashiCorp%20Consul-F24C53.svg?&style=flat&logo=consul&logoColor=white"/>
+                </a>
+                &emsp;
+                <a href="https://smallrye.io/smallrye-stork/" target="_blank">
+                    <img alt="SmallRye Stork" src="https://img.shields.io/badge/SmallRye%20Stork-4B32C3.svg?&style=flat&logoColor=white"/>
                 </a>
                 &emsp;
             </td>
@@ -96,8 +96,8 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
                 <strong>Circuit Breaker</strong>
             </td>
             <td>
-                <a href="https://resilience4j.readme.io/" target="_blank"> 
-                    <img alt="Resilience4J" src="https://img.shields.io/badge/Resilience4J-121212.svg?&style=flat&logo=resilience4j&logoColor=white"/>
+                <a href="https://smallrye.io/docs/smallrye-fault-tolerance/" target="_blank">
+                    <img alt="SmallRye Fault Tolerance" src="https://img.shields.io/badge/SmallRye%20Fault%20Tolerance-4B32C3.svg?&style=flat&logoColor=white"/>
                 </a>
                 &emsp;
             </td>
@@ -132,6 +132,10 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
                 &emsp;
                 <a href="https://grafana.com/" target="_blank"> 
                     <img alt="Grafana" src="https://img.shields.io/badge/Grafana-F79A2F.svg?&style=flat&logo=grafana&logoColor=white"/>
+                </a>
+                &emsp;
+                <a href="https://opentelemetry.io/" target="_blank">
+                    <img alt="OpenTelemetry" src="https://img.shields.io/badge/OpenTelemetry-000000.svg?&style=flat&logo=opentelemetry&logoColor=white"/>
                 </a>
                 &emsp;
             </td>
