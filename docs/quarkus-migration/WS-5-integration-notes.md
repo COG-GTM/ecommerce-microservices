@@ -6,16 +6,13 @@ editing the Compose file in this session.
 
 ```diff
 diff --git a/docker-compose.yml b/docker-compose.yml
+index 82606cf..9e910cf 100644
 --- a/docker-compose.yml
 +++ b/docker-compose.yml
-@@ -81,16 +81,15 @@ services:
-   zipkin:
-     image: openzipkin/zipkin
-     container_name: zipkin
-     ports:
+@@ -113,18 +113,15 @@ services:
        - "9411:9411"
-
--
+ 
+ 
 -  # Discovery Server (Eureka Server) Config
 -  discovery-server:
 -    image: ibatulanandjp/discovery-server:latest
@@ -36,10 +33,11 @@ diff --git a/docker-compose.yml b/docker-compose.yml
 +      - "8500:8500"
 +    volumes:
 +      - ./consul:/consul/config
-
+ 
    # API Gateway Service Config
    api-gateway:
-@@ -103,16 +102,17 @@ services:
+@@ -137,13 +134,14 @@ services:
+       - "8181"
      environment:
        - LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY=TRACE
 -      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka
@@ -53,9 +51,10 @@ diff --git a/docker-compose.yml b/docker-compose.yml
 -      - discovery-server
 +      - consul
        - keycloak
-
+ 
    # Product Service Config
-@@ -123,7 +123,6 @@ services:
+@@ -153,13 +151,12 @@ services:
+     pull_policy: always
      environment:
        - SPRING_DATA_MONGODB_URI=mongodb://mongo:27017/product-service
 -      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
@@ -67,9 +66,9 @@ diff --git a/docker-compose.yml b/docker-compose.yml
 -      - discovery-server
 +      - consul
        - api-gateway
-
+ 
    # Order Service Config
-@@ -137,11 +136,13 @@ services:
+@@ -172,14 +169,15 @@ services:
        - SPRING_DATASOURCE_USERNAME=ibatulanand
        - SPRING_DATASOURCE_PASSWORD=password
        - SERVER_PORT=8080
@@ -85,9 +84,9 @@ diff --git a/docker-compose.yml b/docker-compose.yml
 -      - discovery-server
 +      - consul
        - api-gateway
-
+ 
    # Inventory Service Config
-@@ -155,7 +156,6 @@ services:
+@@ -192,12 +190,11 @@ services:
        - SPRING_DATASOURCE_USERNAME=ibatulanand
        - SPRING_DATASOURCE_PASSWORD=password
        - SERVER_PORT=8080
@@ -99,9 +98,9 @@ diff --git a/docker-compose.yml b/docker-compose.yml
 -      - discovery-server
 +      - consul
        - api-gateway
-
+ 
    # Notification Service Config
-@@ -166,11 +166,10 @@ services:
+@@ -207,13 +204,12 @@ services:
      pull_policy: always
      environment:
        - SERVER_PORT=8080
@@ -114,6 +113,8 @@ diff --git a/docker-compose.yml b/docker-compose.yml
 -      - discovery-server
 +      - consul
        - api-gateway
+ 
+   # Prometheus Config
 ```
 
 The `order-service` and `api-gateway` clients receive `CONSUL_HOST=consul`
