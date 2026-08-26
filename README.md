@@ -201,6 +201,55 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
    curl -s http://localhost:8500/v1/catalog/services
    ```
 
+### Curl golden path
+
+Get a client-credentials token using the secret from the realm export:
+
+```shell
+CLIENT_SECRET=$(jq -r '.clients[] | select(.clientId=="spring-cloud-client") | .secret' realms/spring-boot-microservices-realm-realm.json)
+TOKEN=$(curl -s -X POST http://localhost:8080/realms/spring-boot-microservices-realm/protocol/openid-connect/token \
+  -d grant_type=client_credentials \
+  -d client_id=spring-cloud-client \
+  -d client_secret="$CLIENT_SECRET" | jq -r .access_token)
+```
+
+Create and list a product through the gateway:
+
+```shell
+curl -i -X POST http://localhost:8181/api/product \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"iPhone 15","description":"iPhone 15","price":1500}'
+
+curl -i http://localhost:8181/api/product \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+Place an order:
+
+```shell
+curl -i -X POST http://localhost:8181/api/order \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"orderLineItemsDtoList":[{"skuCode":"iphone_15","quantity":1,"price":1500}]}'
+```
+
+The product calls should return `201` and `200`; the order call should return `201` with `Order Placed Successfully!`.
+
+Verify the notification, tracing, and metrics:
+
+```shell
+docker compose logs notification-service | grep "Received Notification for Order"
+```
+
+Open the Zipkin UI at http://localhost:9411 and verify that one trace spans `api-gateway` -> `order-service` -> `inventory-service`.
+
+```shell
+curl -s http://localhost:9090/api/v1/targets | jq '.data.activeTargets[] | {job: .labels.job, health}'
+```
+
+All five jobs (`api_gateway`, `product_service`, `order_service`, `inventory_service`, and `notification_service`) should report `up`.
+
 
 ## Usage
 
