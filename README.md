@@ -183,6 +183,7 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
    ```
    This produces `ibatulanandjp/{api-gateway,product-service,order-service,inventory-service,notification-service}:latest`.
    Compose uses `pull_policy: never`, so it runs exactly these locally built images.
+   Ensure host ports 27017 and 9090 are available; Compose publishes MongoDB and Prometheus on those ports.
 
 3. Start the containers:
    ```shell

@@ -1,10 +1,9 @@
 ---
-version: "3"
 services:
   # MySQL Config for order service
   mysql-order:
     container_name: mysql-order
-    image: mysql:latest
+    image: mysql:8.0
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: order_service
@@ -19,7 +18,7 @@ services:
   # MySQL Config for inventory service
   mysql-inventory:
     container_name: mysql-inventory
-    image: mysql:latest
+    image: mysql:8.0
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: inventory_service
@@ -34,7 +33,7 @@ services:
   # MongoDB Config for product service
   mongo:
     container_name: mongo
-    image: mongo:latest
+    image: mongo:7.0
     restart: unless-stopped
     ports:
       - "27017:27017"
@@ -47,7 +46,7 @@ services:
   # Keycloak Config (MySQL Database)
   keycloak-mysql:
     container_name: keycloak-mysql
-    image: mysql:latest
+    image: mysql:8.0
     volumes:
       - ./mysql_keycloak_data:/var/lib/mysql
     environment:
@@ -59,7 +58,7 @@ services:
   # Keycloak Config
   keycloak:
     container_name: keycloak
-    image: quay.io/keycloak/keycloak:latest
+    image: quay.io/keycloak/keycloak:25.0
     command: [ "start-dev", "--import-realm" ]
     environment:
       DB_VENDOR: MYSQL
@@ -79,7 +78,7 @@ services:
 
   # Apache Kafka (Zookeeper) Config
   zookeeper:
-    image: confluentinc/cp-zookeeper:latest
+    image: confluentinc/cp-zookeeper:7.4.4
     container_name: zookeeper
     ports:
       - "2181:2181"
@@ -89,7 +88,7 @@ services:
 
   # Apache Kafka (Broker) Config
   broker:
-    image: confluentinc/cp-kafka:latest
+    image: confluentinc/cp-kafka:7.4.4
     container_name: broker
     ports:
       - "9092:9092"
@@ -107,7 +106,7 @@ services:
 
   # Zipkin Config
   zipkin:
-    image: openzipkin/zipkin
+    image: openzipkin/zipkin:3
     container_name: zipkin
     ports:
       - "9411:9411"
@@ -232,7 +231,7 @@ services:
   # Prometheus Config
   prometheus:
     container_name: prometheus
-    image: prom/prometheus:latest
+    image: prom/prometheus:v2.54.1
     restart: always
     ports:
       - "9090:9090"
@@ -248,14 +247,14 @@ services:
   # Grafana Config
   grafana:
     container_name: grafana
-    image: grafana/grafana-oss:latest
+    image: grafana/grafana-oss:11.2.0
     restart: always
     ports:
       - "3000:3000"
-    links:
-      - prometheus:prometheus
     volumes:
-      - ./grafana_data:/var/lib/grafana
+      - grafana_data:/var/lib/grafana
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=password
+volumes:
+  grafana_data:
