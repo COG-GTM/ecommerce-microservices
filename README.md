@@ -184,6 +184,27 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
    ```
 
 
+## Testing
+
+Tests are layered per service, and run without any external infrastructure (MySQL, Kafka, Eureka):
+- **Unit tests** (`*ServiceTest`): business logic with Mockito-mocked collaborators.
+- **Web layer tests** (`*ControllerTest`): `@WebMvcTest` slices driven through REST Assured MockMvc / MockMvc, with the service layer mocked.
+- **Persistence tests** (`*RepositoryTest`): `@DataJpaTest` against in-memory H2, sharing a per-service `DbTestBase`.
+- **Integration test** (`product-service`): full `@SpringBootTest` against a MongoDB Testcontainer; automatically skipped when Docker is unavailable.
+
+Fixtures live in a per-service `TestHelper`, and the `test` profile
+(`src/test/resources/application-test.properties`) supplies the test datasource and disables service discovery.
+
+Run the whole suite:
+```shell
+mvn test
+```
+
+Run the tests of a single service:
+```shell
+mvn -pl product-service test
+```
+
 ## Usage
 
 
