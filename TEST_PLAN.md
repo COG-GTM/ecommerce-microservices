@@ -124,13 +124,19 @@ Expected: a log line `Received Notification for Order - <order-number>` appearin
 
 ### 5.1 Out-of-stock order
 
+Seed an inventory row with quantity `0` (a SKU with **no** inventory row does *not* trigger the
+out-of-stock path: inventory-service returns an empty list and the order is placed):
+
 ```shell
+docker exec mysql-inventory mysql -uibatulanand -ppassword inventory_service \
+  -e "INSERT INTO t_inventory (sku_code, quantity) VALUES ('oos_sku', 0);"
+
 curl -s -X POST http://localhost:8181/api/order \
   -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-  -d '{"orderLineItemsDtoList":[{"skuCode":"no_such_sku","price":10,"quantity":1}]}'
+  -d '{"orderLineItemsDtoList":[{"skuCode":"oos_sku","price":10,"quantity":1}]}'
 ```
 Expected: the fallback message `Oops! Something went wrong, please order after some time!`
-(the service throws `IllegalArgumentException` for missing/zero stock, which triggers the
+(the service throws `IllegalArgumentException` for zero stock, which triggers the
 Resilience4j fallback in `OrderController`). No new notification appears in notification-service logs.
 
 ### 5.2 Circuit-breaker fallback (inventory down)

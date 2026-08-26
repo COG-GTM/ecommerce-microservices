@@ -13,6 +13,7 @@ d=json.load(open('$(dirname "$0")/../realms/spring-boot-microservices-realm.json
 print(next(c['secret'] for c in d['clients'] if c['clientId']=='$CLIENT_ID'))
 " 2>/dev/null)}"
 SKU="e2e_sku_$$"
+OOS_SKU="e2e_oos_sku_$$"
 
 PASS=0; FAIL=0
 check() { # name expected actual
@@ -46,20 +47,22 @@ contains "Product list contains created product" "Iphone 15" "$body"
 
 docker exec mysql-inventory mysql -uibatulanand -ppassword inventory_service -e \
   "CREATE TABLE IF NOT EXISTS t_inventory (id BIGINT AUTO_INCREMENT PRIMARY KEY, sku_code VARCHAR(255), quantity INT); \
-   INSERT INTO t_inventory (sku_code, quantity) VALUES ('$SKU', 10);" 2>/dev/null
-echo "Seeded inventory for sku $SKU"
+   INSERT INTO t_inventory (sku_code, quantity) VALUES ('$SKU', 10), ('$OOS_SKU', 0);" 2>/dev/null
+echo "Seeded inventory for skus $SKU (qty 10) and $OOS_SKU (qty 0)"
+
+ORDER_TS=$(date -u +%Y-%m-%dT%H:%M:%S)
 
 body=$(curl -s -X POST "$GATEWAY/api/order" -H "$AUTH" -H "Content-Type: application/json" \
   -d "{\"orderLineItemsDtoList\":[{\"skuCode\":\"$SKU\",\"price\":1500,\"quantity\":1}]}")
 contains "In-stock order is placed" "Order Placed Successfully" "$body"
 
 sleep 5
-logs=$(docker logs notification-service --tail 50 2>&1)
+logs=$(docker logs notification-service --since "$ORDER_TS" 2>&1)
 contains "Notification consumed from notificationTopic" "Received Notification for Order" "$logs"
 
 echo "== Negative scenarios =="
 body=$(curl -s -X POST "$GATEWAY/api/order" -H "$AUTH" -H "Content-Type: application/json" \
-  -d '{"orderLineItemsDtoList":[{"skuCode":"no_such_sku_'$$'","price":10,"quantity":1}]}')
+  -d "{\"orderLineItemsDtoList\":[{\"skuCode\":\"$OOS_SKU\",\"price\":10,\"quantity\":1}]}")
 contains "Out-of-stock order returns fallback message" "Oops! Something went wrong" "$body"
 
 docker stop inventory-service >/dev/null
