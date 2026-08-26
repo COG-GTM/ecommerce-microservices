@@ -1,0 +1,13 @@
+{
+  "service": {
+    "name": "order-service",
+    "address": "order-service",
+    "port": 8080,
+    "check": {
+      "http": "http://order-service:8080/q/health",
+      "interval": "10s",
+      "timeout": "5s",
+      "deregister_critical_service_after": "1h"
+    }
+  }
+}
