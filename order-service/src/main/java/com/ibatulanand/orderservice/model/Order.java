@@ -15,6 +15,7 @@ public class Order {
     @JoinTable(name = "t_orders_order_line_items_list",
             joinColumns = @JoinColumn(name = "order_id"),
             inverseJoinColumns = @JoinColumn(name = "order_line_items_list_id"),
+            // Reproduces the pre-migration generated schema constraint name.
             uniqueConstraints = @UniqueConstraint(
                     name = "UK_nqpoocsk2utvq7va8bgth1mj9",
                     columnNames = "order_line_items_list_id"))

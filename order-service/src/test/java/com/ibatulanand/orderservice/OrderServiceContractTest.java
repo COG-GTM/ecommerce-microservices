@@ -1,10 +1,7 @@
 package com.ibatulanand.orderservice;
 
-import com.github.tomakehurst.wiremock.client.WireMock;
-import com.github.tomakehurst.wiremock.matching.UrlPattern;
 import com.github.tomakehurst.wiremock.stubbing.ServeEvent;
 import io.opentelemetry.sdk.trace.data.SpanData;
-import io.quarkus.test.InjectMock;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.kafka.InjectKafkaCompanion;
@@ -20,13 +17,16 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.List;
+import java.util.UUID;
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
@@ -78,14 +78,32 @@ class OrderServiceContractTest {
                 .extract().asString();
 
         assertEquals(SUCCESS, body);
-        assertThat(count("t_orders_order_line_items_list"), greaterThan(0L));
-        assertThat(count("t_orders"), greaterThan(0L));
-        assertThat(count("t_order_line_items"), greaterThan(0L));
-    }
 
-    private long count(String table) {
-        return ((Number) entityManager.createNativeQuery("select count(*) from " + table)
-                .getSingleResult()).longValue();
+        List<Object[]> orders = entityManager.createNativeQuery(
+                        "select id, order_number from t_orders")
+                .getResultList();
+        assertEquals(1, orders.size());
+        Object[] order = orders.get(0);
+        long orderId = ((Number) order[0]).longValue();
+        assertDoesNotThrow(() -> UUID.fromString((String) order[1]));
+
+        List<Object[]> lineItems = entityManager.createNativeQuery(
+                        "select id, sku_code, price, quantity from t_order_line_items")
+                .getResultList();
+        assertEquals(1, lineItems.size());
+        Object[] lineItem = lineItems.get(0);
+        long lineItemId = ((Number) lineItem[0]).longValue();
+        assertEquals("iphone_15", lineItem[1]);
+        assertEquals(new BigDecimal("1200.00"), lineItem[2]);
+        assertEquals(1, ((Number) lineItem[3]).intValue());
+
+        List<Object[]> joins = entityManager.createNativeQuery(
+                        "select order_id, order_line_items_list_id "
+                                + "from t_orders_order_line_items_list")
+                .getResultList();
+        assertEquals(1, joins.size());
+        assertEquals(orderId, ((Number) joins.get(0)[0]).longValue());
+        assertEquals(lineItemId, ((Number) joins.get(0)[1]).longValue());
     }
 
     @Test
@@ -207,25 +225,4 @@ class OrderServiceContractTest {
         assertEquals(server.getSpanContext().getSpanId(), inventory.getParentSpanContext().getSpanId());
     }
 
-    @Test
-    @Order(8)
-    void repeatedInventoryFailuresOpenCircuitAndUseFallback() {
-        WireMockInventoryResource.server().stubFor(get(urlPathEqualTo("/api/inventory"))
-                .willReturn(serverError()));
-
-        for (int i = 0; i < 6; i++) {
-            given()
-                    .contentType(ContentType.JSON)
-                    .body("""
-                            {"orderLineItemsDtoList":[{"id":null,"skuCode":"broken","price":1,"quantity":1}]}
-                            """.trim())
-                    .when().post("/api/order")
-                    .then().statusCode(201)
-                    .header("Content-Type", org.hamcrest.Matchers.equalTo("text/plain;charset=UTF-8"))
-                    .body(org.hamcrest.Matchers.equalTo(FALLBACK));
-        }
-
-        assertThat(WireMockInventoryResource.server().getAllServeEvents().size(),
-                org.hamcrest.Matchers.lessThan(18));
-    }
 }

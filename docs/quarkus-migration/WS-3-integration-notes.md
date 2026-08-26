@@ -10,8 +10,8 @@ Replace the current Spring environment with:
 ```yaml
 environment:
   QUARKUS_DATASOURCE_JDBC_URL: jdbc:mysql://mysql-order:3306/order_service?allowPublicKeyRetrieval=true&useSSL=false
-  QUARKUS_DATASOURCE_USERNAME: root
-  QUARKUS_DATASOURCE_PASSWORD: mysql
+  QUARKUS_DATASOURCE_USERNAME: ibatulanand
+  QUARKUS_DATASOURCE_PASSWORD: password
   QUARKUS_HTTP_PORT: 8080
   KAFKA_BOOTSTRAP_SERVERS: broker:29092
   CONSUL_HOST: consul
@@ -31,14 +31,22 @@ MANAGEMENT_ZIPKIN_TRACING_ENDPOINT
 SPRING_KAFKA_BOOTSTRAPSERVERS
 ```
 
-Add the coordinator-owned Consul service dependency:
+Update the coordinator-owned service dependencies:
 
-```yaml
+```diff
 depends_on:
+  - api-gateway
   - mysql-order
   - broker
-  - consul
+-  - discovery-server
+-  - zipkin
++  - consul
++  - otel-collector
 ```
+
+Remove `discovery-server` because Eureka registration is gone. Replace the
+`zipkin` dependency with the OTel collector service, and retain
+`api-gateway`, `mysql-order`, and `broker`.
 
 The application has no discovery or registration client code. Service
 registration remains declarative and is owned by WS-5.

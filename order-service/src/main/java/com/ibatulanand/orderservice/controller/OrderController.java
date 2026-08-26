@@ -12,11 +12,13 @@ import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.jboss.logging.Logger;
 
 import java.time.temporal.ChronoUnit;
 
 @Path("/api/order")
 public class OrderController {
+    private static final Logger LOG = Logger.getLogger(OrderController.class);
 
     private static final String SUCCESS_BODY = "Order Placed Successfully!";
     private static final String FALLBACK_BODY =
@@ -34,6 +36,7 @@ public class OrderController {
     @Fallback(fallbackMethod = "fallbackMethod")
     public Response placeOrder(OrderRequest orderRequest) {
         orderService.placeOrder(orderRequest);
+        LOG.info("Order placed successfully");
         return response(SUCCESS_BODY);
     }
 
