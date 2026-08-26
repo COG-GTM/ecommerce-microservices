@@ -2,32 +2,52 @@ package com.ibatulanand.orderservice.controller;
 
 import com.ibatulanand.orderservice.dto.OrderRequest;
 import com.ibatulanand.orderservice.service.OrderService;
-import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
-import io.github.resilience4j.retry.annotation.Retry;
-import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
-import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.*;
+import org.eclipse.microprofile.faulttolerance.CircuitBreaker;
+import org.eclipse.microprofile.faulttolerance.Fallback;
+import org.eclipse.microprofile.faulttolerance.Retry;
+import org.eclipse.microprofile.faulttolerance.Timeout;
+import jakarta.inject.Inject;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+import org.jboss.logging.Logger;
 
-import java.util.concurrent.CompletableFuture;
+import java.time.temporal.ChronoUnit;
 
-@RestController
-@RequestMapping("/api/order")
-@RequiredArgsConstructor
+@Path("/api/order")
 public class OrderController {
+    private static final Logger LOG = Logger.getLogger(OrderController.class);
 
-    private final OrderService orderService;
+    private static final String SUCCESS_BODY = "Order Placed Successfully!";
+    private static final String FALLBACK_BODY =
+            "Oops! Something went wrong, please order after some time!";
 
-    @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    @CircuitBreaker(name = "inventory", fallbackMethod = "fallbackMethod")
-    @TimeLimiter(name = "inventory")
-    @Retry(name = "inventory")
-    public CompletableFuture<String> placeOrder(@RequestBody OrderRequest orderRequest) {
-        return CompletableFuture.supplyAsync(() -> orderService.placeOrder(orderRequest));
+    @Inject
+    OrderService orderService;
+
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @CircuitBreaker(requestVolumeThreshold = 5, failureRatio = 0.5,
+            delay = 5, delayUnit = ChronoUnit.SECONDS, successThreshold = 3)
+    @Timeout(value = 3000)
+    @Retry(maxRetries = 2, delay = 5, delayUnit = ChronoUnit.MILLIS)
+    @Fallback(fallbackMethod = "fallbackMethod")
+    public Response placeOrder(OrderRequest orderRequest) {
+        orderService.placeOrder(orderRequest);
+        LOG.info("Order placed successfully");
+        return response(SUCCESS_BODY);
     }
 
-    public CompletableFuture<String> fallbackMethod(OrderRequest orderRequest, RuntimeException runtimeException) {
-        return CompletableFuture.supplyAsync(() -> "Oops! Something went wrong, please order after some time!");
+    public Response fallbackMethod(OrderRequest orderRequest, Throwable failure) {
+        return response(FALLBACK_BODY);
+    }
+
+    private Response response(String body) {
+        return Response.status(Response.Status.CREATED)
+                .type("text/plain;charset=UTF-8")
+                .entity(body)
+                .build();
     }
 }
