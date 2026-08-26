@@ -24,7 +24,17 @@ public class OrderController {
     @TimeLimiter(name = "inventory")
     @Retry(name = "inventory")
     public CompletableFuture<String> placeOrder(@RequestBody OrderRequest orderRequest) {
-        return CompletableFuture.supplyAsync(() -> orderService.placeOrder(orderRequest));
+        ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
+        return CompletableFuture.supplyAsync(() -> {
+            Thread thread = Thread.currentThread();
+            ClassLoader previousClassLoader = thread.getContextClassLoader();
+            thread.setContextClassLoader(contextClassLoader);
+            try {
+                return orderService.placeOrder(orderRequest);
+            } finally {
+                thread.setContextClassLoader(previousClassLoader);
+            }
+        });
     }
 
     public CompletableFuture<String> fallbackMethod(OrderRequest orderRequest, RuntimeException runtimeException) {
