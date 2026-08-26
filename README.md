@@ -269,12 +269,12 @@ All five jobs (`api_gateway`, `product_service`, `order_service`, `inventory_ser
     - Configure New Token with:
       - Token Name: `token`
       - Grant Type: `Client Credentials`
-      - Access Token URL: `http://keycloak:8080/realms/spring-boot-microservices-realm/protocol/openid-connect/token`
+      - Access Token URL: `http://localhost:8080/realms/spring-boot-microservices-realm/protocol/openid-connect/token`
       - Client ID: `spring-cloud-client`
       - Client Secret: `<client-secret>` (which you copied in the last step from KeyCloak)
     - Click on "Get New Access Token" and then click "Use Token"
 
-    > NOTE: For getting the access token from the keycloak container with the local machine, it is required to add a row with `127.0.0.1 keycloak` in the file: `C:\Windows\System32\drivers\etc\hosts` or `/etc/hosts`  
+    > NOTE: Use `localhost:8080` for the token URL. Keycloak stamps the token's `iss` claim with the host it was reached on, and the gateway accepts only `http://localhost:8080/realms/spring-boot-microservices-realm` (`QUARKUS_OIDC_TOKEN_ISSUER`); a token minted via `keycloak:8080` is rejected with 401.  
 
 - **Accessing API Endpoints**
   - **POST /api/product**
