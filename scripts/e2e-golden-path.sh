@@ -60,8 +60,12 @@ body=$(curl -s -X POST "$GATEWAY/api/order" -H "$AUTH" -H "Content-Type: applica
   -d "{\"orderLineItemsDtoList\":[{\"skuCode\":\"$SKU\",\"price\":1500,\"quantity\":1}]}")
 contains "In-stock order is placed" "Order Placed Successfully" "$body"
 
-sleep 5
-logs=$(docker logs notification-service --since "$ORDER_TS" 2>&1)
+logs=""
+for _ in $(seq 1 12); do
+  logs=$(docker logs notification-service --since "$ORDER_TS" 2>&1)
+  case "$logs" in *"Received Notification for Order"*) break;; esac
+  sleep 5
+done
 contains "Notification consumed from notificationTopic" "Received Notification for Order" "$logs"
 
 echo "== Negative scenarios =="
@@ -73,7 +77,7 @@ docker stop inventory-service >/dev/null
 body=$(curl -s -X POST "$GATEWAY/api/order" -H "$AUTH" -H "Content-Type: application/json" \
   -d "{\"orderLineItemsDtoList\":[{\"skuCode\":\"$SKU\",\"price\":1500,\"quantity\":1}]}")
 docker start inventory-service >/dev/null
-contains "Circuit-breaker fallback when inventory is down" "Oops! Something went wrong" "$body"
+contains "Resilience4j fallback when inventory is down" "Oops! Something went wrong" "$body"
 
 echo
 echo "Results: $PASS passed, $FAIL failed"
