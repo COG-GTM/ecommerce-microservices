@@ -19,6 +19,11 @@ Apply this diff to the `api-gateway` service in `docker-compose.yml`:
      expose:
        - "8181"
      environment:
+-      - LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY
+-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
+-      - SERVER_PORT
+-      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUERURI
+-      - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT
 +      - QUARKUS_HTTP_PORT=8080
 +      - QUARKUS_OIDC_AUTH_SERVER_URL=http://keycloak:8080/realms/spring-boot-microservices-realm
 +      - CONSUL_HOST=consul

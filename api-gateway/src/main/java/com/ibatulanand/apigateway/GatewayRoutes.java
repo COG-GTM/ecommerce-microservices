@@ -44,37 +44,33 @@ public class GatewayRoutes {
 
     void registerRoutes(@Observes Router router) {
         WebClient client = WebClient.create(vertx);
-        router.route().handler(BodyHandler.create());
-        router.route("/api/product").handler(context -> proxyService(context, client, "product-service"));
-        router.route("/api/order").handler(context -> proxyService(context, client, "order-service"));
-        router.routeWithRegex("^/eureka(?:/.*)?$").handler(context -> proxyConsulUi(context, client));
+        router.route("/api/product").handler(BodyHandler.create())
+                .handler(context -> proxyService(context, client, "product-service"));
+        router.route("/api/order").handler(BodyHandler.create())
+                .handler(context -> proxyService(context, client, "order-service"));
+        router.routeWithRegex("^/eureka(?:/.*)?$").handler(BodyHandler.create())
+                .handler(context -> proxyConsulUi(context, client));
     }
 
     private void proxyService(RoutingContext context, WebClient client, String serviceName) {
         Context traceContext = Context.current();
-        Span gatewaySpan = startGatewaySpan(context, traceContext);
-        Context gatewayContext = traceContext.with(gatewaySpan);
-        resolveAndForward(context, client, serviceName, context.getBody(), gatewayContext, gatewaySpan);
+        resolveAndForward(context, client, serviceName, context.getBody(), traceContext);
     }
 
     private void resolveAndForward(RoutingContext context, WebClient client, String serviceName,
-            io.vertx.core.buffer.Buffer body, Context gatewayContext, Span gatewaySpan) {
+            io.vertx.core.buffer.Buffer body, Context parentContext) {
         try {
             Stork.getInstance().getService(serviceName).selectInstance()
                     .subscribe().with(instance -> sendToService(
-                                    context, client, serviceName, instance, body, gatewayContext, gatewaySpan),
-                            failure -> {
-                                gatewaySpan.end();
-                                badGateway(context, serviceName, failure);
-                            });
+                                    context, client, serviceName, instance, body, parentContext),
+                            failure -> badGateway(context, serviceName, failure));
         } catch (Exception failure) {
-            gatewaySpan.end();
             badGateway(context, serviceName, failure);
         }
     }
 
     private void sendToService(RoutingContext context, WebClient client, String serviceName,
-            ServiceInstance instance, io.vertx.core.buffer.Buffer body, Context gatewayContext, Span gatewaySpan) {
+            ServiceInstance instance, io.vertx.core.buffer.Buffer body, Context parentContext) {
         String path = withQuery(context.request().path(), context.request().query());
         String targetPath = joinPath(instance.getPath().orElse(""), path);
         String scheme = instance.isSecure() ? "https" : "http";
@@ -84,19 +80,17 @@ public class GatewayRoutes {
         copyRequestHeaders(context.request().headers(), outbound);
         Tracer tracer = GlobalOpenTelemetry.getTracer(GatewayRoutes.class.getName());
         Span clientSpan = tracer.spanBuilder(context.request().method().name() + " " + path)
-                .setParent(gatewayContext)
+                .setParent(parentContext)
                 .setSpanKind(SpanKind.CLIENT)
                 .startSpan();
-        injectTraceContext(outbound, gatewayContext.with(clientSpan));
+        injectTraceContext(outbound, parentContext.with(clientSpan));
         send(outbound, body)
                 .subscribe().with(upstream -> {
                     clientSpan.end();
-                    gatewaySpan.end();
                     writeResponse(context.response(), upstream);
                 }, failure -> {
                     clientSpan.recordException(failure);
                     clientSpan.end();
-                    gatewaySpan.end();
                     badGateway(context, serviceName, failure);
                 });
     }
@@ -111,33 +105,21 @@ public class GatewayRoutes {
         HttpRequest<io.vertx.mutiny.core.buffer.Buffer> outbound =
                 client.requestAbs(context.request().method(), target);
         copyRequestHeaders(context.request().headers(), outbound);
-        Span gatewaySpan = startGatewaySpan(context, traceContext);
-        Context gatewayContext = traceContext.with(gatewaySpan);
         Tracer tracer = GlobalOpenTelemetry.getTracer(GatewayRoutes.class.getName());
         Span clientSpan = tracer.spanBuilder(context.request().method().name() + " " + requestPath)
-                .setParent(gatewayContext)
+                .setParent(traceContext)
                 .setSpanKind(SpanKind.CLIENT)
                 .startSpan();
-        injectTraceContext(outbound, gatewayContext.with(clientSpan));
+        injectTraceContext(outbound, traceContext.with(clientSpan));
         send(outbound, context.getBody())
                 .subscribe().with(upstream -> {
                     clientSpan.end();
-                    gatewaySpan.end();
                     writeResponse(context.response(), upstream);
                 }, failure -> {
                     clientSpan.recordException(failure);
                     clientSpan.end();
-                    gatewaySpan.end();
                     badGateway(context, "consul-ui", failure);
                 });
-    }
-
-    private static Span startGatewaySpan(RoutingContext context, Context parent) {
-        return GlobalOpenTelemetry.getTracer(GatewayRoutes.class.getName())
-                .spanBuilder(context.request().method().name() + " " + context.request().path())
-                .setParent(parent)
-                .setSpanKind(SpanKind.SERVER)
-                .startSpan();
     }
 
     private static io.smallrye.mutiny.Uni<HttpResponse<io.vertx.mutiny.core.buffer.Buffer>> send(
@@ -164,7 +146,7 @@ public class GatewayRoutes {
                     && !lowerName.equals("traceparent")
                     && !lowerName.equals("tracestate")
                     && !lowerName.equals("baggage")) {
-                target.putHeader(name, entry.getValue());
+                target.getDelegate().headers().add(name, entry.getValue());
             }
         });
     }
@@ -173,7 +155,7 @@ public class GatewayRoutes {
             HttpResponse<io.vertx.mutiny.core.buffer.Buffer> upstream) {
         upstream.headers().forEach(entry -> {
             if (!HOP_BY_HOP_HEADERS.contains(entry.getKey().toLowerCase(Locale.ROOT))) {
-                response.putHeader(entry.getKey(), entry.getValue());
+                response.headers().add(entry.getKey(), entry.getValue());
             }
         });
         response.setStatusCode(upstream.statusCode());

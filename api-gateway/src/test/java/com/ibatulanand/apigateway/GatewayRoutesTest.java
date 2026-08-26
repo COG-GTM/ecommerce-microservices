@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,10 +24,13 @@ import org.junit.jupiter.api.Test;
 import com.github.tomakehurst.wiremock.client.WireMock;
 
 import org.eclipse.microprofile.config.ConfigProvider;
+import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.sdk.OpenTelemetrySdk;
 import io.opentelemetry.sdk.trace.data.SpanData;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.keycloak.client.KeycloakTestClient;
+import io.restassured.response.Response;
 
 @QuarkusTest
 @QuarkusTestResource(WireMockTestResource.class)
@@ -39,6 +43,7 @@ class GatewayRoutesTest {
     @BeforeEach
     void resetWireMock() {
         WireMockTestResource.server().resetAll();
+        OpenTelemetryTestResource.reset();
     }
 
     @Test
@@ -85,6 +90,25 @@ class GatewayRoutesTest {
     }
 
     @Test
+    void preservesRepeatedRequestAndResponseHeaders() {
+        WireMockTestResource.server().stubFor(get(urlEqualTo("/api/product"))
+                .willReturn(WireMock.aResponse().withStatus(200)
+                        .withHeader("Set-Cookie", "first=1")
+                        .withHeader("Set-Cookie", "second=2")
+                        .withBody("headers")));
+
+        Response response = given().auth().oauth2(keycloak.getClientAccessToken())
+                .header("X-Repeated", "first")
+                .header("X-Repeated", "second")
+                .get("/api/product");
+
+        assertEquals(200, response.statusCode());
+        assertEquals(List.of("first", "second"), WireMockTestResource.server().getAllServeEvents().get(0)
+                .getRequest().getHeaders().getHeader("X-Repeated").values());
+        assertEquals(List.of("first=1", "second=2"), response.getHeaders().getValues("Set-Cookie"));
+    }
+
+    @Test
     void passesUpstreamErrorsThrough() {
         WireMockTestResource.server().stubFor(get(urlEqualTo("/api/product"))
                 .willReturn(WireMock.aResponse().withStatus(404)));
@@ -106,6 +130,16 @@ class GatewayRoutesTest {
     }
 
     @Test
+    void exportsServerSpanForHealthRoute() {
+        given().get("/q/health").then().statusCode(200);
+        flushOpenTelemetry();
+        List<SpanData> spans = OpenTelemetryTestResource.exporter().getFinishedSpanItems();
+        assertTrue(OpenTelemetryTestResource.exporter().getFinishedSpanItems().stream()
+                .anyMatch(span -> span.getKind() == io.opentelemetry.api.trace.SpanKind.SERVER),
+                () -> "Exported spans: " + spans);
+    }
+
+    @Test
     void usesTheStaticTestServicesAndConsulProductionDeclarations() throws IOException {
         String production = Files.readString(Path.of("src/main/resources/application.properties"));
         assertTrue(production.contains("quarkus.stork.product-service.service-discovery.type=consul"));
@@ -118,11 +152,11 @@ class GatewayRoutesTest {
 
     @Test
     void forwardsTraceparentAndCreatesChildClientSpan() {
-        OpenTelemetryTestResource.install();
         WireMockTestResource.server().stubFor(get(urlEqualTo("/api/product"))
                 .willReturn(WireMock.aResponse().withStatus(200).withBody("traced")));
 
         given().auth().oauth2(keycloak.getClientAccessToken()).get("/api/product").then().statusCode(200);
+        flushOpenTelemetry();
 
         String traceparent = WireMockTestResource.server().getAllServeEvents().get(0)
                 .getRequest().getHeader("traceparent");
@@ -130,15 +164,28 @@ class GatewayRoutesTest {
         assertTrue(traceparent.matches("00-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}"));
 
         List<SpanData> spans = OpenTelemetryTestResource.exporter().getFinishedSpanItems();
+        String traceId = traceId(traceparent);
         SpanData gateway = spans.stream()
                 .filter(span -> span.getKind() == io.opentelemetry.api.trace.SpanKind.SERVER)
+                .filter(span -> span.getSpanContext().getTraceId().equals(traceId))
                 .findFirst().orElseThrow();
         SpanData client = spans.stream()
                 .filter(span -> span.getKind() == io.opentelemetry.api.trace.SpanKind.CLIENT)
+                .filter(span -> span.getSpanContext().getTraceId().equals(traceId))
                 .findFirst().orElseThrow();
-        assertEquals(gateway.getSpanContext().getTraceId(), client.getSpanContext().getTraceId());
-        assertEquals(gateway.getSpanContext().getSpanId(), client.getParentSpanId());
-        assertEquals(gateway.getSpanContext().getTraceId(), traceId(traceparent));
+        assertEquals(gateway.getSpanContext().getTraceId(), client.getSpanContext().getTraceId(),
+                () -> "Spans: " + spans);
+        assertEquals(gateway.getSpanContext().getSpanId(), client.getParentSpanId(),
+                () -> "Spans: " + spans);
+        assertEquals(gateway.getSpanContext().getTraceId(), traceId,
+                () -> "Spans: " + spans);
+    }
+
+    private static void flushOpenTelemetry() {
+        OpenTelemetry openTelemetry = jakarta.enterprise.inject.spi.CDI.current()
+                .select(OpenTelemetry.class).get();
+        assertTrue(openTelemetry instanceof OpenTelemetrySdk);
+        ((OpenTelemetrySdk) openTelemetry).getSdkTracerProvider().forceFlush().join(10, TimeUnit.SECONDS);
     }
 
     private static String traceId(String traceparent) {
