@@ -2,10 +2,10 @@
 
 ## Solution Overview
 
-Micro Marketplace is a robust e-commerce application built on a microservices architecture using Spring technologies and other open-source tools. 
-- This platform leverages the power of **Spring Boot**, **Netflix Eureka**, **Spring Cloud Gateway**, and **KeyCloak** for service development, discovery, gateway management, and security, respectively. 
-- It incorporates **Resilience4j** for resilient synchronous communication, and **Apache Kafka** for seamless event-driven asynchronous communication between services.
-- It offers extensive observability into the application using **Micrometer** and **Zipkin** for distributed tracing, and **Prometheus** and **Grafana** for monitoring and visualization. 
+Micro Marketplace is a robust e-commerce application built on a microservices architecture using **Quarkus** and other open-source tools. 
+- This platform leverages the power of **Quarkus**, **HashiCorp Consul**, a **Quarkus reactive-routes gateway**, and **KeyCloak** for service development, discovery, gateway management, and security, respectively. 
+- It incorporates **SmallRye Fault Tolerance** for resilient synchronous communication (with **SmallRye Stork** for client-side load balancing), and **Apache Kafka** via **SmallRye Reactive Messaging** for seamless event-driven asynchronous communication between services.
+- It offers extensive observability into the application using **OpenTelemetry** for distributed tracing (exported through an **OpenTelemetry Collector** into **Zipkin**), and **Micrometer**/**Prometheus** with **Grafana** for monitoring and visualization. 
 
 With a focus on scalability, resilience, and real-time interaction, Micro Marketplace provides a robust foundation for creating feature-rich online marketplaces.
 
@@ -20,13 +20,13 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
 - **Notification Service:** A stateless service responsible for sending notifications to users regarding their orders or other relevant updates.
 
 ### Major Components
-- **Discovery Server:** Netflix Eureka is employed for service registration and discovery, allowing microservices to locate and interact with each other dynamically.
-- **API Gateway:** Spring Cloud Gateway is deployed to serve as the entry point for all external requests, effectively routing traffic to the appropriate microservices.
-- **Auth Server:** For robust authentication and authorization mechanisms, KeyCloak is used to secure the microservices and protect sensitive data.
-- **Circuit Breaker:** Resilience4j is used to maintain system reliability by preventing cascading failures in microservices through circuit-breaking mechanisms.
-- **Message Broker:** Apache Kafka forms the backbone of Micro Marketplace's event-driven architecture, facilitating asynchronous notification for orders.
-- **Observability Stack:** Distributed tracing is implemented to monitor and troubleshoot requests as they traverse different microservices, using Micrometer for metrics and Zipkin for tracing. 
-   Moreover, Prometheus is used for collecting metrics, and Grafana for providing a rich dashboard for visualizing and analyzing application performance data.
+- **Service Discovery:** HashiCorp Consul is the service registry. Registration is **declarative** - the service definitions in [`consul/`](consul/) are mounted into the Consul agent, so no service contains discovery-client code. Clients resolve instances through SmallRye Stork (`stork://<service-name>`).
+- **API Gateway:** A Quarkus application built on reactive routes serves as the entry point for all external requests, resolving backends through Stork/Consul and forwarding status, body, and headers unchanged.
+- **Auth Server:** For robust authentication and authorization mechanisms, KeyCloak is used to secure the microservices and protect sensitive data. The gateway validates bearer tokens with `quarkus-oidc`.
+- **Circuit Breaker:** SmallRye Fault Tolerance (`@CircuitBreaker`, `@Retry`, `@Timeout`, `@Fallback`) maintains system reliability by preventing cascading failures in microservices.
+- **Message Broker:** Apache Kafka forms the backbone of Micro Marketplace's event-driven architecture, facilitating asynchronous notification for orders. Producers and consumers use SmallRye Reactive Messaging.
+- **Observability Stack:** Distributed tracing uses OpenTelemetry; services export OTLP/gRPC to an OpenTelemetry Collector, which forwards spans to Zipkin. 
+   Metrics are exposed at `/q/metrics` (Micrometer/Prometheus registry) and health at `/q/health`; Prometheus collects the metrics, and Grafana provides a rich dashboard for visualizing and analyzing application performance data.
 
 ### Tech Stack Used
 <div>
@@ -40,12 +40,8 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
                     <img alt="Java" src="https://img.shields.io/badge/Java-ED8B00?style=flat&logo=openjdk&logoColor=white"/>
                 </a>
                 &emsp;
-                <a href="https://spring.io/projects/spring-boot" target="_blank">
-                    <img alt="Spring Boot" src="https://img.shields.io/badge/Spring Boot-6DB33F?style=flat&logo=springboot&logoColor=white">
-                </a>
-                &emsp;
-                <a href="https://spring.io/projects/spring-cloud" target="_blank">
-                    <img alt="Spring Cloud" src="https://img.shields.io/badge/Spring Cloud-6DB33F?style=flat&logo=spring&logoColor=white">
+                <a href="https://quarkus.io/" target="_blank">
+                    <img alt="Quarkus" src="https://img.shields.io/badge/Quarkus-4695EB?style=flat&logo=quarkus&logoColor=white">
                 </a>
                 &emsp;
             </td>
@@ -74,8 +70,8 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
                 <strong>API Gateway</strong>
             </td>
             <td>
-                <a href="https://spring.io/projects/spring-cloud-gateway" target="_blank"> 
-                    <img alt="Spring Cloud Gateway" src="https://img.shields.io/badge/Spring Cloud Gateway-6DB33F.svg?&style=flat&logo=spring&logoColor=white"/>
+                <a href="https://quarkus.io/guides/reactive-routes" target="_blank">
+                    <img alt="Quarkus Reactive Routes" src="https://img.shields.io/badge/Quarkus%20Reactive%20Routes-4695EB.svg?&style=flat&logo=quarkus&logoColor=white"/>
                 </a>
                 &emsp;
             </td>
@@ -85,8 +81,12 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
                 <strong>Service Discovery</strong>
             </td>
             <td>
-                <a href="https://spring.io/projects/spring-cloud-netflix" target="_blank"> 
-                    <img alt="Netflix Eureka" src="https://img.shields.io/badge/Eureka-DF162B.svg?&style=flat&logo=netflix&logoColor=white"/>
+                <a href="https://www.consul.io/" target="_blank">
+                    <img alt="HashiCorp Consul" src="https://img.shields.io/badge/HashiCorp%20Consul-F24C53.svg?&style=flat&logo=consul&logoColor=white"/>
+                </a>
+                &emsp;
+                <a href="https://smallrye.io/smallrye-stork/" target="_blank">
+                    <img alt="SmallRye Stork" src="https://img.shields.io/badge/SmallRye%20Stork-4B32C3.svg?&style=flat&logoColor=white"/>
                 </a>
                 &emsp;
             </td>
@@ -96,8 +96,8 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
                 <strong>Circuit Breaker</strong>
             </td>
             <td>
-                <a href="https://resilience4j.readme.io/" target="_blank"> 
-                    <img alt="Resilience4J" src="https://img.shields.io/badge/Resilience4J-121212.svg?&style=flat&logo=resilience4j&logoColor=white"/>
+                <a href="https://smallrye.io/docs/smallrye-fault-tolerance/" target="_blank">
+                    <img alt="SmallRye Fault Tolerance" src="https://img.shields.io/badge/SmallRye%20Fault%20Tolerance-4B32C3.svg?&style=flat&logoColor=white"/>
                 </a>
                 &emsp;
             </td>
@@ -134,6 +134,10 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
                     <img alt="Grafana" src="https://img.shields.io/badge/Grafana-F79A2F.svg?&style=flat&logo=grafana&logoColor=white"/>
                 </a>
                 &emsp;
+                <a href="https://opentelemetry.io/" target="_blank">
+                    <img alt="OpenTelemetry" src="https://img.shields.io/badge/OpenTelemetry-000000.svg?&style=flat&logo=opentelemetry&logoColor=white"/>
+                </a>
+                &emsp;
             </td>
         </tr>
         <tr>
@@ -164,6 +168,7 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
 ### Prerequisites
 1. Docker and Docker Compose should be installed.
 2. Docker should be running.
+3. JDK 17 (for building the service images). Use the bundled Maven wrapper `./mvnw` - Quarkus 3.15 requires Maven >= 3.8.6, so the system `mvn` may be too old.
 
 ### Deployment
 
@@ -172,16 +177,78 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
    cd ecommerce-microservices
    ```
 
-2. Start the containers:
+2. Build the service images into the local Docker daemon with Jib:
+   ```shell
+   ./mvnw -B -DskipTests package -Dquarkus.container-image.build=true
+   ```
+   This produces `ibatulanandjp/{api-gateway,product-service,order-service,inventory-service,notification-service}:latest`.
+   Compose uses `pull_policy: never`, so it runs exactly these locally built images.
+   Ensure host ports 27017 and 9090 are available; Compose publishes MongoDB and Prometheus on those ports.
+
+3. Start the containers:
    ```shell
    docker compose up -d
    ```
 
 
-3. Confirm that the containers are up and running:
+4. Confirm that the containers are up and running:
    ```shell
    docker ps
    ```
+
+5. Confirm all three services are registered in Consul:
+   ```shell
+   curl -s http://localhost:8500/v1/catalog/services
+   ```
+
+### Curl golden path
+
+Get a client-credentials token using the secret from the realm export:
+
+```shell
+CLIENT_SECRET=$(jq -r '.clients[] | select(.clientId=="spring-cloud-client") | .secret' realms/spring-boot-microservices-realm-realm.json)
+TOKEN=$(curl -s -X POST http://localhost:8080/realms/spring-boot-microservices-realm/protocol/openid-connect/token \
+  -d grant_type=client_credentials \
+  -d client_id=spring-cloud-client \
+  -d client_secret="$CLIENT_SECRET" | jq -r .access_token)
+```
+
+Create and list a product through the gateway:
+
+```shell
+curl -i -X POST http://localhost:8181/api/product \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"iPhone 15","description":"iPhone 15","price":1500}'
+
+curl -i http://localhost:8181/api/product \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+Place an order:
+
+```shell
+curl -i -X POST http://localhost:8181/api/order \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"orderLineItemsDtoList":[{"skuCode":"iphone_15","quantity":1,"price":1500}]}'
+```
+
+The product calls should return `201` and `200`; the order call should return `201` with `Order Placed Successfully!`.
+
+Verify the notification, tracing, and metrics:
+
+```shell
+docker compose logs notification-service | grep "Received Notification for Order"
+```
+
+Open the Zipkin UI at http://localhost:9411 and verify that one trace spans `api-gateway` -> `order-service` -> `inventory-service`.
+
+```shell
+curl -s http://localhost:9090/api/v1/targets | jq '.data.activeTargets[] | {job: .labels.job, health}'
+```
+
+All five jobs (`api_gateway`, `product_service`, `order_service`, `inventory_service`, and `notification_service`) should report `up`.
 
 
 ## Usage
@@ -202,12 +269,12 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
     - Configure New Token with:
       - Token Name: `token`
       - Grant Type: `Client Credentials`
-      - Access Token URL: `http://keycloak:8080/realms/spring-boot-microservices-realm/protocol/openid-connect/token`
+      - Access Token URL: `http://localhost:8080/realms/spring-boot-microservices-realm/protocol/openid-connect/token`
       - Client ID: `spring-cloud-client`
       - Client Secret: `<client-secret>` (which you copied in the last step from KeyCloak)
     - Click on "Get New Access Token" and then click "Use Token"
 
-    > NOTE: For getting the access token from the keycloak container with the local machine, it is required to add a row with `127.0.0.1 keycloak` in the file: `C:\Windows\System32\drivers\etc\hosts` or `/etc/hosts`  
+    > NOTE: Use `localhost:8080` for the token URL. Keycloak stamps the token's `iss` claim with the host it was reached on, and the gateway accepts only `http://localhost:8080/realms/spring-boot-microservices-realm` (`QUARKUS_OIDC_TOKEN_ISSUER`); a token minted via `keycloak:8080` is rejected with 401.  
 
 - **Accessing API Endpoints**
   - **POST /api/product**
@@ -264,9 +331,9 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
     ![KeyCloak Client](docs/images/outputs/keycloak_client.png)
 
 
-- Eureka Dashboard
-   - Services (Clients) discovered can be viewed on http://localhost:8761/
-    ![Eureka Dashboard](docs/images/outputs/eureka_dashboard.png)
+- Consul UI
+   - Registered services can be viewed on http://localhost:8500/ui/
+   - The legacy `/eureka/**` gateway path is preserved (permit-all) and now proxies the Consul UI, so http://localhost:8181/eureka also works.
 
 
 - Zipkin UI
