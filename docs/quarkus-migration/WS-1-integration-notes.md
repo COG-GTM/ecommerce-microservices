@@ -26,8 +26,14 @@ Replace its environment entries with:
       - QUARKUS_MONGODB_CONNECTION_STRING=mongodb://mongo:27017
       - QUARKUS_MONGODB_DATABASE=product-service
       - QUARKUS_HTTP_PORT=8080
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
 ```
+
+Use the `QUARKUS_`-prefixed form: verified empirically on Quarkus 3.15.6 that the
+plain OTel SDK variable `OTEL_EXPORTER_OTLP_ENDPOINT` is ignored (the exporter
+still targeted `localhost:4317` from `application.properties`). Only
+`quarkus.otel.service.name` / `quarkus.otel.resource.attributes` have `otel.*`
+aliases, and only under `quarkus.otel.mp.compatibility=true`.
 
 Remove `EUREKA_CLIENT_SERVICEURL_DEFAULTZONE` for this service. Service
 registration is declarative via Consul and is owned by WS-5; there is no
