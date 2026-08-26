@@ -158,9 +158,14 @@ After restarting inventory-service, wait for it to re-register in Eureka before 
 - **Eureka** (http://localhost:8761): `PRODUCT-SERVICE`, `ORDER-SERVICE`, `INVENTORY-SERVICE`,
   `NOTIFICATION-SERVICE`, `API-GATEWAY` all show status **UP**.
 - **Zipkin** (http://localhost:9411): after running 4.4, "Run Query" shows a trace spanning
-  `api-gateway -> order-service -> inventory-service` with one shared trace ID.
-- **Grafana** (http://localhost:3000): the provisioned dashboard (`grafana-dashboard.json`) renders
-  request-rate/latency panels fed by Prometheus.
+  `api-gateway -> order-service` with one shared trace ID. The order-service call to
+  inventory-service appears as a separate single-service trace: trace context is not propagated
+  on that WebClient call in the current codebase.
+- **Prometheus** (http://localhost:9090): Status -> Targets shows the four business services' 
+  `/actuator/prometheus` endpoints as **UP**.
+- **Grafana** (http://localhost:3000): no dashboard or datasource is provisioned automatically.
+  Add a Prometheus datasource (`http://prometheus:9090`) and import `grafana-dashboard.json`
+  manually to see request-rate/latency panels.
 
 ## 7. Scripted E2E Run
 
