@@ -19,7 +19,10 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.time.Duration;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -54,6 +57,7 @@ class NotificationServiceIntegrationTest {
     void attachLogAppender() {
         logAppender = new ListAppender<>();
         logAppender.start();
+        logAppender.list = Collections.synchronizedList(new ArrayList<>());
         logger.addAppender(logAppender);
     }
 
@@ -69,7 +73,13 @@ class NotificationServiceIntegrationTest {
         await()
                 .atMost(Duration.ofSeconds(30))
                 .pollInterval(Duration.ofMillis(250))
-                .untilAsserted(() -> assertThat(logAppender.list)
-                        .anySatisfy(event -> assertThat(event.getFormattedMessage()).contains("order-456")));
+                .untilAsserted(() -> {
+                    List<ILoggingEvent> snapshot;
+                    synchronized (logAppender.list) {
+                        snapshot = new ArrayList<>(logAppender.list);
+                    }
+                    assertThat(snapshot)
+                            .anySatisfy(event -> assertThat(event.getFormattedMessage()).contains("order-456"));
+                });
     }
 }
