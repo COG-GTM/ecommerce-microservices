@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ibatulanand.productservice.dto.ProductRequest;
 import com.ibatulanand.productservice.repository.ProductRepository;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -20,10 +21,11 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import java.math.BigDecimal;
 
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
-@SpringBootTest
 @Testcontainers
 @AutoConfigureMockMvc
+@SpringBootTest(properties = "eureka.client.enabled=false")
 class ProductServiceApplicationTests {
 
     @Container
@@ -40,6 +42,11 @@ class ProductServiceApplicationTests {
         dynamicPropertyRegistry.add("spring.data.mongodb.uri", mongoDBContainer::getReplicaSetUrl);
     }
 
+    @BeforeEach
+    void cleanRepository() {
+        productRepository.deleteAll();
+    }
+
     @Test
     void shouldCreateProduct() throws Exception {
         ProductRequest productRequest = getProductRequest();
@@ -51,7 +58,26 @@ class ProductServiceApplicationTests {
                 .andExpect(status().isCreated());
         Assertions.assertEquals(1, productRepository.findAll().size());
     }
-    
+
+    @Test
+    void shouldCreateProductAndReturnItWhenGettingAllProducts() throws Exception {
+        ProductRequest productRequest = getProductRequest();
+        String productRequestString = objectMapper.writeValueAsString(productRequest);
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/product")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(productRequestString))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/product"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", org.hamcrest.Matchers.hasSize(1)))
+                .andExpect(jsonPath("$[0].id").exists())
+                .andExpect(jsonPath("$[0].name").value(productRequest.getName()))
+                .andExpect(jsonPath("$[0].description").value(productRequest.getDescription()))
+                .andExpect(jsonPath("$[0].price").value(productRequest.getPrice().doubleValue()));
+    }
+
     private ProductRequest getProductRequest() {
         return ProductRequest.builder()
                 .name("Iphone 15")
