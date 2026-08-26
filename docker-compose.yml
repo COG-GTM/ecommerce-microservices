@@ -112,108 +112,121 @@ services:
     ports:
       - "9411:9411"
 
-
-  # Discovery Server (Eureka Server) Config
-  discovery-server:
-    image: ibatulanandjp/discovery-server:latest
-    container_name: discovery-server
-    pull_policy: always
+  # OpenTelemetry Collector Config
+  # The Quarkus services export OTLP/gRPC; the collector fans out to Zipkin so the
+  # existing Zipkin UI keeps working after the Micrometer/Brave -> OTel switch.
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.109.0
+    container_name: otel-collector
+    command: [ "--config=/etc/otel-collector-config.yaml" ]
+    volumes:
+      - ./otel-collector/otel-collector-config.yaml:/etc/otel-collector-config.yaml
     ports:
-      - "8761:8761"
-    environment:
-      - SERVER_PORT=8761
-      - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
+      - "4317:4317"
     depends_on:
       - zipkin
+
+
+  # Service Discovery (Consul) Config
+  # Services are registered declaratively from ./consul (see consul/README.md);
+  # no service contains discovery-client code.
+  consul:
+    image: hashicorp/consul:1.19
+    container_name: consul
+    command: agent -dev -server -ui -client=0.0.0.0
+    ports:
+      - "8500:8500"
+    volumes:
+      - ./consul:/consul/config
 
   # API Gateway Service Config
   api-gateway:
     image: ibatulanandjp/api-gateway:latest
     container_name: api-gateway
-    pull_policy: always
+    pull_policy: never
     ports:
       - "8181:8080"
     expose:
       - "8181"
     environment:
-      - LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY=TRACE
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka
-      - SERVER_PORT=8080
-      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUERURI=http://keycloak:8080/realms/spring-boot-microservices-realm
-      - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
+      - QUARKUS_HTTP_PORT=8080
+      - QUARKUS_OIDC_AUTH_SERVER_URL=http://keycloak:8080/realms/spring-boot-microservices-realm
+      - CONSUL_HOST=consul
+      - CONSUL_PORT=8500
+      - CONSUL_UI_URL=http://consul:8500
+      - QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
     depends_on:
-      - zipkin
-      - discovery-server
       - keycloak
+      - consul
+      - otel-collector
 
   # Product Service Config
   product-service:
     container_name: product-service
     image: ibatulanandjp/product-service:latest
-    pull_policy: always
+    pull_policy: never
     environment:
-      - SPRING_DATA_MONGODB_URI=mongodb://mongo:27017/product-service
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
-      - SERVER_PORT=8080
-      - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
+      - QUARKUS_MONGODB_CONNECTION_STRING=mongodb://mongo:27017
+      - QUARKUS_MONGODB_DATABASE=product-service
+      - QUARKUS_HTTP_PORT=8080
+      - QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
     depends_on:
       - mongo
-      - zipkin
-      - discovery-server
+      - otel-collector
+      - consul
       - api-gateway
 
   # Order Service Config
   order-service:
     container_name: order-service
     image: ibatulanandjp/order-service:latest
-    pull_policy: always
+    pull_policy: never
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-order:3306/order_service?allowPublicKeyRetrieval=true&useSSL=false
-      - SPRING_DATASOURCE_USERNAME=ibatulanand
-      - SPRING_DATASOURCE_PASSWORD=password
-      - SERVER_PORT=8080
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
-      - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
-      - SPRING_KAFKA_BOOTSTRAPSERVERS=broker:29092
+      - QUARKUS_DATASOURCE_JDBC_URL=jdbc:mysql://mysql-order:3306/order_service?allowPublicKeyRetrieval=true&useSSL=false
+      - QUARKUS_DATASOURCE_USERNAME=ibatulanand
+      - QUARKUS_DATASOURCE_PASSWORD=password
+      - QUARKUS_HTTP_PORT=8080
+      - KAFKA_BOOTSTRAP_SERVERS=broker:29092
+      - CONSUL_HOST=consul
+      - CONSUL_PORT=8500
+      - QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
     depends_on:
       - mysql-order
       - broker
-      - zipkin
-      - discovery-server
+      - otel-collector
+      - consul
       - api-gateway
 
   # Inventory Service Config
   inventory-service:
     container_name: inventory-service
     image: ibatulanandjp/inventory-service:latest
-    pull_policy: always
+    pull_policy: never
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-inventory:3306/inventory_service?allowPublicKeyRetrieval=true&useSSL=false
-      - SPRING_DATASOURCE_USERNAME=ibatulanand
-      - SPRING_DATASOURCE_PASSWORD=password
-      - SERVER_PORT=8080
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
-      - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
+      - QUARKUS_DATASOURCE_JDBC_URL=jdbc:mysql://mysql-inventory:3306/inventory_service?allowPublicKeyRetrieval=true&useSSL=false
+      - QUARKUS_DATASOURCE_USERNAME=ibatulanand
+      - QUARKUS_DATASOURCE_PASSWORD=password
+      - QUARKUS_HTTP_PORT=8080
+      - QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
     depends_on:
       - mysql-inventory
-      - zipkin
-      - discovery-server
+      - otel-collector
+      - consul
       - api-gateway
 
   # Notification Service Config
   notification-service:
     container_name: notification-service
     image: ibatulanandjp/notification-service:latest
-    pull_policy: always
+    pull_policy: never
     environment:
-      - SERVER_PORT=8080
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka
-      - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
-      - SPRING_KAFKA_BOOTSTRAP_SERVERS=broker:29092
+      - QUARKUS_HTTP_PORT=8080
+      - KAFKA_BOOTSTRAP_SERVERS=broker:29092
+      - QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
     depends_on:
       - broker
-      - zipkin
-      - discovery-server
+      - otel-collector
+      - consul
       - api-gateway
 
   # Prometheus Config
@@ -226,6 +239,7 @@ services:
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
     depends_on:
+      - api-gateway
       - product-service
       - order-service
       - inventory-service
