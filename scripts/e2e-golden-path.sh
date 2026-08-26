@@ -41,13 +41,14 @@ code=$(curl -s -o /dev/null -w "%{http_code}" "$GATEWAY/api/product")
 check "Gateway rejects unauthenticated request (401)" "401" "$code"
 
 echo "== Golden path =="
+PRODUCT_NAME="Iphone 15 e2e_$$"
 code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$GATEWAY/api/product" \
   -H "$AUTH" -H "Content-Type: application/json" \
-  -d '{"name":"Iphone 15","description":"Apple Iphone 15","price":1500}')
+  -d "{\"name\":\"$PRODUCT_NAME\",\"description\":\"Apple Iphone 15\",\"price\":1500}")
 check "Create product returns 201" "201" "$code"
 
 body=$(curl -s "$GATEWAY/api/product" -H "$AUTH")
-contains "Product list contains created product" "Iphone 15" "$body"
+contains "Product list contains created product" "$PRODUCT_NAME" "$body"
 
 docker exec mysql-inventory mysql -uibatulanand -ppassword inventory_service -e \
   "CREATE TABLE IF NOT EXISTS t_inventory (id BIGINT AUTO_INCREMENT PRIMARY KEY, sku_code VARCHAR(255), quantity INT); \
