@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  build:
+    # ubuntu-latest ships a running Docker daemon, which the Testcontainers-backed
+    # persistence and integration tests require.
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Java 17, not 21: the Lombok version managed by Spring Boot 3.1.3 (1.18.28)
+      # cannot compile under JDK 21 -- javac fails with
+      # "NoSuchFieldError: Class com.sun.tools.javac.tree.JCTree$JCImport does not
+      # have member field 'com.sun.tools.javac.tree.JCTree qualid'".
+      # Bump Lombok/Spring Boot before touching this.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Show Docker availability
+        run: docker info
+
+      - name: Build and test
+        run: mvn -B verify
+
+      - name: Upload test and coverage reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-and-coverage-reports
+          path: |
+            **/target/surefire-reports/**
+            **/target/site/jacoco/**
+            coverage-report/target/site/jacoco-aggregate/**
+          if-no-files-found: warn

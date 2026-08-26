@@ -22,6 +22,8 @@
         <module>discovery-server</module>
         <module>api-gateway</module>
         <module>notification-service</module>
+        <!-- last: aggregates the JaCoCo data produced by the modules above -->
+        <module>coverage-report</module>
     </modules>
 
     <properties>

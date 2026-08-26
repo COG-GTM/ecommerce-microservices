@@ -184,6 +184,21 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
    ```
 
 
+## Testing
+
+```shell
+mvn -B verify
+```
+
+Requirements:
+- **JDK 17** — the build does not compile under JDK 21 (the Lombok version pinned by Spring Boot 3.1.3 is incompatible with its javac).
+- **A running Docker daemon** — the persistence and integration tests use Testcontainers.
+
+`verify` produces a JaCoCo report per module (`<module>/target/site/jacoco`) plus a repo-wide
+aggregate report in `coverage-report/target/site/jacoco-aggregate`.
+
+See [docs/TESTING.md](docs/TESTING.md) for test layers, base classes, fixtures, and naming conventions.
+
 ## Usage
 
 
