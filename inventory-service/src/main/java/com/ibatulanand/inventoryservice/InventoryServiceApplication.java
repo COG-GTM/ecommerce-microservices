@@ -23,7 +23,7 @@ public class InventoryServiceApplication {
     }
 
     private void seed(InventoryRepository inventoryRepository, String skuCode, int quantity) {
-        if (inventoryRepository.findBySkuCode(skuCode).isPresent()) {
+        if (inventoryRepository.existsBySkuCode(skuCode)) {
             return;
         }
         Inventory inventory = new Inventory();

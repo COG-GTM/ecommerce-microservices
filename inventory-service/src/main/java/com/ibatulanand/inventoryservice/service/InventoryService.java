@@ -40,7 +40,7 @@ public class InventoryService {
 
     @Transactional(readOnly = true)
     public Optional<InventoryResponse> isInStock(String skuCode) {
-        return inventoryRepository.findBySkuCode(skuCode)
+        return inventoryRepository.findFirstBySkuCode(skuCode)
                 .map(inventory ->
                         InventoryResponse.builder()
                                 .skuCode(inventory.getSkuCode())
