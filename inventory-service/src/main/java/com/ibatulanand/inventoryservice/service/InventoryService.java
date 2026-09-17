@@ -37,4 +37,15 @@ public class InventoryService {
                                 .build()
                 ).toList();
     }
+
+    @Transactional(readOnly = true)
+    public Optional<InventoryResponse> isInStock(String skuCode) {
+        return inventoryRepository.findFirstBySkuCode(skuCode)
+                .map(inventory ->
+                        InventoryResponse.builder()
+                                .skuCode(inventory.getSkuCode())
+                                .isInStock(inventory.getQuantity() > 0)
+                                .build()
+                );
+    }
 }
