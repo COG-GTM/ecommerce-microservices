@@ -3,6 +3,7 @@ package com.ibatulanand.orderservice.service;
 import com.ibatulanand.orderservice.dto.InventoryResponse;
 import com.ibatulanand.orderservice.dto.OrderLineItemsDto;
 import com.ibatulanand.orderservice.dto.OrderRequest;
+import com.ibatulanand.orderservice.dto.OrderResponse;
 import com.ibatulanand.orderservice.event.OrderPlacedEvent;
 import com.ibatulanand.orderservice.model.Order;
 import com.ibatulanand.orderservice.model.OrderLineItems;
@@ -15,6 +16,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -26,7 +28,7 @@ public class OrderService {
     private final WebClient.Builder webClientBuilder;
     private final KafkaTemplate<String, OrderPlacedEvent> kafkaTemplate;
 
-    public String placeOrder(OrderRequest orderRequest) {
+    public OrderResponse placeOrder(OrderRequest orderRequest) {
         Order order = new Order();
         order.setOrderNumber(UUID.randomUUID().toString());
 
@@ -57,10 +59,36 @@ public class OrderService {
             // Send order to the kafka topic
             kafkaTemplate.send("notificationTopic", new OrderPlacedEvent(order.getOrderNumber()));
 
-            return "Order Placed Successfully!";
+            return mapToOrderResponse(order);
         } else {
             throw new IllegalArgumentException("Product is not in stock, please try again later");
         }
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<OrderResponse> getOrder(String orderNumber) {
+        return orderRepository.findByOrderNumber(orderNumber).map(this::mapToOrderResponse);
+    }
+
+    @Transactional(readOnly = true)
+    public List<OrderResponse> getAllOrders() {
+        return orderRepository.findAll().stream().map(this::mapToOrderResponse).toList();
+    }
+
+    private OrderResponse mapToOrderResponse(Order order) {
+        List<OrderLineItemsDto> lineItems = order.getOrderLineItemsList().stream()
+                .map(orderLineItems -> new OrderLineItemsDto(
+                        orderLineItems.getId(),
+                        orderLineItems.getSkuCode(),
+                        orderLineItems.getPrice(),
+                        orderLineItems.getQuantity()))
+                .toList();
+
+        return OrderResponse.builder()
+                .id(order.getId())
+                .orderNumber(order.getOrderNumber())
+                .orderLineItemsList(lineItems)
+                .build();
     }
 
     private OrderLineItems mapToDto(OrderLineItemsDto orderLineItemsDto) {
