@@ -18,12 +18,16 @@ public class InventoryServiceApplication {
     public CommandLineRunner loadData(InventoryRepository inventoryRepository) {
         return args -> {
             Inventory inventory1 = new Inventory();
-            inventory1.setSkuCode("iphone_15");
-            inventory1.setQuantity(100);
+            inventory1.setSkuCode("268341-016-L");
+            inventory1.setStoreId("1042");
+            inventory1.setOnHand(23);
+            inventory1.setShipFromStoreEligible(true);
 
             Inventory inventory2 = new Inventory();
-            inventory2.setSkuCode("iphone_15_pro");
-            inventory2.setQuantity(0);
+            inventory2.setSkuCode("268341-016-M");
+            inventory2.setStoreId("1042");
+            inventory2.setOnHand(0);
+            inventory2.setShipFromStoreEligible(false);
 
             inventoryRepository.save(inventory1);
             inventoryRepository.save(inventory2);
