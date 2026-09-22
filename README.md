@@ -217,10 +217,33 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
     - Body: 
       ```json
       {
-         "name": "Iphone 15",
-         "description": "Apple Iphone 15",
-         "price": 1500
-      } 
+         "name": "Ribbed Mock-Neck Top",
+         "description": "Soft ribbed knit mock-neck top",
+         "price": 29.97,
+         "styleId": "268341",
+         "skuCode": "268341-016-L",
+         "department": "WOMEN'S",
+         "category": "TOPS",
+         "colorName": "Black",
+         "colorCode": "016",
+         "size": "L",
+         "listPrice": 49.95,
+         "salePrice": 29.97,
+         "clearancePercent": 40,
+         "finalSale": true,
+         "variants": [
+           {
+             "skuCode": "268341-016-M",
+             "colorName": "Black",
+             "colorCode": "016",
+             "size": "M",
+             "listPrice": 49.95,
+             "salePrice": 34.97,
+             "clearancePercent": 30,
+             "finalSale": false
+           }
+         ]
+      }
       ```
     - Output:
         ![Postman](docs/images/outputs/product_api_post_postman.png)
@@ -232,6 +255,28 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
     - Authorization: Use the OAuth 2.0 token fetched, following the previous step.
     - Output:
         ![Postman](docs/images/outputs/product_api_get_postman.png)
+
+  - GET /api/product/sku/{skuCode}
+    - Method: GET
+    - Endpoint: http://localhost:8181/api/product/sku/268341-016-L
+    - Looks up a style by its own `skuCode` or by one of its variants' `skuCode`; a variant match returns the style with that variant's color/size/pricing applied. Returns `404` when the SKU is unknown.
+
+  - GET /api/inventory
+    - Method: GET
+    - Endpoint: http://localhost:8181/api/inventory?skuCode=268341-016-L&skuCode=268341-016-M&storeId=1042
+    - `storeId` is optional; when omitted, records across all stores are returned.
+    - Response:
+      ```json
+      [
+        {
+          "skuCode": "268341-016-L",
+          "storeId": "1042",
+          "onHand": 23,
+          "isInStock": true,
+          "shipFromStoreEligible": true
+        }
+      ]
+      ```
  
   - POST /api/order
     - Method: POST
@@ -240,19 +285,49 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
     - Body:
       ```json
       {
+         "storeId": "1042",
+         "registerId": "03",
+         "associateId": "A-2291",
+         "lane": "Lane 3",
+         "servicesAndFees": 0.00,
+         "taxRate": 0.0875,
+         "taxExempt": false,
          "orderLineItemsDtoList": [
            {
-              "skuCode": "iphone_15_pro",
-              "price": 2000,
-              "quantity": 1
+              "skuCode": "268341-016-L",
+              "description": "Ribbed Mock-Neck Top",
+              "colorName": "Black",
+              "size": "L",
+              "listPrice": 49.95,
+              "unitPrice": 29.97,
+              "price": 29.97,
+              "quantity": 1,
+              "discountReason": "Clearance 40% — final sale"
             }
+         ],
+         "promotions": [
+           {
+              "code": "FALL30",
+              "description": "30% off full-price",
+              "amount": 5.00
+           }
+         ],
+         "tenders": [
+           { "type": "GIFT_CARD", "amount": 10.00, "reference": "****4821" },
+           { "type": "CREDIT_DEBIT", "amount": 17.16, "reference": "VISA ****1234" }
          ]
-      }  
+      }
       ```
+    - Totals (`merchandiseTotal`, `discountTotal`, `taxableSubtotal`, `salesTax`, `total`, `savedToday`) are computed server-side and returned in the response. When `tenders` are supplied, their sum must equal the computed `total`.
     - Output:
       ![Postman](docs/images/outputs/order_api_post_postman.png)
       ![Zipkin](docs/images/outputs/order_api_post_zipkin.png)
       ![Notification Service Logs](docs/images/outputs/order_api_post_notification_service_docker_logs.png)
+
+  - POST /api/order/quote
+    - Method: POST
+    - Endpoint: http://localhost:8181/api/order/quote
+    - Same request body as `POST /api/order`; prices the basket and returns computed totals without checking inventory or persisting the order.
 
 ### Components UI
 

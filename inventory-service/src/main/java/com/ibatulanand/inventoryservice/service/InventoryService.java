@@ -9,7 +9,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -19,22 +18,21 @@ public class InventoryService {
     private final InventoryRepository inventoryRepository;
 
     @Transactional(readOnly = true)
-    public List<InventoryResponse> isInStock(List<String> skuCode) {
-//        // Simulating Timeout
-//        log.info("Wait Started");
-//        try {
-//            Thread.sleep(10000);
-//        } catch (InterruptedException e) {
-//            log.info("Exception from Thread: ", e);
-//        }
-//        log.info("Wait Ended");
+    public List<InventoryResponse> isInStock(List<String> skuCode, String storeId) {
+        List<Inventory> inventories = storeId == null
+                ? inventoryRepository.findBySkuCodeIn(skuCode)
+                : inventoryRepository.findBySkuCodeInAndStoreId(skuCode, storeId);
 
-        return inventoryRepository.findBySkuCodeIn(skuCode).stream()
-                .map(inventory ->
-                        InventoryResponse.builder()
-                                .skuCode(inventory.getSkuCode())
-                                .isInStock(inventory.getQuantity() > 0)
-                                .build()
-                ).toList();
+        return inventories.stream()
+                .map(inventory -> {
+                    int onHand = inventory.getOnHand() == null ? 0 : inventory.getOnHand();
+                    return InventoryResponse.builder()
+                            .skuCode(inventory.getSkuCode())
+                            .storeId(inventory.getStoreId())
+                            .onHand(onHand)
+                            .isInStock(onHand > 0)
+                            .shipFromStoreEligible(inventory.isShipFromStoreEligible())
+                            .build();
+                }).toList();
     }
 }

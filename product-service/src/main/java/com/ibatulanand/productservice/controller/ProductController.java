@@ -5,6 +5,7 @@ import com.ibatulanand.productservice.dto.ProductResponse;
 import com.ibatulanand.productservice.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -26,5 +27,13 @@ public class ProductController {
     @ResponseStatus(HttpStatus.OK)
     public List<ProductResponse> getAllProducts() {
         return productService.getAllProducts();
+    }
+
+    // http://localhost:8080/api/product/sku/268341-016-L
+    @GetMapping("/sku/{skuCode}")
+    public ResponseEntity<ProductResponse> getProductBySkuCode(@PathVariable String skuCode) {
+        return productService.getProductBySkuCode(skuCode)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 }

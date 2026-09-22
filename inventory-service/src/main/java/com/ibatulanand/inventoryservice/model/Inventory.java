@@ -2,6 +2,7 @@ package com.ibatulanand.inventoryservice.model;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -10,6 +11,7 @@ import lombok.Setter;
 @Table(name = "t_inventory")
 @Getter
 @Setter
+@Builder
 @AllArgsConstructor
 @NoArgsConstructor
 public class Inventory {
@@ -17,5 +19,7 @@ public class Inventory {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String skuCode;
-    private Integer quantity;
+    private String storeId;
+    private Integer onHand;
+    private boolean shipFromStoreEligible;
 }

@@ -8,6 +8,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Document(value = "product")
 @AllArgsConstructor
@@ -20,4 +21,18 @@ public class Product {
     private String name;
     private String description;
     private BigDecimal price;
+
+    private String styleId;
+    private String skuCode;
+    private String department;
+    private String category;
+    private String colorName;
+    private String colorCode;
+    private String size;
+    private BigDecimal listPrice;
+    private BigDecimal salePrice;
+    private Integer clearancePercent;
+    private boolean finalSale;
+
+    private List<ProductVariant> variants;
 }
