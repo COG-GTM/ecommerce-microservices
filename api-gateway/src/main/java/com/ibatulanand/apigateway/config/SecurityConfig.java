@@ -1,6 +1,7 @@
 package com.ibatulanand.apigateway.config;
 
 import org.springframework.context.annotation.Bean;
+import org.springframework.http.HttpMethod;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
@@ -15,7 +16,9 @@ public class SecurityConfig {
     public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity serverHttpSecurity) {
         serverHttpSecurity.csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .authorizeExchange(exchange ->
-                        exchange.pathMatchers("/eureka/**")
+                        exchange.pathMatchers(HttpMethod.OPTIONS, "/**")
+                                .permitAll()
+                                .pathMatchers("/eureka/**")
                                 .permitAll()
                                 .anyExchange()
                                 .authenticated())

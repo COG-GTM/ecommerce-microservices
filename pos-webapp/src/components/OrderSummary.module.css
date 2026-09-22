@@ -1,0 +1,92 @@
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+}
+
+.heading {
+  margin: 0;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--rule);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.body {
+  padding: 16px 18px;
+}
+
+.row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 6px 0;
+  font-size: 14px;
+}
+
+.rowLabel {
+  color: var(--ink-soft);
+}
+
+.discount {
+  color: var(--sale);
+}
+
+.divider {
+  border-top: 1px solid var(--rule-soft);
+  margin: 10px 0;
+}
+
+.totalRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 12px 0 4px;
+  border-top: 2px solid var(--ink);
+  margin-top: 10px;
+}
+
+.totalLabel {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.totalValue {
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.saved {
+  margin-top: 6px;
+  padding: 8px 10px;
+  background: #f1f7f3;
+  border: 1px solid #cfe3d7;
+  color: var(--positive);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.toggleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--rule-soft);
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}

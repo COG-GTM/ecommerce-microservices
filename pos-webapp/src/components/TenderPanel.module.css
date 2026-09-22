@@ -1,0 +1,97 @@
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+}
+
+.heading {
+  margin: 0;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--rule);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.body {
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--rule);
+  padding: 12px 14px;
+  background: #ffffff;
+  text-align: left;
+  font-size: 14px;
+  width: 100%;
+}
+
+.option:hover {
+  border-color: var(--gap-navy);
+}
+
+.selected {
+  border-color: var(--gap-navy);
+  box-shadow: inset 0 0 0 1px var(--gap-navy);
+}
+
+.optionLabel {
+  font-weight: 600;
+}
+
+.optionHint {
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+.splitRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--ink-soft);
+  padding-top: 4px;
+}
+
+.split {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.charge {
+  margin-top: 4px;
+  background: var(--gap-navy);
+  border: 1px solid var(--gap-navy);
+  color: #ffffff;
+  padding: 14px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.charge:hover {
+  background: var(--gap-navy-deep);
+}
+
+.charge:disabled {
+  background: var(--rule);
+  border-color: var(--rule);
+  color: var(--ink-muted);
+  cursor: not-allowed;
+}
+
+.status {
+  font-size: 12px;
+  color: var(--positive);
+  text-align: center;
+}
