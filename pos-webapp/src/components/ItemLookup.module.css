@@ -15,11 +15,13 @@
 
 .row {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
 }
 
 .input {
-  flex: 1;
+  flex: 1 1 180px;
+  min-width: 0;
   border: 1px solid var(--rule);
   padding: 11px 12px;
   font-size: 14px;
@@ -65,4 +67,11 @@
   margin-top: 8px;
   font-size: 12px;
   color: var(--sale);
+}
+
+@media (max-width: 520px) {
+  .button {
+    flex: 1 1 auto;
+    padding: 12px 16px;
+  }
 }

@@ -1,5 +1,6 @@
 .bar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
@@ -80,4 +81,16 @@
 .button:hover {
   background: var(--gap-navy);
   color: #ffffff;
+}
+
+@media (max-width: 520px) {
+  .apply {
+    flex: 1;
+  }
+
+  .input {
+    flex: 1;
+    width: auto;
+    min-width: 0;
+  }
 }
