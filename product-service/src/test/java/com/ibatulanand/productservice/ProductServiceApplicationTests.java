@@ -22,7 +22,7 @@ import java.math.BigDecimal;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
-@Testcontainers
+@Testcontainers(disabledWithoutDocker = true)
 @AutoConfigureMockMvc
 class ProductServiceApplicationTests {
 
