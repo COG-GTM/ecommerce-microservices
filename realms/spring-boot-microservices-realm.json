@@ -74,6 +74,14 @@
       "clientRole" : false,
       "containerId" : "e19bd17c-3e8c-4b15-8603-da2fb3e63ee1",
       "attributes" : { }
+    }, {
+      "id" : "3f0b6c1e-8d2a-4c7e-9b5f-2a6d1e4c8f70",
+      "name" : "product-admin",
+      "description" : "Create and modify product catalog entries",
+      "composite" : false,
+      "clientRole" : false,
+      "containerId" : "e19bd17c-3e8c-4b15-8603-da2fb3e63ee1",
+      "attributes" : { }
     } ],
     "client" : {
       "realm-management" : [ {
