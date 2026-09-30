@@ -54,6 +54,7 @@ class ProductServiceApplicationTests {
     
     private ProductRequest getProductRequest() {
         return ProductRequest.builder()
+                .skuCode("iphone_15")
                 .name("Iphone 15")
                 .description("Apple Iphone 15")
                 .price(BigDecimal.valueOf(1500))
