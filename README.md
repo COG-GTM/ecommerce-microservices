@@ -172,13 +172,22 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
    cd ecommerce-microservices
    ```
 
-2. Start the containers:
+2. Configure credentials. `docker-compose.yml` has no built-in passwords and refuses to start until `.env` provides them. Generate a `.env` (gitignored) with a distinct random value for every secret:
+   ```shell
+   awk '!/^#/ && /CHANGE_ME/{c="openssl rand -hex 24"; c|getline v; close(c); sub(/CHANGE_ME/,v)}1' .env.example > .env
+   ```
+   - All published ports are bound to `127.0.0.1` (`BIND_ADDRESS`). Zookeeper is only reachable on the compose network.
+   - MongoDB requires authentication (root user plus a `readWrite` user for `product-service`, created by `mongo-init/` on first start).
+   - Kafka requires SASL/PLAIN (`KAFKA_CLIENT_USER`/`KAFKA_CLIENT_PASSWORD`) on both `localhost:9092` and `broker:29092`.
+   - Database init only runs on an empty data directory. If you started the stack before, remove `mysql_order/`, `mysql_inventory/`, `mysql_keycloak_data/`, `mongo-data/` and `grafana_data/` so the new credentials take effect.
+
+3. Start the containers:
    ```shell
    docker compose up -d
    ```
 
 
-3. Confirm that the containers are up and running:
+4. Confirm that the containers are up and running:
    ```shell
    docker ps
    ```
@@ -190,7 +199,7 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
 ### Interacting with Application
 
 - **Getting Credentials from KeyCloak**
-  - Access the KeyCloak Admin UI at http://localhost:8080/
+  - Access the KeyCloak Admin UI at http://localhost:8080/ and sign in with `KEYCLOAK_ADMIN_USER` / `KEYCLOAK_ADMIN_PASSWORD` from `.env`
   - Go to the Realm `spring-boot-microservices-realm`
   - Go to the Client `spring-cloud-client`
   - Go the the 'Credentials' section, and get the 'Client Secret'
@@ -284,7 +293,7 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
       ![Service Discovery Status](docs/images/outputs/prometheus_service_discovery.png)
 
 - Grafana Dashboard
-  - Grafana Dashboard can be accessed on http://localhost:3000/
+  - Grafana Dashboard can be accessed on http://localhost:3000/ (sign in with `GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD` from `.env`)
   - To visualize the application, create a 'Data Source' and import the dashboard using `grafana-dashboard.json` file.
   - Data Source
     ![Data Source](docs/images/outputs/grafana_data_source.png)

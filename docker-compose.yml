@@ -4,73 +4,78 @@ services:
   # MySQL Config for order service
   mysql-order:
     container_name: mysql-order
-    image: mysql:latest
+    image: mysql:8.4
     environment:
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ORDER_ROOT_PASSWORD:?set in .env}
       MYSQL_DATABASE: order_service
-      MYSQL_USER: ibatulanand
-      MYSQL_PASSWORD: password
+      MYSQL_USER: ${MYSQL_ORDER_USER:?set in .env}
+      MYSQL_PASSWORD: ${MYSQL_ORDER_PASSWORD:?set in .env}
     volumes:
       - ./mysql_order:/var/lib/mysql
     ports:
-      - "3307:3306"
+      - "${BIND_ADDRESS:-127.0.0.1}:3307:3306"
     restart: always
 
   # MySQL Config for inventory service
   mysql-inventory:
     container_name: mysql-inventory
-    image: mysql:latest
+    image: mysql:8.4
     environment:
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: ${MYSQL_INVENTORY_ROOT_PASSWORD:?set in .env}
       MYSQL_DATABASE: inventory_service
-      MYSQL_USER: ibatulanand
-      MYSQL_PASSWORD: password
+      MYSQL_USER: ${MYSQL_INVENTORY_USER:?set in .env}
+      MYSQL_PASSWORD: ${MYSQL_INVENTORY_PASSWORD:?set in .env}
     volumes:
       - ./mysql_inventory:/var/lib/mysql
     ports:
-      - "3308:3306"
+      - "${BIND_ADDRESS:-127.0.0.1}:3308:3306"
     restart: always
 
   # MongoDB Config for product service
   mongo:
     container_name: mongo
-    image: mongo:latest
+    image: mongo:7.0
     restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:?set in .env}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?set in .env}
+      MONGO_APP_DATABASE: product-service
+      MONGO_APP_USER: ${MONGO_APP_USER:?set in .env}
+      MONGO_APP_PASSWORD: ${MONGO_APP_PASSWORD:?set in .env}
     ports:
-      - "27017:27017"
-    expose:
-      - "27017"
+      - "${BIND_ADDRESS:-127.0.0.1}:27017:27017"
     volumes:
       - ./mongo-data:/data/db
+      - ./mongo-init/:/docker-entrypoint-initdb.d/:ro
 
 
   # Keycloak Config (MySQL Database)
   keycloak-mysql:
     container_name: keycloak-mysql
-    image: mysql:latest
+    image: mysql:8.4
     volumes:
       - ./mysql_keycloak_data:/var/lib/mysql
     environment:
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: ${KEYCLOAK_DB_ROOT_PASSWORD:?set in .env}
       MYSQL_DATABASE: keycloak
       MYSQL_USER: keycloak
-      MYSQL_PASSWORD: password
+      MYSQL_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?set in .env}
 
   # Keycloak Config
   keycloak:
     container_name: keycloak
-    image: quay.io/keycloak/keycloak:latest
+    image: quay.io/keycloak/keycloak:22.0.4
     command: [ "start-dev", "--import-realm" ]
     environment:
       DB_VENDOR: MYSQL
       DB_ADDR: mysql
       DB_DATABASE: keycloak
       DB_USER: keycloak
-      DB_PASSWORD: password
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
+      DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?set in .env}
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN_USER:?set in .env}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?set in .env}
     ports:
-      - "8080:8080"
+      - "${BIND_ADDRESS:-127.0.0.1}:8080:8080"
     volumes:
       - ./realms/:/opt/keycloak/data/import/
     depends_on:
@@ -79,27 +84,38 @@ services:
 
   # Apache Kafka (Zookeeper) Config
   zookeeper:
-    image: confluentinc/cp-zookeeper:latest
+    image: confluentinc/cp-zookeeper:7.6.1
     container_name: zookeeper
-    ports:
-      - "2181:2181"
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
 
   # Apache Kafka (Broker) Config
   broker:
-    image: confluentinc/cp-kafka:latest
+    image: confluentinc/cp-kafka:7.6.1
     container_name: broker
     ports:
-      - "9092:9092"
+      - "${BIND_ADDRESS:-127.0.0.1}:9092:9092"
     depends_on:
       - zookeeper
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://broker:29092
+      KAFKA_LISTENERS: EXTERNAL://0.0.0.0:9092,INTERNAL://0.0.0.0:29092
+      KAFKA_ADVERTISED_LISTENERS: EXTERNAL://localhost:9092,INTERNAL://broker:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: EXTERNAL:SASL_PLAINTEXT,INTERNAL:SASL_PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_SASL_ENABLED_MECHANISMS: PLAIN
+      KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: PLAIN
+      KAFKA_LISTENER_NAME_EXTERNAL_PLAIN_SASL_JAAS_CONFIG: >-
+        org.apache.kafka.common.security.plain.PlainLoginModule required
+        user_${KAFKA_CLIENT_USER:?set in .env}="${KAFKA_CLIENT_PASSWORD:?set in .env}";
+      KAFKA_LISTENER_NAME_INTERNAL_PLAIN_SASL_JAAS_CONFIG: >-
+        org.apache.kafka.common.security.plain.PlainLoginModule required
+        username="${KAFKA_BROKER_USER:?set in .env}"
+        password="${KAFKA_BROKER_PASSWORD:?set in .env}"
+        user_${KAFKA_BROKER_USER:?set in .env}="${KAFKA_BROKER_PASSWORD:?set in .env}"
+        user_${KAFKA_CLIENT_USER:?set in .env}="${KAFKA_CLIENT_PASSWORD:?set in .env}";
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
@@ -107,10 +123,10 @@ services:
 
   # Zipkin Config
   zipkin:
-    image: openzipkin/zipkin
+    image: openzipkin/zipkin:3.4
     container_name: zipkin
     ports:
-      - "9411:9411"
+      - "${BIND_ADDRESS:-127.0.0.1}:9411:9411"
 
 
   # Discovery Server (Eureka Server) Config
@@ -119,7 +135,7 @@ services:
     container_name: discovery-server
     pull_policy: always
     ports:
-      - "8761:8761"
+      - "${BIND_ADDRESS:-127.0.0.1}:8761:8761"
     environment:
       - SERVER_PORT=8761
       - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
@@ -132,9 +148,7 @@ services:
     container_name: api-gateway
     pull_policy: always
     ports:
-      - "8181:8080"
-    expose:
-      - "8181"
+      - "${BIND_ADDRESS:-127.0.0.1}:8181:8080"
     environment:
       - LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY=TRACE
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka
@@ -152,7 +166,7 @@ services:
     image: ibatulanandjp/product-service:latest
     pull_policy: always
     environment:
-      - SPRING_DATA_MONGODB_URI=mongodb://mongo:27017/product-service
+      - SPRING_DATA_MONGODB_URI=mongodb://${MONGO_APP_USER:?set in .env}:${MONGO_APP_PASSWORD:?set in .env}@mongo:27017/product-service
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
       - SERVER_PORT=8080
       - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
@@ -169,12 +183,15 @@ services:
     pull_policy: always
     environment:
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-order:3306/order_service?allowPublicKeyRetrieval=true&useSSL=false
-      - SPRING_DATASOURCE_USERNAME=ibatulanand
-      - SPRING_DATASOURCE_PASSWORD=password
+      - SPRING_DATASOURCE_USERNAME=${MYSQL_ORDER_USER:?set in .env}
+      - SPRING_DATASOURCE_PASSWORD=${MYSQL_ORDER_PASSWORD:?set in .env}
       - SERVER_PORT=8080
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
       - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
       - SPRING_KAFKA_BOOTSTRAPSERVERS=broker:29092
+      - SPRING_KAFKA_SECURITY_PROTOCOL=SASL_PLAINTEXT
+      - SPRING_KAFKA_PROPERTIES_SASL_MECHANISM=PLAIN
+      - SPRING_KAFKA_PROPERTIES_SASL_JAAS_CONFIG=org.apache.kafka.common.security.plain.PlainLoginModule required username="${KAFKA_CLIENT_USER:?set in .env}" password="${KAFKA_CLIENT_PASSWORD:?set in .env}";
     depends_on:
       - mysql-order
       - broker
@@ -189,8 +206,8 @@ services:
     pull_policy: always
     environment:
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-inventory:3306/inventory_service?allowPublicKeyRetrieval=true&useSSL=false
-      - SPRING_DATASOURCE_USERNAME=ibatulanand
-      - SPRING_DATASOURCE_PASSWORD=password
+      - SPRING_DATASOURCE_USERNAME=${MYSQL_INVENTORY_USER:?set in .env}
+      - SPRING_DATASOURCE_PASSWORD=${MYSQL_INVENTORY_PASSWORD:?set in .env}
       - SERVER_PORT=8080
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
       - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
@@ -210,6 +227,9 @@ services:
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka
       - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=broker:29092
+      - SPRING_KAFKA_SECURITY_PROTOCOL=SASL_PLAINTEXT
+      - SPRING_KAFKA_PROPERTIES_SASL_MECHANISM=PLAIN
+      - SPRING_KAFKA_PROPERTIES_SASL_JAAS_CONFIG=org.apache.kafka.common.security.plain.PlainLoginModule required username="${KAFKA_CLIENT_USER:?set in .env}" password="${KAFKA_CLIENT_PASSWORD:?set in .env}";
     depends_on:
       - broker
       - zipkin
@@ -219,10 +239,10 @@ services:
   # Prometheus Config
   prometheus:
     container_name: prometheus
-    image: prom/prometheus:latest
+    image: prom/prometheus:v2.53.0
     restart: always
     ports:
-      - "9090:9090"
+      - "${BIND_ADDRESS:-127.0.0.1}:9090:9090"
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
     depends_on:
@@ -234,14 +254,14 @@ services:
   # Grafana Config
   grafana:
     container_name: grafana
-    image: grafana/grafana-oss:latest
+    image: grafana/grafana-oss:11.1.0
     restart: always
     ports:
-      - "3000:3000"
+      - "${BIND_ADDRESS:-127.0.0.1}:3000:3000"
     links:
       - prometheus:prometheus
     volumes:
       - ./grafana_data:/var/lib/grafana
     environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=password
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:?set in .env}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?set in .env}
