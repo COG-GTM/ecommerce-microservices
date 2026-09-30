@@ -217,6 +217,7 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
     - Body: 
       ```json
       {
+         "skuCode": "iphone_15",
          "name": "Iphone 15",
          "description": "Apple Iphone 15",
          "price": 1500
@@ -237,13 +238,13 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
     - Method: POST
     - Endpoint: http://localhost:8181/api/order
     - Authorization: Use the OAuth 2.0 token fetched, following the previous step.
+    - Unit prices are taken from the product catalog (not the request), and stock is reserved in inventory-service. Unknown SKUs or insufficient stock return `409 Conflict`; non-positive quantities return `400 Bad Request`.
     - Body:
       ```json
       {
          "orderLineItemsDtoList": [
            {
               "skuCode": "iphone_15_pro",
-              "price": 2000,
               "quantity": 1
             }
          ]
