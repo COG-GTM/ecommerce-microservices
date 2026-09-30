@@ -172,13 +172,19 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
    cd ecommerce-microservices
    ```
 
-2. Start the containers:
+2. Set the Eureka (discovery server) credentials. They are required and shared by the discovery server and every Eureka client:
+   ```shell
+   export EUREKA_USERNAME=eureka
+   export EUREKA_PASSWORD=<strong-random-password>
+   ```
+
+3. Start the containers:
    ```shell
    docker compose up -d
    ```
 
 
-3. Confirm that the containers are up and running:
+4. Confirm that the containers are up and running:
    ```shell
    docker ps
    ```
@@ -265,7 +271,7 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
 
 
 - Eureka Dashboard
-   - Services (Clients) discovered can be viewed on http://localhost:8761/
+   - Services (Clients) discovered can be viewed on http://localhost:8761/ (log in with `EUREKA_USERNAME` / `EUREKA_PASSWORD`)
     ![Eureka Dashboard](docs/images/outputs/eureka_dashboard.png)
 
 
