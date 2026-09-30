@@ -119,7 +119,7 @@ services:
     container_name: discovery-server
     pull_policy: always
     ports:
-      - "8761:8761"
+      - "127.0.0.1:8761:8761"
     environment:
       - SERVER_PORT=8761
       - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
