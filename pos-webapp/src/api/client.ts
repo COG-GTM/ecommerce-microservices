@@ -40,7 +40,7 @@ export async function getProductBySku(skuCode: string): Promise<Product | null> 
   const products = await request<Product[]>(
     `/api/product?skuCode=${encodeURIComponent(skuCode)}`,
   );
-  return products.find((p) => p.skuCode === skuCode) ?? products[0] ?? null;
+  return products.find((p) => p.skuCode === skuCode) ?? null;
 }
 
 export async function getInventory(
