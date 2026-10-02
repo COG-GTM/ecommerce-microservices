@@ -29,6 +29,7 @@
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <spring-cloud.version>2022.0.4</spring-cloud.version>
+        <docker.image.prefix>registry.hub.docker.com/ibatulanandjp</docker.image.prefix>
     </properties>
 
     <dependencyManagement>
@@ -73,7 +74,7 @@
                         <image>eclipse-temurin:17.0.4.1_1-jre</image>
                     </from>
                     <to>
-                        <image>registry.hub.docker.com/ibatulanandjp/${project.artifactId}</image>
+                        <image>${docker.image.prefix}/${project.artifactId}</image>
                     </to>
                 </configuration>
             </plugin>

@@ -4,7 +4,7 @@ services:
   # MySQL Config for order service
   mysql-order:
     container_name: mysql-order
-    image: mysql:latest
+    image: mysql:8.0
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: order_service
@@ -13,13 +13,13 @@ services:
     volumes:
       - ./mysql_order:/var/lib/mysql
     ports:
-      - "3307:3306"
+      - "${ORDER_DB_HOST_PORT:-3307}:3306"
     restart: always
 
   # MySQL Config for inventory service
   mysql-inventory:
     container_name: mysql-inventory
-    image: mysql:latest
+    image: mysql:8.0
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: inventory_service
@@ -28,13 +28,13 @@ services:
     volumes:
       - ./mysql_inventory:/var/lib/mysql
     ports:
-      - "3308:3306"
+      - "${INVENTORY_DB_HOST_PORT:-3308}:3306"
     restart: always
 
   # MongoDB Config for product service
   mongo:
     container_name: mongo
-    image: mongo:latest
+    image: mongo:7.0
     restart: unless-stopped
     ports:
       - "27017:27017"
@@ -47,7 +47,7 @@ services:
   # Keycloak Config (MySQL Database)
   keycloak-mysql:
     container_name: keycloak-mysql
-    image: mysql:latest
+    image: mysql:8.0
     volumes:
       - ./mysql_keycloak_data:/var/lib/mysql
     environment:
@@ -59,27 +59,29 @@ services:
   # Keycloak Config
   keycloak:
     container_name: keycloak
-    image: quay.io/keycloak/keycloak:latest
+    image: quay.io/keycloak/keycloak:26.0
     command: [ "start-dev", "--import-realm" ]
     environment:
-      DB_VENDOR: MYSQL
-      DB_ADDR: mysql
-      DB_DATABASE: keycloak
-      DB_USER: keycloak
-      DB_PASSWORD: password
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_DB: mysql
+      KC_DB_URL: jdbc:mysql://keycloak-mysql:3306/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: password
+      KC_HOSTNAME: http://localhost:8080
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
     ports:
       - "8080:8080"
     volumes:
-      - ./realms/:/opt/keycloak/data/import/
+      - ./realms/:/opt/keycloak/data/import/:ro
     depends_on:
       - keycloak-mysql
+    restart: on-failure
 
 
   # Apache Kafka (Zookeeper) Config
   zookeeper:
-    image: confluentinc/cp-zookeeper:latest
+    image: confluentinc/cp-zookeeper:7.5.0
     container_name: zookeeper
     ports:
       - "2181:2181"
@@ -89,7 +91,7 @@ services:
 
   # Apache Kafka (Broker) Config
   broker:
-    image: confluentinc/cp-kafka:latest
+    image: confluentinc/cp-kafka:7.5.0
     container_name: broker
     ports:
       - "9092:9092"
@@ -107,7 +109,7 @@ services:
 
   # Zipkin Config
   zipkin:
-    image: openzipkin/zipkin
+    image: openzipkin/zipkin:2.24
     container_name: zipkin
     ports:
       - "9411:9411"
@@ -115,9 +117,9 @@ services:
 
   # Discovery Server (Eureka Server) Config
   discovery-server:
-    image: ibatulanandjp/discovery-server:latest
+    image: ${IMAGE_PREFIX:-gap-pos}/discovery-server:${IMAGE_TAG:-latest}
     container_name: discovery-server
-    pull_policy: always
+    pull_policy: never
     ports:
       - "8761:8761"
     environment:
@@ -128,18 +130,19 @@ services:
 
   # API Gateway Service Config
   api-gateway:
-    image: ibatulanandjp/api-gateway:latest
+    image: ${IMAGE_PREFIX:-gap-pos}/api-gateway:${IMAGE_TAG:-latest}
     container_name: api-gateway
-    pull_policy: always
+    pull_policy: never
     ports:
       - "8181:8080"
     expose:
       - "8181"
     environment:
-      - LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY=TRACE
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka
       - SERVER_PORT=8080
-      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUERURI=http://keycloak:8080/realms/spring-boot-microservices-realm
+      - KEYCLOAK_ISSUER_URI=http://localhost:8080/realms/spring-boot-microservices-realm
+      - KEYCLOAK_JWK_SET_URI=http://keycloak:8080/realms/spring-boot-microservices-realm/protocol/openid-connect/certs
+      - APP_CORS_ALLOWED_ORIGINS=${APP_CORS_ALLOWED_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
       - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
     depends_on:
       - zipkin
@@ -149,8 +152,8 @@ services:
   # Product Service Config
   product-service:
     container_name: product-service
-    image: ibatulanandjp/product-service:latest
-    pull_policy: always
+    image: ${IMAGE_PREFIX:-gap-pos}/product-service:${IMAGE_TAG:-latest}
+    pull_policy: never
     environment:
       - SPRING_DATA_MONGODB_URI=mongodb://mongo:27017/product-service
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
@@ -165,8 +168,8 @@ services:
   # Order Service Config
   order-service:
     container_name: order-service
-    image: ibatulanandjp/order-service:latest
-    pull_policy: always
+    image: ${IMAGE_PREFIX:-gap-pos}/order-service:${IMAGE_TAG:-latest}
+    pull_policy: never
     environment:
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-order:3306/order_service?allowPublicKeyRetrieval=true&useSSL=false
       - SPRING_DATASOURCE_USERNAME=ibatulanand
@@ -185,8 +188,8 @@ services:
   # Inventory Service Config
   inventory-service:
     container_name: inventory-service
-    image: ibatulanandjp/inventory-service:latest
-    pull_policy: always
+    image: ${IMAGE_PREFIX:-gap-pos}/inventory-service:${IMAGE_TAG:-latest}
+    pull_policy: never
     environment:
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-inventory:3306/inventory_service?allowPublicKeyRetrieval=true&useSSL=false
       - SPRING_DATASOURCE_USERNAME=ibatulanand
@@ -203,8 +206,8 @@ services:
   # Notification Service Config
   notification-service:
     container_name: notification-service
-    image: ibatulanandjp/notification-service:latest
-    pull_policy: always
+    image: ${IMAGE_PREFIX:-gap-pos}/notification-service:${IMAGE_TAG:-latest}
+    pull_policy: never
     environment:
       - SERVER_PORT=8080
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka
@@ -244,4 +247,4 @@ services:
       - ./grafana_data:/var/lib/grafana
     environment:
       - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=password
+      - GF_SECURITY_ADMIN_PASSWORD=password
