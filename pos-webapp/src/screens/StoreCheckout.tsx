@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { lookupLineItem, placeOrder } from '../api/client';
-import { REGISTER_ID, STORE_ID, USE_MOCK_DATA } from '../api/config';
+import { USE_MOCK_DATA } from '../api/config';
 import {
   MOCK_LINE_ITEMS,
   MOCK_PROMOTIONS,
@@ -14,6 +14,7 @@ import { OrderSummary } from '../components/OrderSummary';
 import { PromotionsBar } from '../components/PromotionsBar';
 import { TenderPanel } from '../components/TenderPanel';
 import { calculateTotals } from '../lib/totals';
+import { useAuth } from '../auth/useAuth';
 import styles from './StoreCheckout.module.css';
 
 const PROMO_CATALOG: Record<string, Promotion> = {
@@ -22,6 +23,7 @@ const PROMO_CATALOG: Record<string, Promotion> = {
 };
 
 export function StoreCheckout() {
+  const { identity, logout } = useAuth();
   const [lineItems, setLineItems] = useState<OrderLineItem[]>(MOCK_LINE_ITEMS);
   const [promotions, setPromotions] = useState<Promotion[]>(MOCK_PROMOTIONS);
   const [taxExempt, setTaxExempt] = useState(false);
@@ -41,6 +43,9 @@ export function StoreCheckout() {
   );
 
   const itemCount = lineItems.reduce((sum, item) => sum + item.quantity, 0);
+
+  if (!identity) return null;
+  const sessionIdentity = identity;
 
   async function handleLookup(skuCode: string): Promise<boolean> {
     const item = await lookupLineItem(skuCode);
@@ -79,9 +84,9 @@ export function StoreCheckout() {
 
   async function handleCharge() {
     const response = await placeOrder({
-      storeId: STORE_ID,
-      registerId: REGISTER_ID,
-      associateId: 'A-4471',
+      storeId: sessionIdentity.storeId,
+      registerId: sessionIdentity.registerId,
+      associateId: sessionIdentity.associateId,
       lineItems: lineItems.map((item) => ({
         skuCode: item.skuCode,
         quantity: item.quantity,
@@ -96,12 +101,13 @@ export function StoreCheckout() {
   return (
     <div className={styles.screen}>
       <Header
-        storeId={STORE_ID}
-        registerId={REGISTER_ID}
-        associateName="M. Reyes"
-        associateId="A-4471"
+        storeId={sessionIdentity.storeId}
+        registerId={sessionIdentity.registerId}
+        associateName={sessionIdentity.associateName}
+        associateId={sessionIdentity.associateId}
         transactionId="TXN-208874"
         mode={USE_MOCK_DATA ? 'Mock data' : 'Live gateway'}
+        onLogout={logout}
       />
 
       <div className={styles.layout}>

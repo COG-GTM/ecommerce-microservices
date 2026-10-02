@@ -32,7 +32,9 @@ Copy `.env.example` to `.env.local` and adjust:
 | --- | --- | --- |
 | `VITE_API_BASE_URL` | `http://localhost:8181` | Spring Cloud Gateway base URL |
 | `VITE_USE_MOCK` | `true` | `true` renders bundled fixtures; `false` calls the gateway |
-| `VITE_API_TOKEN` | _(empty)_ | Keycloak access token used for local dev requests |
+| `VITE_KEYCLOAK_URL` | `http://localhost:8080` | Keycloak server URL |
+| `VITE_KEYCLOAK_REALM` | `spring-boot-microservices-realm` | Keycloak realm |
+| `VITE_KEYCLOAK_CLIENT_ID` | `gap-pos` | Public OpenID Connect client |
 
 ## API gateway integration
 
@@ -48,31 +50,33 @@ The app talks to the gateway (`api-gateway`, port 8181), which fronts
 
 ### CORS
 
-The gateway previously had no CORS configuration. `api-gateway`'s `CorsConfig`
-now registers a `CorsWebFilter` for all paths, with the allowed origins driven by
-`app.cors.allowed-origins` (defaults to `http://localhost:5173` and
-`http://127.0.0.1:5173`). Override for other environments with the
-`APP_CORS_ALLOWED_ORIGINS` environment variable. Preflight `OPTIONS` requests are
-permitted in the security filter chain so the browser can complete the handshake
-before the bearer token is checked.
+The gateway's security-chain CORS configuration allows the Vite origins
+`http://localhost:5173` and `http://127.0.0.1:5173` by default. Override them
+with `APP_CORS_ALLOWED_ORIGINS` in the gateway environment. Only API routes
+receive CORS headers, and only genuine preflight requests are permitted before
+bearer-token authorization.
 
 ### Authentication
 
-The gateway is an OAuth2 resource server backed by Keycloak
-(`http://localhost:8181/realms/spring-boot-microservices-realm`), so every
-`/api/**` call needs a bearer token. There is no login flow in this app yet. For
-local development, obtain a token from Keycloak and put it in `.env.local` as
-`VITE_API_TOKEN`:
+With `VITE_USE_MOCK=false`, the app signs in through Keycloak using the
+authorization-code flow with PKCE S256 via `keycloak-js`. It checks for an
+existing Keycloak session on load, silently refreshes access tokens for gateway
+calls, and provides Sign out. The gateway listens on port **8181**; Keycloak is
+on port **8080**. The token issuer is
+`http://localhost:8080/realms/spring-boot-microservices-realm`, not the gateway
+URL.
 
-```bash
-curl -s -X POST \
-  'http://localhost:8080/realms/spring-boot-microservices-realm/protocol/openid-connect/token' \
-  -d 'grant_type=client_credentials' \
-  -d "client_id=$KEYCLOAK_CLIENT_ID" \
-  -d "client_secret=$KEYCLOAK_CLIENT_SECRET"
-```
+The imported demo accounts and their demo-only passwords are documented in
+[`../realms/README.md`](../realms/README.md):
 
-Never commit a token or client secret; `.env.local` is git-ignored.
+| Username | Password | POS access |
+| --- | --- | --- |
+| `associate1` | `GapDemo-Associate1` | Associate checkout |
+| `manager1` | `GapDemo-Manager1` | Associate and manager checkout |
+| `catalogadmin` | `GapDemo-Catalog1` | Product administration only |
+
+Mock mode skips Keycloak entirely and immediately uses the bundled mock identity.
+Never use the demo accounts outside local development.
 
 ## Mock mode
 

@@ -85,6 +85,22 @@
   background: #4ac07a;
 }
 
+.logoutButton {
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  background: transparent;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.logoutButton:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
 @media (max-width: 900px) {
   .header {
     flex-wrap: wrap;
