@@ -1,7 +1,7 @@
 # Totals parity report: POS `calculateTotals` vs order-service `/api/order/quote`
 
-- Generated: 2026-10-02T02:43:29.115Z
-- Target: `http://localhost:8081/api/order/quote`
+- Generated: 2026-10-02T02:50:48.304Z
+- Target: `http://localhost:8181/api/order/quote`
 - Old: `pos-webapp/src/lib/totals.ts` `calculateTotals`, with list/sale price and finalSale from the canonical catalog, `PROMO_CATALOG` from `StoreCheckout.tsx`, `TAX_RATE` from `api/config.ts` and `MOCK_SERVICES_AND_FEES` from `api/fixtures.ts`.
 - New: order-service `POST /api/order/quote` (the request body is the cart `request` as is).
 - Money fields are compared to the cent, `taxRate` exactly and `taxExempt` as a boolean.
