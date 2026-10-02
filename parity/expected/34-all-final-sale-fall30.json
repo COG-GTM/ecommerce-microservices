@@ -1,0 +1,14 @@
+{
+  "id": "34-all-final-sale-fall30",
+  "totals": {
+    "merchandiseTotal": 124.8,
+    "servicesAndFees": 12,
+    "discountTotal": 60.91,
+    "taxableSubtotal": 75.89,
+    "taxRate": 0.08625,
+    "salesTax": 6.55,
+    "total": 82.44,
+    "savedToday": 60.91,
+    "taxExempt": false
+  }
+}

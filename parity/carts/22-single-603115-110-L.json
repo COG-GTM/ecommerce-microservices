@@ -1,0 +1,18 @@
+{
+  "id": "22-single-603115-110-L",
+  "description": "603115-110-L alone, qty 1, no promotions",
+  "request": {
+    "storeId": "1969",
+    "registerId": "04",
+    "associateId": "A-4471",
+    "lineItems": [
+      {
+        "skuCode": "603115-110-L",
+        "quantity": 1
+      }
+    ],
+    "promotions": [],
+    "tenders": [],
+    "taxExempt": false
+  }
+}

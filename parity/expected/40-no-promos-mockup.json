@@ -1,0 +1,14 @@
+{
+  "id": "40-no-promos-mockup",
+  "totals": {
+    "merchandiseTotal": 159.85,
+    "servicesAndFees": 12,
+    "discountTotal": 29.96,
+    "taxableSubtotal": 141.89,
+    "taxRate": 0.08625,
+    "salesTax": 12.24,
+    "total": 154.13,
+    "savedToday": 29.96,
+    "taxExempt": false
+  }
+}

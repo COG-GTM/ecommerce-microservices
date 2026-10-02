@@ -1,0 +1,20 @@
+{
+  "id": "45-penny-half-cent-discount-jean-x11",
+  "description": "Discount lands exactly on a half cent (769.45 x 10% = 76.945)",
+  "request": {
+    "storeId": "1969",
+    "registerId": "04",
+    "associateId": "A-4471",
+    "lineItems": [
+      {
+        "skuCode": "471902-004-30",
+        "quantity": 11
+      }
+    ],
+    "promotions": [
+      "CARD10"
+    ],
+    "tenders": [],
+    "taxExempt": false
+  }
+}

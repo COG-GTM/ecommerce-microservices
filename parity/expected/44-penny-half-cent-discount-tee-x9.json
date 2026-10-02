@@ -1,0 +1,14 @@
+{
+  "id": "44-penny-half-cent-discount-tee-x9",
+  "totals": {
+    "merchandiseTotal": 269.55,
+    "servicesAndFees": 12,
+    "discountTotal": 80.86,
+    "taxableSubtotal": 200.69,
+    "taxRate": 0.08625,
+    "salesTax": 17.31,
+    "total": 218,
+    "savedToday": 80.86,
+    "taxExempt": false
+  }
+}

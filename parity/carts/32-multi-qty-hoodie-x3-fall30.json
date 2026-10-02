@@ -1,0 +1,20 @@
+{
+  "id": "32-multi-qty-hoodie-x3-fall30",
+  "description": "One SKU at qty 3 with FALL30",
+  "request": {
+    "storeId": "1969",
+    "registerId": "04",
+    "associateId": "A-4471",
+    "lineItems": [
+      {
+        "skuCode": "512884-022-L",
+        "quantity": 3
+      }
+    ],
+    "promotions": [
+      "FALL30"
+    ],
+    "tenders": [],
+    "taxExempt": false
+  }
+}

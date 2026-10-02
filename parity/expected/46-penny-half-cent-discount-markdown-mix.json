@@ -1,0 +1,14 @@
+{
+  "id": "46-penny-half-cent-discount-markdown-mix",
+  "totals": {
+    "merchandiseTotal": 119.8,
+    "servicesAndFees": 12,
+    "discountTotal": 38.93,
+    "taxableSubtotal": 92.87,
+    "taxRate": 0.08625,
+    "salesTax": 8.01,
+    "total": 100.88,
+    "savedToday": 38.93,
+    "taxExempt": false
+  }
+}

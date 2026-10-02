@@ -1,0 +1,14 @@
+{
+  "id": "49-penny-half-cent-tax-180",
+  "totals": {
+    "merchandiseTotal": 329.6,
+    "servicesAndFees": 12,
+    "discountTotal": 161.6,
+    "taxableSubtotal": 180,
+    "taxRate": 0.08625,
+    "salesTax": 15.52,
+    "total": 195.52,
+    "savedToday": 161.6,
+    "taxExempt": false
+  }
+}

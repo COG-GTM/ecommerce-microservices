@@ -1,0 +1,14 @@
+{
+  "id": "47-penny-half-cent-discount-and-tax",
+  "totals": {
+    "merchandiseTotal": 89.9,
+    "servicesAndFees": 12,
+    "discountTotal": 16.97,
+    "taxableSubtotal": 84.93,
+    "taxRate": 0.08625,
+    "salesTax": 7.33,
+    "total": 92.26,
+    "savedToday": 16.97,
+    "taxExempt": false
+  }
+}

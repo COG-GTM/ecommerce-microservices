@@ -1,0 +1,14 @@
+{
+  "id": "01-pos-mockup",
+  "totals": {
+    "merchandiseTotal": 159.85,
+    "servicesAndFees": 12,
+    "discountTotal": 63.54,
+    "taxableSubtotal": 108.31,
+    "taxRate": 0.08625,
+    "salesTax": 9.34,
+    "total": 117.65,
+    "savedToday": 63.54,
+    "taxExempt": false
+  }
+}

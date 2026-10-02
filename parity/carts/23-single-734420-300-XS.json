@@ -1,0 +1,18 @@
+{
+  "id": "23-single-734420-300-XS",
+  "description": "734420-300-XS alone, qty 1, no promotions",
+  "request": {
+    "storeId": "1969",
+    "registerId": "04",
+    "associateId": "A-4471",
+    "lineItems": [
+      {
+        "skuCode": "734420-300-XS",
+        "quantity": 1
+      }
+    ],
+    "promotions": [],
+    "tenders": [],
+    "taxExempt": false
+  }
+}
