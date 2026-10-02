@@ -19,7 +19,7 @@ public class Product {
     @Id
     private String id;
     private String styleId;
-    @Indexed(unique = true)
+    @Indexed(unique = true, sparse = true)
     private String skuCode;
     private String name;
     private String description;
