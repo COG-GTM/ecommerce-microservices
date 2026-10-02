@@ -51,7 +51,10 @@ export function PromotionsBar({ promotions, onApply, onRemove }: PromotionsBarPr
                 className={styles.remove}
                 type="button"
                 aria-label={`Remove ${promo.code}`}
-                onClick={() => onRemove(promo.code)}
+                onClick={() => {
+                  onRemove(promo.code);
+                  setFeedback(null);
+                }}
               >
                 ×
               </button>

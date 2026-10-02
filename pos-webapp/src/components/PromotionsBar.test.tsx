@@ -65,4 +65,22 @@ describe('PromotionsBar', () => {
     await user.type(screen.getByLabelText('Promo code'), 'x');
     expect(screen.getByRole('status')).toHaveTextContent('');
   });
+
+  it('clears the feedback message when a promotion is removed', async () => {
+    const onApply = vi.fn().mockReturnValue('duplicate');
+    const onRemove = vi.fn();
+    render(
+      <PromotionsBar
+        promotions={[{ code: 'FALL30', description: '30% off', percentOff: 30, amountOff: 0 }]}
+        onApply={onApply}
+        onRemove={onRemove}
+      />,
+    );
+    const user = await applyCode('fall30');
+    expect(screen.getByRole('status')).toHaveTextContent('FALL30 is already applied.');
+
+    await user.click(screen.getByRole('button', { name: 'Remove FALL30' }));
+    expect(onRemove).toHaveBeenCalledWith('FALL30');
+    expect(screen.getByRole('status')).toHaveTextContent('');
+  });
 });
