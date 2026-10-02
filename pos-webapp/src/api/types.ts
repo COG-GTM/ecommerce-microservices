@@ -59,7 +59,7 @@ export interface OrderLineItem {
   inventory: Inventory;
 }
 
-export type TenderType = 'CREDIT_DEBIT' | 'GIFT_CARD' | 'MOBILE_WALLET';
+export type TenderType = 'CREDIT_DEBIT' | 'GIFT_CARD' | 'MOBILE_WALLET' | 'CASH';
 
 export interface Tender {
   type: TenderType;
@@ -109,8 +109,18 @@ export interface OrderRequest {
   taxExempt: boolean;
 }
 
+export interface QuoteResponse {
+  storeId: string;
+  lineItems: Array<Omit<OrderLineItem, 'inventory'>>;
+  promotions: Promotion[];
+  totals: OrderTotals;
+}
+
 export interface OrderResponse {
   orderNumber: string;
   status: string;
   message: string;
+  totals?: OrderTotals;
+  tenders?: Tender[];
+  changeDue?: number;
 }

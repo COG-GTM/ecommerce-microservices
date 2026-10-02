@@ -1,18 +1,26 @@
-import { useMemo, useState } from 'react';
-import { lookupLineItem, placeOrder } from '../api/client';
+import { useEffect, useMemo, useState } from 'react';
+import { lookupLineItem, placeOrder, quoteOrder } from '../api/client';
 import { USE_MOCK_DATA } from '../api/config';
 import {
   MOCK_LINE_ITEMS,
   MOCK_PROMOTIONS,
   MOCK_SERVICES_AND_FEES,
 } from '../api/fixtures';
-import type { OrderLineItem, Promotion, TenderType } from '../api/types';
+import type {
+  OrderLineItem,
+  OrderRequest,
+  OrderTotals,
+  Promotion,
+  Tender,
+  TenderType,
+} from '../api/types';
 import { CartLineItem } from '../components/CartLineItem';
 import { Header } from '../components/Header';
 import { ItemLookup } from '../components/ItemLookup';
 import { OrderSummary } from '../components/OrderSummary';
 import { PromotionsBar } from '../components/PromotionsBar';
 import { TenderPanel } from '../components/TenderPanel';
+import { parseAmount, tenderLabel, type TenderLine } from '../lib/tenders';
 import { calculateTotals } from '../lib/totals';
 import { useAuth } from '../auth/useAuth';
 import styles from './StoreCheckout.module.css';
@@ -22,39 +30,107 @@ const PROMO_CATALOG: Record<string, Promotion> = {
   CARD10: { code: 'CARD10', description: '10% off', percentOff: 10, amountOff: 0 },
 };
 
+const MANAGER_ROLE = 'pos-manager';
+
+function errorText(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 export function StoreCheckout() {
   const { identity, logout } = useAuth();
-  const [lineItems, setLineItems] = useState<OrderLineItem[]>(MOCK_LINE_ITEMS);
-  const [promotions, setPromotions] = useState<Promotion[]>(MOCK_PROMOTIONS);
+  const [lineItems, setLineItems] = useState<OrderLineItem[]>(
+    USE_MOCK_DATA ? MOCK_LINE_ITEMS : [],
+  );
+  const [promotions, setPromotions] = useState<Promotion[]>(
+    USE_MOCK_DATA ? MOCK_PROMOTIONS : [],
+  );
   const [taxExempt, setTaxExempt] = useState(false);
   const [tender, setTender] = useState<TenderType>('CREDIT_DEBIT');
   const [splitTender, setSplitTender] = useState(false);
+  const [splitLines, setSplitLines] = useState<TenderLine[]>([]);
+  const [cashReceived, setCashReceived] = useState('');
   const [status, setStatus] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [changeDue, setChangeDue] = useState<number | null>(null);
+  const [serverTotals, setServerTotals] = useState<OrderTotals | null>(null);
 
-  const totals = useMemo(
+  const localTotals = useMemo(
     () =>
       calculateTotals({
         lineItems,
         promotions,
-        servicesAndFees: MOCK_SERVICES_AND_FEES,
+        servicesAndFees: USE_MOCK_DATA || lineItems.length > 0 ? MOCK_SERVICES_AND_FEES : 0,
         taxExempt,
       }),
     [lineItems, promotions, taxExempt],
   );
+  const totals = USE_MOCK_DATA || lineItems.length === 0 ? localTotals : serverTotals ?? localTotals;
+
+  const storeId = identity?.storeId ?? '';
+
+  useEffect(() => {
+    if (USE_MOCK_DATA || lineItems.length === 0) return;
+    let cancelled = false;
+    quoteOrder({
+      storeId,
+      registerId: '',
+      associateId: '',
+      lineItems: lineItems.map((item) => ({ skuCode: item.skuCode, quantity: item.quantity })),
+      promotions: promotions.map((promo) => promo.code),
+      tenders: [],
+      taxExempt,
+    })
+      .then((quote) => {
+        if (!cancelled) setServerTotals(quote.totals);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) setError(errorText(err));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [lineItems, promotions, taxExempt, storeId]);
 
   const itemCount = lineItems.reduce((sum, item) => sum + item.quantity, 0);
 
   if (!identity) return null;
   const sessionIdentity = identity;
+  const taxExemptAllowed = USE_MOCK_DATA || sessionIdentity.roles.includes(MANAGER_ROLE);
+
+  function orderRequest(overrides: Partial<OrderRequest> = {}): OrderRequest {
+    return {
+      storeId: sessionIdentity.storeId,
+      registerId: sessionIdentity.registerId,
+      associateId: sessionIdentity.associateId,
+      lineItems: lineItems.map((item) => ({
+        skuCode: item.skuCode,
+        quantity: item.quantity,
+      })),
+      promotions: promotions.map((promo) => promo.code),
+      tenders: [],
+      taxExempt,
+      ...overrides,
+    };
+  }
 
   async function handleLookup(skuCode: string): Promise<boolean> {
-    const item = await lookupLineItem(skuCode);
+    let item: OrderLineItem | null;
+    try {
+      item = await lookupLineItem(skuCode);
+    } catch (err) {
+      setError(errorText(err));
+      return false;
+    }
     if (!item) return false;
+    const found = item;
+    setStatus(null);
+    setChangeDue(null);
+    setError(null);
     setLineItems((current) => {
-      const existing = current.find((line) => line.skuCode === item.skuCode);
-      if (!existing) return [...current, item];
+      const existing = current.find((line) => line.skuCode === found.skuCode);
+      if (!existing) return [...current, found];
       return current.map((line) =>
-        line.skuCode === item.skuCode
+        line.skuCode === found.skuCode
           ? {
               ...line,
               quantity: line.quantity + 1,
@@ -70,32 +146,75 @@ export function StoreCheckout() {
     setLineItems((current) => current.filter((line) => line.skuCode !== skuCode));
   }
 
-  function handleApplyPromotion(code: string) {
-    const promo = PROMO_CATALOG[code];
-    if (!promo) return;
-    setPromotions((current) =>
-      current.some((p) => p.code === promo.code) ? current : [...current, promo],
-    );
+  async function handleApplyPromotion(code: string) {
+    if (promotions.some((p) => p.code === code)) return;
+    if (USE_MOCK_DATA) {
+      const promo = PROMO_CATALOG[code];
+      if (promo) setPromotions((current) => [...current, promo]);
+      return;
+    }
+    const codes = [...promotions.map((p) => p.code), code];
+    if (lineItems.length === 0) {
+      setError('Scan an item before applying a promotion');
+      return;
+    }
+    try {
+      const quote = await quoteOrder(orderRequest({ promotions: codes }));
+      setError(null);
+      setPromotions(quote.promotions);
+    } catch (err) {
+      setError(errorText(err));
+    }
   }
 
   function handleRemovePromotion(code: string) {
     setPromotions((current) => current.filter((promo) => promo.code !== code));
   }
 
+  function handleSelectTender(type: TenderType) {
+    setTender(type);
+    if (type === 'CASH') setCashReceived(totals.total.toFixed(2));
+  }
+
+  function handleSplitTenderChange(split: boolean) {
+    setSplitTender(split);
+    if (split) setSplitLines([{ type: tender, amount: totals.total.toFixed(2) }]);
+  }
+
+  function tendersForCharge(): Tender[] {
+    if (splitTender) {
+      return splitLines
+        .map((line) => ({
+          type: line.type,
+          label: tenderLabel(line.type),
+          amount: parseAmount(line.amount),
+        }))
+        .filter((line) => line.amount > 0);
+    }
+    const amount = tender === 'CASH' ? parseAmount(cashReceived) : totals.total;
+    return [{ type: tender, label: tenderLabel(tender), amount }];
+  }
+
   async function handleCharge() {
-    const response = await placeOrder({
-      storeId: sessionIdentity.storeId,
-      registerId: sessionIdentity.registerId,
-      associateId: sessionIdentity.associateId,
-      lineItems: lineItems.map((item) => ({
-        skuCode: item.skuCode,
-        quantity: item.quantity,
-      })),
-      promotions: promotions.map((promo) => promo.code),
-      tenders: [{ type: tender, label: tender, amount: totals.total }],
-      taxExempt,
-    });
-    setStatus(`${response.status} · Order ${response.orderNumber}`);
+    setError(null);
+    try {
+      const response = await placeOrder(orderRequest({ tenders: tendersForCharge() }));
+      setStatus(`${response.status} · Order ${response.orderNumber}`);
+      setChangeDue(response.changeDue ?? null);
+      if (!USE_MOCK_DATA) {
+        setLineItems([]);
+        setPromotions([]);
+        setTaxExempt(false);
+        setSplitTender(false);
+        setSplitLines([]);
+        setCashReceived('');
+        setServerTotals(null);
+      }
+    } catch (err) {
+      setStatus(null);
+      setChangeDue(null);
+      setError(errorText(err));
+    }
   }
 
   return (
@@ -140,15 +259,22 @@ export function StoreCheckout() {
             totals={totals}
             itemCount={itemCount}
             onTaxExemptChange={setTaxExempt}
+            taxExemptAllowed={taxExemptAllowed}
           />
           <TenderPanel
             amountDue={totals.total}
             selected={tender}
             splitTender={splitTender}
+            splitLines={splitLines}
+            cashReceived={cashReceived}
             status={status}
+            error={error}
+            changeDue={changeDue}
             disabled={lineItems.length === 0}
-            onSelect={setTender}
-            onSplitTenderChange={setSplitTender}
+            onSelect={handleSelectTender}
+            onSplitTenderChange={handleSplitTenderChange}
+            onCashReceivedChange={setCashReceived}
+            onSplitLinesChange={setSplitLines}
             onCharge={handleCharge}
           />
         </aside>
