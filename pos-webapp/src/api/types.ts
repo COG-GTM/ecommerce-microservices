@@ -103,6 +103,7 @@ export interface OrderRequest {
   storeId: string;
   registerId: string;
   associateId: string;
+  idempotencyKey: string;
   lineItems: Array<{ skuCode: string; quantity: number }>;
   promotions: string[];
   tenders: Tender[];

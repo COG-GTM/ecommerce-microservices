@@ -7,6 +7,8 @@ export interface TenderPanelProps {
   selected: TenderType;
   splitTender: boolean;
   status: string | null;
+  pending: boolean;
+  error: string | null;
   disabled: boolean;
   onSelect: (tender: TenderType) => void;
   onSplitTenderChange: (split: boolean) => void;
@@ -24,6 +26,8 @@ export function TenderPanel({
   selected,
   splitTender,
   status,
+  pending,
+  error,
   disabled,
   onSelect,
   onSplitTenderChange,
@@ -59,10 +63,25 @@ export function TenderPanel({
           <span>Amount due {formatCurrency(amountDue)}</span>
         </div>
 
-        <button className={styles.charge} type="button" onClick={onCharge} disabled={disabled}>
-          Charge {formatCurrency(amountDue)}
+        <button
+          className={styles.charge}
+          type="button"
+          onClick={onCharge}
+          disabled={disabled}
+          aria-busy={pending}
+        >
+          {pending ? 'Charging…' : `Charge ${formatCurrency(amountDue)}`}
         </button>
-        {status && <p className={styles.status}>{status}</p>}
+        {status && (
+          <p className={styles.status} role="status">
+            {status}
+          </p>
+        )}
+        {error && (
+          <p className={styles.error} role="alert">
+            {error}
+          </p>
+        )}
       </div>
     </section>
   );
