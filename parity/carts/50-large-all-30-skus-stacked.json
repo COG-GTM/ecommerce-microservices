@@ -1,0 +1,137 @@
+{
+  "id": "50-large-all-30-skus-stacked",
+  "description": "Large cart: every canonical SKU once, FALL30+CARD10",
+  "request": {
+    "storeId": "1969",
+    "registerId": "04",
+    "associateId": "A-4471",
+    "lineItems": [
+      {
+        "skuCode": "268341-016-XS",
+        "quantity": 1
+      },
+      {
+        "skuCode": "268341-016-S",
+        "quantity": 1
+      },
+      {
+        "skuCode": "268341-016-M",
+        "quantity": 1
+      },
+      {
+        "skuCode": "268341-016-L",
+        "quantity": 1
+      },
+      {
+        "skuCode": "268341-016-XL",
+        "quantity": 1
+      },
+      {
+        "skuCode": "268341-001-XS",
+        "quantity": 1
+      },
+      {
+        "skuCode": "268341-001-S",
+        "quantity": 1
+      },
+      {
+        "skuCode": "268341-001-M",
+        "quantity": 1
+      },
+      {
+        "skuCode": "268341-001-L",
+        "quantity": 1
+      },
+      {
+        "skuCode": "268341-001-XL",
+        "quantity": 1
+      },
+      {
+        "skuCode": "471902-004-27",
+        "quantity": 1
+      },
+      {
+        "skuCode": "471902-004-28",
+        "quantity": 1
+      },
+      {
+        "skuCode": "471902-004-29",
+        "quantity": 1
+      },
+      {
+        "skuCode": "471902-004-30",
+        "quantity": 1
+      },
+      {
+        "skuCode": "512884-022-S",
+        "quantity": 1
+      },
+      {
+        "skuCode": "512884-022-M",
+        "quantity": 1
+      },
+      {
+        "skuCode": "512884-022-L",
+        "quantity": 1
+      },
+      {
+        "skuCode": "512884-022-XL",
+        "quantity": 1
+      },
+      {
+        "skuCode": "603115-110-S",
+        "quantity": 1
+      },
+      {
+        "skuCode": "603115-110-M",
+        "quantity": 1
+      },
+      {
+        "skuCode": "603115-110-L",
+        "quantity": 1
+      },
+      {
+        "skuCode": "734420-300-XS",
+        "quantity": 1
+      },
+      {
+        "skuCode": "734420-300-S",
+        "quantity": 1
+      },
+      {
+        "skuCode": "734420-300-M",
+        "quantity": 1
+      },
+      {
+        "skuCode": "845006-105-0-3M",
+        "quantity": 1
+      },
+      {
+        "skuCode": "845006-105-3-6M",
+        "quantity": 1
+      },
+      {
+        "skuCode": "845006-105-6-12M",
+        "quantity": 1
+      },
+      {
+        "skuCode": "912377-210-2",
+        "quantity": 1
+      },
+      {
+        "skuCode": "912377-210-4",
+        "quantity": 1
+      },
+      {
+        "skuCode": "912377-210-6",
+        "quantity": 1
+      }
+    ],
+    "promotions": [
+      "FALL30",
+      "CARD10"
+    ],
+    "tenders": [],
+    "taxExempt": false
+  }
+}

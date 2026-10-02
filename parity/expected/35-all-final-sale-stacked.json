@@ -1,0 +1,14 @@
+{
+  "id": "35-all-final-sale-stacked",
+  "totals": {
+    "merchandiseTotal": 89.8,
+    "servicesAndFees": 12,
+    "discountTotal": 41.92,
+    "taxableSubtotal": 59.88,
+    "taxRate": 0.08625,
+    "salesTax": 5.16,
+    "total": 65.04,
+    "savedToday": 41.92,
+    "taxExempt": false
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "id": "45-penny-half-cent-discount-jean-x11",
+  "totals": {
+    "merchandiseTotal": 769.45,
+    "servicesAndFees": 12,
+    "discountTotal": 76.94,
+    "taxableSubtotal": 704.51,
+    "taxRate": 0.08625,
+    "salesTax": 60.76,
+    "total": 765.27,
+    "savedToday": 76.94,
+    "taxExempt": false
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "id": "19-single-512884-022-XL",
+  "totals": {
+    "merchandiseTotal": 59.95,
+    "servicesAndFees": 12,
+    "discountTotal": 17.98,
+    "taxableSubtotal": 53.97,
+    "taxRate": 0.08625,
+    "salesTax": 4.65,
+    "total": 58.62,
+    "savedToday": 17.98,
+    "taxExempt": false
+  }
+}

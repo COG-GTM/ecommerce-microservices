@@ -1,0 +1,14 @@
+{
+  "id": "03-single-268341-016-S",
+  "totals": {
+    "merchandiseTotal": 29.95,
+    "servicesAndFees": 12,
+    "discountTotal": 11.98,
+    "taxableSubtotal": 29.97,
+    "taxRate": 0.08625,
+    "salesTax": 2.58,
+    "total": 32.55,
+    "savedToday": 11.98,
+    "taxExempt": false
+  }
+}

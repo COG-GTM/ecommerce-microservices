@@ -1,0 +1,14 @@
+{
+  "id": "43-penny-half-cent-promo-card10",
+  "totals": {
+    "merchandiseTotal": 29.95,
+    "servicesAndFees": 12,
+    "discountTotal": 3,
+    "taxableSubtotal": 38.95,
+    "taxRate": 0.08625,
+    "salesTax": 3.36,
+    "total": 42.31,
+    "savedToday": 3,
+    "taxExempt": false
+  }
+}

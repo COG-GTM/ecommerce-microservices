@@ -1,0 +1,14 @@
+{
+  "id": "42-penny-half-cent-promo-fall30",
+  "totals": {
+    "merchandiseTotal": 29.95,
+    "servicesAndFees": 12,
+    "discountTotal": 8.99,
+    "taxableSubtotal": 32.96,
+    "taxRate": 0.08625,
+    "salesTax": 2.84,
+    "total": 35.8,
+    "savedToday": 8.99,
+    "taxExempt": false
+  }
+}

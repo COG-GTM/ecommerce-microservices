@@ -1,0 +1,32 @@
+{
+  "id": "49-penny-half-cent-tax-180",
+  "description": "Taxable 180.00 so the tax is exactly 15.525",
+  "request": {
+    "storeId": "1969",
+    "registerId": "04",
+    "associateId": "A-4471",
+    "lineItems": [
+      {
+        "skuCode": "268341-016-L",
+        "quantity": 1
+      },
+      {
+        "skuCode": "512884-022-M",
+        "quantity": 3
+      },
+      {
+        "skuCode": "734420-300-S",
+        "quantity": 2
+      },
+      {
+        "skuCode": "845006-105-6-12M",
+        "quantity": 2
+      }
+    ],
+    "promotions": [
+      "FALL30"
+    ],
+    "tenders": [],
+    "taxExempt": false
+  }
+}

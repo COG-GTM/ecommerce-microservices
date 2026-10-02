@@ -1,0 +1,24 @@
+{
+  "id": "46-penny-half-cent-discount-markdown-mix",
+  "description": "Markdown + promo land on a half cent (3 clearance tees + 1 full-price tee, CARD10)",
+  "request": {
+    "storeId": "1969",
+    "registerId": "04",
+    "associateId": "A-4471",
+    "lineItems": [
+      {
+        "skuCode": "268341-016-S",
+        "quantity": 3
+      },
+      {
+        "skuCode": "268341-001-M",
+        "quantity": 1
+      }
+    ],
+    "promotions": [
+      "CARD10"
+    ],
+    "tenders": [],
+    "taxExempt": false
+  }
+}

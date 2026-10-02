@@ -1,15 +1,13 @@
 package com.ibatulanand.orderservice.controller;
 
 import com.ibatulanand.orderservice.dto.OrderRequest;
+import com.ibatulanand.orderservice.dto.OrderResponse;
+import com.ibatulanand.orderservice.dto.QuoteResponse;
 import com.ibatulanand.orderservice.service.OrderService;
-import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
-import io.github.resilience4j.retry.annotation.Retry;
-import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
+import com.ibatulanand.orderservice.service.PricingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.concurrent.CompletableFuture;
 
 @RestController
 @RequestMapping("/api/order")
@@ -17,17 +15,21 @@ import java.util.concurrent.CompletableFuture;
 public class OrderController {
 
     private final OrderService orderService;
+    private final PricingService pricingService;
+
+    @PostMapping("/quote")
+    public QuoteResponse quote(@RequestBody OrderRequest orderRequest,
+                               @RequestHeader(value = "X-Store-Id", required = false) String storeIdHeader) {
+        return pricingService.quote(orderRequest, storeIdHeader);
+    }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @CircuitBreaker(name = "inventory", fallbackMethod = "fallbackMethod")
-    @TimeLimiter(name = "inventory")
-    @Retry(name = "inventory")
-    public CompletableFuture<String> placeOrder(@RequestBody OrderRequest orderRequest) {
-        return CompletableFuture.supplyAsync(() -> orderService.placeOrder(orderRequest));
-    }
-
-    public CompletableFuture<String> fallbackMethod(OrderRequest orderRequest, RuntimeException runtimeException) {
-        return CompletableFuture.supplyAsync(() -> "Oops! Something went wrong, please order after some time!");
+    public OrderResponse placeOrder(@RequestBody OrderRequest orderRequest,
+                                    @RequestHeader(value = "X-Store-Id", required = false) String storeIdHeader,
+                                    @RequestHeader(value = "X-Register-Id", required = false) String registerIdHeader,
+                                    @RequestHeader(value = "X-Associate-Id", required = false) String associateIdHeader,
+                                    @RequestHeader(value = "X-User-Roles", required = false) String userRolesHeader) {
+        return orderService.placeOrder(orderRequest, storeIdHeader, registerIdHeader, associateIdHeader, userRolesHeader);
     }
 }

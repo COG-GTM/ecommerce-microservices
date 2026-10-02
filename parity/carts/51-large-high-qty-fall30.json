@@ -1,0 +1,56 @@
+{
+  "id": "51-large-high-qty-fall30",
+  "description": "Large cart: 10 lines at qty 2-6 with FALL30",
+  "request": {
+    "storeId": "1969",
+    "registerId": "04",
+    "associateId": "A-4471",
+    "lineItems": [
+      {
+        "skuCode": "268341-016-XL",
+        "quantity": 6
+      },
+      {
+        "skuCode": "268341-001-XS",
+        "quantity": 5
+      },
+      {
+        "skuCode": "471902-004-29",
+        "quantity": 4
+      },
+      {
+        "skuCode": "512884-022-S",
+        "quantity": 3
+      },
+      {
+        "skuCode": "603115-110-L",
+        "quantity": 2
+      },
+      {
+        "skuCode": "734420-300-M",
+        "quantity": 6
+      },
+      {
+        "skuCode": "845006-105-6-12M",
+        "quantity": 5
+      },
+      {
+        "skuCode": "912377-210-2",
+        "quantity": 4
+      },
+      {
+        "skuCode": "471902-004-30",
+        "quantity": 3
+      },
+      {
+        "skuCode": "512884-022-XL",
+        "quantity": 2
+      }
+    ],
+    "promotions": [
+      "FALL30"
+    ],
+    "tenders": [],
+    "taxExempt": false
+  }
+}

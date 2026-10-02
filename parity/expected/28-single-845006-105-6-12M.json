@@ -1,0 +1,14 @@
+{
+  "id": "28-single-845006-105-6-12M",
+  "totals": {
+    "merchandiseTotal": 19.95,
+    "servicesAndFees": 12,
+    "discountTotal": 9.98,
+    "taxableSubtotal": 21.97,
+    "taxRate": 0.08625,
+    "salesTax": 1.89,
+    "total": 23.86,
+    "savedToday": 9.98,
+    "taxExempt": false
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "id": "21-single-603115-110-M",
+  "totals": {
+    "merchandiseTotal": 49.95,
+    "servicesAndFees": 12,
+    "discountTotal": 0,
+    "taxableSubtotal": 61.95,
+    "taxRate": 0.08625,
+    "salesTax": 5.34,
+    "total": 67.29,
+    "savedToday": 0,
+    "taxExempt": false
+  }
+}
