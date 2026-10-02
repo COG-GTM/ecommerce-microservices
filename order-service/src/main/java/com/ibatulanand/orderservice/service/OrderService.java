@@ -4,6 +4,7 @@ import com.ibatulanand.orderservice.dto.InventoryResponse;
 import com.ibatulanand.orderservice.dto.OrderLineItemsDto;
 import com.ibatulanand.orderservice.dto.OrderRequest;
 import com.ibatulanand.orderservice.event.OrderPlacedEvent;
+import com.ibatulanand.orderservice.exception.OutOfStockException;
 import com.ibatulanand.orderservice.model.Order;
 import com.ibatulanand.orderservice.model.OrderLineItems;
 import com.ibatulanand.orderservice.repository.OrderRepository;
@@ -48,18 +49,20 @@ public class OrderService {
                 .bodyToMono(InventoryResponse[].class)
                 .block();
 
-        boolean allProductsInStock = Arrays.stream(inventoryResponseArray)
-                .allMatch(InventoryResponse::isInStock);
+        List<String> outOfStockSkuCodes = Arrays.stream(inventoryResponseArray)
+                .filter(inventoryResponse -> !inventoryResponse.isInStock())
+                .map(InventoryResponse::getSkuCode)
+                .toList();
 
-        if (allProductsInStock) {
+        if (outOfStockSkuCodes.isEmpty()) {
             orderRepository.save(order);
 
             // Send order to the kafka topic
             kafkaTemplate.send("notificationTopic", new OrderPlacedEvent(order.getOrderNumber()));
 
-            return "Order Placed Successfully!";
+            return order.getOrderNumber();
         } else {
-            throw new IllegalArgumentException("Product is not in stock, please try again later");
+            throw new OutOfStockException(outOfStockSkuCodes);
         }
     }
 
