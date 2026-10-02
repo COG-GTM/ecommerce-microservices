@@ -24,7 +24,10 @@ public class ProductController {
 
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
-    public List<ProductResponse> getAllProducts() {
-        return productService.getAllProducts();
+    public List<ProductResponse> getProducts(@RequestParam(required = false) String skuCode) {
+        if (skuCode == null) {
+            return productService.getAllProducts();
+        }
+        return productService.getProductsBySkuCode(skuCode);
     }
 }
