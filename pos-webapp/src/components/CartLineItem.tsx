@@ -21,7 +21,7 @@ export function CartLineItem({ item, onRemove }: CartLineItemProps) {
         <span
           className={styles.swatch}
           style={{ background: item.colorCode }}
-          aria-label={item.colorName}
+          aria-hidden="true"
         />
         <span className={styles.qty}>Qty {item.quantity}</span>
       </div>
@@ -77,6 +77,7 @@ export function CartLineItem({ item, onRemove }: CartLineItemProps) {
         <button
           className={styles.remove}
           type="button"
+          aria-label={`Void line: ${item.description}, size ${item.size}`}
           onClick={() => onRemove(item.skuCode)}
         >
           Void line
