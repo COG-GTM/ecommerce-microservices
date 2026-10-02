@@ -1,4 +1,5 @@
-import { API_BASE_URL, AUTH_TOKEN, STORE_ID, USE_MOCK_DATA } from './config';
+import { API_BASE_URL, STORE_ID, USE_MOCK_DATA } from './config';
+import { getAccessToken } from '../auth/accessToken';
 import {
   MOCK_INVENTORY,
   MOCK_PRODUCTS,
@@ -10,20 +11,42 @@ import type {
   OrderRequest,
   OrderResponse,
   Product,
+  QuoteResponse,
 } from './types';
+
+export class ApiError extends Error {
+  readonly status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+  }
+}
+
+async function errorMessage(response: Response, fallback: string): Promise<string> {
+  try {
+    const body = (await response.json()) as { message?: unknown };
+    return typeof body.message === 'string' && body.message ? body.message : fallback;
+  } catch {
+    return fallback;
+  }
+}
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...((init?.headers as Record<string, string>) ?? {}),
   };
-  if (AUTH_TOKEN) {
-    headers.Authorization = `Bearer ${AUTH_TOKEN}`;
+  const token = await getAccessToken();
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
   }
 
   const response = await fetch(`${API_BASE_URL}${path}`, { ...init, headers });
   if (!response.ok) {
-    throw new Error(`${init?.method ?? 'GET'} ${path} failed: ${response.status}`);
+    const fallback = `${init?.method ?? 'GET'} ${path} failed: ${response.status}`;
+    throw new ApiError(await errorMessage(response, fallback), response.status);
   }
   return (await response.json()) as T;
 }
@@ -48,9 +71,14 @@ export async function getInventory(
   storeId: string = STORE_ID,
 ): Promise<Inventory | null> {
   if (USE_MOCK_DATA) return MOCK_INVENTORY[skuCode] ?? null;
-  return request<Inventory>(
-    `/api/inventory?skuCode=${encodeURIComponent(skuCode)}&storeId=${encodeURIComponent(storeId)}`,
-  );
+  try {
+    return await request<Inventory>(
+      `/api/inventory?skuCode=${encodeURIComponent(skuCode)}&storeId=${encodeURIComponent(storeId)}`,
+    );
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) return null;
+    throw error;
+  }
 }
 
 /** Resolves a scanned hangtag (style-color-size) into a cart line item. */
@@ -83,6 +111,14 @@ export async function lookupLineItem(
     finalSale: product.finalSale,
     inventory,
   };
+}
+
+/** Server-side pricing for the current bag; only used against the live gateway. */
+export async function quoteOrder(order: OrderRequest): Promise<QuoteResponse> {
+  return request<QuoteResponse>('/api/order/quote', {
+    method: 'POST',
+    body: JSON.stringify(order),
+  });
 }
 
 export async function placeOrder(order: OrderRequest): Promise<OrderResponse> {

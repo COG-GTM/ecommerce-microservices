@@ -95,3 +95,67 @@
   color: var(--positive);
   text-align: center;
 }
+
+.amountRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.amountInput {
+  width: 110px;
+  padding: 8px 10px;
+  border: 1px solid var(--rule);
+  font-size: 14px;
+  text-align: right;
+}
+
+.splitLines {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.splitLine {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.typeSelect {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid var(--rule);
+  font-size: 14px;
+  background: #ffffff;
+}
+
+.removeLine,
+.addLine {
+  border: 1px solid var(--rule);
+  background: #ffffff;
+  padding: 8px 10px;
+  font-size: 12px;
+}
+
+.addLine {
+  align-self: flex-start;
+}
+
+.change {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--gap-navy);
+  text-align: center;
+  margin: 0;
+}
+
+.error {
+  font-size: 12px;
+  color: #b42318;
+  text-align: center;
+  margin: 0;
+}

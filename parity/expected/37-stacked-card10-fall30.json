@@ -1,0 +1,14 @@
+{
+  "id": "37-stacked-card10-fall30",
+  "totals": {
+    "merchandiseTotal": 159.85,
+    "servicesAndFees": 12,
+    "discountTotal": 74.73,
+    "taxableSubtotal": 97.12,
+    "taxRate": 0.08625,
+    "salesTax": 8.38,
+    "total": 105.5,
+    "savedToday": 74.73,
+    "taxExempt": false
+  }
+}

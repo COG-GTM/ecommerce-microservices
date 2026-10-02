@@ -6,9 +6,15 @@ export interface OrderSummaryProps {
   totals: OrderTotals;
   itemCount: number;
   onTaxExemptChange: (taxExempt: boolean) => void;
+  taxExemptAllowed?: boolean;
 }
 
-export function OrderSummary({ totals, itemCount, onTaxExemptChange }: OrderSummaryProps) {
+export function OrderSummary({
+  totals,
+  itemCount,
+  onTaxExemptChange,
+  taxExemptAllowed = true,
+}: OrderSummaryProps) {
   const taxRateLabel = `${(totals.taxRate * 100).toFixed(3)}%`;
 
   return (
@@ -57,11 +63,12 @@ export function OrderSummary({ totals, itemCount, onTaxExemptChange }: OrderSumm
               id="tax-exempt"
               type="checkbox"
               checked={totals.taxExempt}
+              disabled={!taxExemptAllowed}
               onChange={(event) => onTaxExemptChange(event.target.checked)}
             />
             Tax exempt
           </label>
-          <span>Certificate on file</span>
+          <span>{taxExemptAllowed ? 'Certificate on file' : 'Manager approval required'}</span>
         </div>
       </div>
     </section>

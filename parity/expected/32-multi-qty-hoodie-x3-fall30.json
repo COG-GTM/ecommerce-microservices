@@ -1,0 +1,14 @@
+{
+  "id": "32-multi-qty-hoodie-x3-fall30",
+  "totals": {
+    "merchandiseTotal": 179.85,
+    "servicesAndFees": 12,
+    "discountTotal": 91.71,
+    "taxableSubtotal": 100.14,
+    "taxRate": 0.08625,
+    "salesTax": 8.64,
+    "total": 108.78,
+    "savedToday": 91.71,
+    "taxExempt": false
+  }
+}

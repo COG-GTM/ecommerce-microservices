@@ -1,0 +1,1328 @@
+{
+  "stores": [
+    {
+      "storeId": "1969",
+      "name": "Gap Market Street"
+    },
+    {
+      "storeId": "1042",
+      "name": "Union Square"
+    },
+    {
+      "storeId": "1177",
+      "name": "Stonestown"
+    },
+    {
+      "storeId": "1284",
+      "name": "Serramonte"
+    },
+    {
+      "storeId": "1391",
+      "name": "Bay Street"
+    }
+  ],
+  "distances": [
+    {
+      "fromStoreId": "1969",
+      "toStoreId": "1042",
+      "distanceMiles": 2.4
+    },
+    {
+      "fromStoreId": "1042",
+      "toStoreId": "1969",
+      "distanceMiles": 2.4
+    },
+    {
+      "fromStoreId": "1969",
+      "toStoreId": "1177",
+      "distanceMiles": 5.1
+    },
+    {
+      "fromStoreId": "1177",
+      "toStoreId": "1969",
+      "distanceMiles": 5.1
+    },
+    {
+      "fromStoreId": "1969",
+      "toStoreId": "1284",
+      "distanceMiles": 8.3
+    },
+    {
+      "fromStoreId": "1284",
+      "toStoreId": "1969",
+      "distanceMiles": 8.3
+    },
+    {
+      "fromStoreId": "1969",
+      "toStoreId": "1391",
+      "distanceMiles": 9.6
+    },
+    {
+      "fromStoreId": "1391",
+      "toStoreId": "1969",
+      "distanceMiles": 9.6
+    },
+    {
+      "fromStoreId": "1042",
+      "toStoreId": "1177",
+      "distanceMiles": 6.3
+    },
+    {
+      "fromStoreId": "1177",
+      "toStoreId": "1042",
+      "distanceMiles": 6.3
+    },
+    {
+      "fromStoreId": "1042",
+      "toStoreId": "1284",
+      "distanceMiles": 9.4
+    },
+    {
+      "fromStoreId": "1284",
+      "toStoreId": "1042",
+      "distanceMiles": 9.4
+    },
+    {
+      "fromStoreId": "1042",
+      "toStoreId": "1391",
+      "distanceMiles": 2.2
+    },
+    {
+      "fromStoreId": "1391",
+      "toStoreId": "1042",
+      "distanceMiles": 2.2
+    },
+    {
+      "fromStoreId": "1177",
+      "toStoreId": "1284",
+      "distanceMiles": 3.6
+    },
+    {
+      "fromStoreId": "1284",
+      "toStoreId": "1177",
+      "distanceMiles": 3.6
+    },
+    {
+      "fromStoreId": "1177",
+      "toStoreId": "1391",
+      "distanceMiles": 6.8
+    },
+    {
+      "fromStoreId": "1391",
+      "toStoreId": "1177",
+      "distanceMiles": 6.8
+    },
+    {
+      "fromStoreId": "1284",
+      "toStoreId": "1391",
+      "distanceMiles": 10.4
+    },
+    {
+      "fromStoreId": "1391",
+      "toStoreId": "1284",
+      "distanceMiles": 10.4
+    }
+  ],
+  "inventory": [
+    {
+      "skuCode": "268341-016-XS",
+      "storeId": "1969",
+      "onHand": 6,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture T-12"
+    },
+    {
+      "skuCode": "268341-016-XS",
+      "storeId": "1042",
+      "onHand": 4,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture T-12"
+    },
+    {
+      "skuCode": "268341-016-XS",
+      "storeId": "1177",
+      "onHand": 3,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture T-12"
+    },
+    {
+      "skuCode": "268341-016-XS",
+      "storeId": "1284",
+      "onHand": 0,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture T-12"
+    },
+    {
+      "skuCode": "268341-016-XS",
+      "storeId": "1391",
+      "onHand": 2,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture T-12"
+    },
+    {
+      "skuCode": "268341-016-S",
+      "storeId": "1969",
+      "onHand": 14,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture T-12"
+    },
+    {
+      "skuCode": "268341-016-S",
+      "storeId": "1042",
+      "onHand": 8,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture T-12"
+    },
+    {
+      "skuCode": "268341-016-S",
+      "storeId": "1177",
+      "onHand": 5,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture T-12"
+    },
+    {
+      "skuCode": "268341-016-S",
+      "storeId": "1284",
+      "onHand": 3,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture T-12"
+    },
+    {
+      "skuCode": "268341-016-S",
+      "storeId": "1391",
+      "onHand": 4,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture T-12"
+    },
+    {
+      "skuCode": "268341-016-M",
+      "storeId": "1969",
+      "onHand": 19,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture T-12"
+    },
+    {
+      "skuCode": "268341-016-M",
+      "storeId": "1042",
+      "onHand": 10,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture T-12"
+    },
+    {
+      "skuCode": "268341-016-M",
+      "storeId": "1177",
+      "onHand": 7,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture T-12"
+    },
+    {
+      "skuCode": "268341-016-M",
+      "storeId": "1284",
+      "onHand": 5,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture T-12"
+    },
+    {
+      "skuCode": "268341-016-M",
+      "storeId": "1391",
+      "onHand": 3,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture T-12"
+    },
+    {
+      "skuCode": "268341-016-L",
+      "storeId": "1969",
+      "onHand": 23,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture T-12"
+    },
+    {
+      "skuCode": "268341-016-L",
+      "storeId": "1042",
+      "onHand": 11,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture T-12"
+    },
+    {
+      "skuCode": "268341-016-L",
+      "storeId": "1177",
+      "onHand": 6,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture T-12"
+    },
+    {
+      "skuCode": "268341-016-L",
+      "storeId": "1284",
+      "onHand": 4,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture T-12"
+    },
+    {
+      "skuCode": "268341-016-L",
+      "storeId": "1391",
+      "onHand": 2,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture T-12"
+    },
+    {
+      "skuCode": "268341-016-XL",
+      "storeId": "1969",
+      "onHand": 9,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture T-12"
+    },
+    {
+      "skuCode": "268341-016-XL",
+      "storeId": "1042",
+      "onHand": 5,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture T-12"
+    },
+    {
+      "skuCode": "268341-016-XL",
+      "storeId": "1177",
+      "onHand": 2,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture T-12"
+    },
+    {
+      "skuCode": "268341-016-XL",
+      "storeId": "1284",
+      "onHand": 1,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture T-12"
+    },
+    {
+      "skuCode": "268341-016-XL",
+      "storeId": "1391",
+      "onHand": 0,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture T-12"
+    },
+    {
+      "skuCode": "268341-001-XS",
+      "storeId": "1969",
+      "onHand": 0,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture T-14"
+    },
+    {
+      "skuCode": "268341-001-XS",
+      "storeId": "1042",
+      "onHand": 4,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture T-14"
+    },
+    {
+      "skuCode": "268341-001-XS",
+      "storeId": "1177",
+      "onHand": 2,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture T-14"
+    },
+    {
+      "skuCode": "268341-001-XS",
+      "storeId": "1284",
+      "onHand": 0,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture T-14"
+    },
+    {
+      "skuCode": "268341-001-XS",
+      "storeId": "1391",
+      "onHand": 1,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture T-14"
+    },
+    {
+      "skuCode": "268341-001-S",
+      "storeId": "1969",
+      "onHand": 11,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture T-14"
+    },
+    {
+      "skuCode": "268341-001-S",
+      "storeId": "1042",
+      "onHand": 9,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture T-14"
+    },
+    {
+      "skuCode": "268341-001-S",
+      "storeId": "1177",
+      "onHand": 6,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture T-14"
+    },
+    {
+      "skuCode": "268341-001-S",
+      "storeId": "1284",
+      "onHand": 4,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture T-14"
+    },
+    {
+      "skuCode": "268341-001-S",
+      "storeId": "1391",
+      "onHand": 5,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture T-14"
+    },
+    {
+      "skuCode": "268341-001-M",
+      "storeId": "1969",
+      "onHand": 17,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture T-14"
+    },
+    {
+      "skuCode": "268341-001-M",
+      "storeId": "1042",
+      "onHand": 12,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture T-14"
+    },
+    {
+      "skuCode": "268341-001-M",
+      "storeId": "1177",
+      "onHand": 8,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture T-14"
+    },
+    {
+      "skuCode": "268341-001-M",
+      "storeId": "1284",
+      "onHand": 6,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture T-14"
+    },
+    {
+      "skuCode": "268341-001-M",
+      "storeId": "1391",
+      "onHand": 7,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture T-14"
+    },
+    {
+      "skuCode": "268341-001-L",
+      "storeId": "1969",
+      "onHand": 15,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture T-14"
+    },
+    {
+      "skuCode": "268341-001-L",
+      "storeId": "1042",
+      "onHand": 10,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture T-14"
+    },
+    {
+      "skuCode": "268341-001-L",
+      "storeId": "1177",
+      "onHand": 7,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture T-14"
+    },
+    {
+      "skuCode": "268341-001-L",
+      "storeId": "1284",
+      "onHand": 5,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture T-14"
+    },
+    {
+      "skuCode": "268341-001-L",
+      "storeId": "1391",
+      "onHand": 4,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture T-14"
+    },
+    {
+      "skuCode": "268341-001-XL",
+      "storeId": "1969",
+      "onHand": 8,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture T-14"
+    },
+    {
+      "skuCode": "268341-001-XL",
+      "storeId": "1042",
+      "onHand": 6,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture T-14"
+    },
+    {
+      "skuCode": "268341-001-XL",
+      "storeId": "1177",
+      "onHand": 3,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture T-14"
+    },
+    {
+      "skuCode": "268341-001-XL",
+      "storeId": "1284",
+      "onHand": 2,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture T-14"
+    },
+    {
+      "skuCode": "268341-001-XL",
+      "storeId": "1391",
+      "onHand": 2,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture T-14"
+    },
+    {
+      "skuCode": "471902-004-27",
+      "storeId": "1969",
+      "onHand": 5,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 2",
+      "fixture": "Fixture D-04"
+    },
+    {
+      "skuCode": "471902-004-27",
+      "storeId": "1042",
+      "onHand": 4,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 2",
+      "fixture": "Fixture D-04"
+    },
+    {
+      "skuCode": "471902-004-27",
+      "storeId": "1177",
+      "onHand": 2,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture D-04"
+    },
+    {
+      "skuCode": "471902-004-27",
+      "storeId": "1284",
+      "onHand": 3,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture D-04"
+    },
+    {
+      "skuCode": "471902-004-27",
+      "storeId": "1391",
+      "onHand": 1,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture D-04"
+    },
+    {
+      "skuCode": "471902-004-28",
+      "storeId": "1969",
+      "onHand": 9,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 2",
+      "fixture": "Fixture D-04"
+    },
+    {
+      "skuCode": "471902-004-28",
+      "storeId": "1042",
+      "onHand": 6,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 2",
+      "fixture": "Fixture D-04"
+    },
+    {
+      "skuCode": "471902-004-28",
+      "storeId": "1177",
+      "onHand": 4,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture D-04"
+    },
+    {
+      "skuCode": "471902-004-28",
+      "storeId": "1284",
+      "onHand": 2,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture D-04"
+    },
+    {
+      "skuCode": "471902-004-28",
+      "storeId": "1391",
+      "onHand": 3,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture D-04"
+    },
+    {
+      "skuCode": "471902-004-29",
+      "storeId": "1969",
+      "onHand": 7,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 2",
+      "fixture": "Fixture D-04"
+    },
+    {
+      "skuCode": "471902-004-29",
+      "storeId": "1042",
+      "onHand": 5,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 2",
+      "fixture": "Fixture D-04"
+    },
+    {
+      "skuCode": "471902-004-29",
+      "storeId": "1177",
+      "onHand": 3,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture D-04"
+    },
+    {
+      "skuCode": "471902-004-29",
+      "storeId": "1284",
+      "onHand": 0,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture D-04"
+    },
+    {
+      "skuCode": "471902-004-29",
+      "storeId": "1391",
+      "onHand": 0,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture D-04"
+    },
+    {
+      "skuCode": "471902-004-30",
+      "storeId": "1969",
+      "onHand": 0,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 2",
+      "fixture": "Fixture D-04"
+    },
+    {
+      "skuCode": "471902-004-30",
+      "storeId": "1042",
+      "onHand": 3,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 2",
+      "fixture": "Fixture D-04"
+    },
+    {
+      "skuCode": "471902-004-30",
+      "storeId": "1177",
+      "onHand": 0,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture D-04"
+    },
+    {
+      "skuCode": "471902-004-30",
+      "storeId": "1284",
+      "onHand": 2,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture D-04"
+    },
+    {
+      "skuCode": "471902-004-30",
+      "storeId": "1391",
+      "onHand": 4,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture D-04"
+    },
+    {
+      "skuCode": "512884-022-S",
+      "storeId": "1969",
+      "onHand": 8,
+      "shipFromStoreEligible": false,
+      "floor": "Floor 2",
+      "fixture": "Fixture F-07"
+    },
+    {
+      "skuCode": "512884-022-S",
+      "storeId": "1042",
+      "onHand": 6,
+      "shipFromStoreEligible": false,
+      "floor": "Floor 2",
+      "fixture": "Fixture F-07"
+    },
+    {
+      "skuCode": "512884-022-S",
+      "storeId": "1177",
+      "onHand": 4,
+      "shipFromStoreEligible": false,
+      "floor": "Floor 1",
+      "fixture": "Fixture F-07"
+    },
+    {
+      "skuCode": "512884-022-S",
+      "storeId": "1284",
+      "onHand": 2,
+      "shipFromStoreEligible": false,
+      "floor": "Floor 1",
+      "fixture": "Fixture F-07"
+    },
+    {
+      "skuCode": "512884-022-S",
+      "storeId": "1391",
+      "onHand": 3,
+      "shipFromStoreEligible": false,
+      "floor": "Floor 1",
+      "fixture": "Fixture F-07"
+    },
+    {
+      "skuCode": "512884-022-M",
+      "storeId": "1969",
+      "onHand": 12,
+      "shipFromStoreEligible": false,
+      "floor": "Floor 2",
+      "fixture": "Fixture F-07"
+    },
+    {
+      "skuCode": "512884-022-M",
+      "storeId": "1042",
+      "onHand": 9,
+      "shipFromStoreEligible": false,
+      "floor": "Floor 2",
+      "fixture": "Fixture F-07"
+    },
+    {
+      "skuCode": "512884-022-M",
+      "storeId": "1177",
+      "onHand": 0,
+      "shipFromStoreEligible": false,
+      "floor": "Floor 1",
+      "fixture": "Fixture F-07"
+    },
+    {
+      "skuCode": "512884-022-M",
+      "storeId": "1284",
+      "onHand": 1,
+      "shipFromStoreEligible": false,
+      "floor": "Floor 1",
+      "fixture": "Fixture F-07"
+    },
+    {
+      "skuCode": "512884-022-M",
+      "storeId": "1391",
+      "onHand": 0,
+      "shipFromStoreEligible": false,
+      "floor": "Floor 1",
+      "fixture": "Fixture F-07"
+    },
+    {
+      "skuCode": "512884-022-L",
+      "storeId": "1969",
+      "onHand": 10,
+      "shipFromStoreEligible": false,
+      "floor": "Floor 2",
+      "fixture": "Fixture F-07"
+    },
+    {
+      "skuCode": "512884-022-L",
+      "storeId": "1042",
+      "onHand": 7,
+      "shipFromStoreEligible": false,
+      "floor": "Floor 2",
+      "fixture": "Fixture F-07"
+    },
+    {
+      "skuCode": "512884-022-L",
+      "storeId": "1177",
+      "onHand": 5,
+      "shipFromStoreEligible": false,
+      "floor": "Floor 1",
+      "fixture": "Fixture F-07"
+    },
+    {
+      "skuCode": "512884-022-L",
+      "storeId": "1284",
+      "onHand": 3,
+      "shipFromStoreEligible": false,
+      "floor": "Floor 1",
+      "fixture": "Fixture F-07"
+    },
+    {
+      "skuCode": "512884-022-L",
+      "storeId": "1391",
+      "onHand": 2,
+      "shipFromStoreEligible": false,
+      "floor": "Floor 1",
+      "fixture": "Fixture F-07"
+    },
+    {
+      "skuCode": "512884-022-XL",
+      "storeId": "1969",
+      "onHand": 4,
+      "shipFromStoreEligible": false,
+      "floor": "Floor 2",
+      "fixture": "Fixture F-07"
+    },
+    {
+      "skuCode": "512884-022-XL",
+      "storeId": "1042",
+      "onHand": 3,
+      "shipFromStoreEligible": false,
+      "floor": "Floor 2",
+      "fixture": "Fixture F-07"
+    },
+    {
+      "skuCode": "512884-022-XL",
+      "storeId": "1177",
+      "onHand": 2,
+      "shipFromStoreEligible": false,
+      "floor": "Floor 1",
+      "fixture": "Fixture F-07"
+    },
+    {
+      "skuCode": "512884-022-XL",
+      "storeId": "1284",
+      "onHand": 0,
+      "shipFromStoreEligible": false,
+      "floor": "Floor 1",
+      "fixture": "Fixture F-07"
+    },
+    {
+      "skuCode": "512884-022-XL",
+      "storeId": "1391",
+      "onHand": 1,
+      "shipFromStoreEligible": false,
+      "floor": "Floor 1",
+      "fixture": "Fixture F-07"
+    },
+    {
+      "skuCode": "603115-110-S",
+      "storeId": "1969",
+      "onHand": 7,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 2",
+      "fixture": "Fixture S-03"
+    },
+    {
+      "skuCode": "603115-110-S",
+      "storeId": "1042",
+      "onHand": 5,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 2",
+      "fixture": "Fixture S-03"
+    },
+    {
+      "skuCode": "603115-110-S",
+      "storeId": "1177",
+      "onHand": 3,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture S-03"
+    },
+    {
+      "skuCode": "603115-110-S",
+      "storeId": "1284",
+      "onHand": 2,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture S-03"
+    },
+    {
+      "skuCode": "603115-110-S",
+      "storeId": "1391",
+      "onHand": 2,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture S-03"
+    },
+    {
+      "skuCode": "603115-110-M",
+      "storeId": "1969",
+      "onHand": 13,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 2",
+      "fixture": "Fixture S-03"
+    },
+    {
+      "skuCode": "603115-110-M",
+      "storeId": "1042",
+      "onHand": 8,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 2",
+      "fixture": "Fixture S-03"
+    },
+    {
+      "skuCode": "603115-110-M",
+      "storeId": "1177",
+      "onHand": 6,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture S-03"
+    },
+    {
+      "skuCode": "603115-110-M",
+      "storeId": "1284",
+      "onHand": 4,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture S-03"
+    },
+    {
+      "skuCode": "603115-110-M",
+      "storeId": "1391",
+      "onHand": 3,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture S-03"
+    },
+    {
+      "skuCode": "603115-110-L",
+      "storeId": "1969",
+      "onHand": 10,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 2",
+      "fixture": "Fixture S-03"
+    },
+    {
+      "skuCode": "603115-110-L",
+      "storeId": "1042",
+      "onHand": 7,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 2",
+      "fixture": "Fixture S-03"
+    },
+    {
+      "skuCode": "603115-110-L",
+      "storeId": "1177",
+      "onHand": 4,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture S-03"
+    },
+    {
+      "skuCode": "603115-110-L",
+      "storeId": "1284",
+      "onHand": 3,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture S-03"
+    },
+    {
+      "skuCode": "603115-110-L",
+      "storeId": "1391",
+      "onHand": 2,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture S-03"
+    },
+    {
+      "skuCode": "734420-300-XS",
+      "storeId": "1969",
+      "onHand": 6,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 3",
+      "fixture": "Fixture K-09"
+    },
+    {
+      "skuCode": "734420-300-XS",
+      "storeId": "1042",
+      "onHand": 4,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 3",
+      "fixture": "Fixture K-09"
+    },
+    {
+      "skuCode": "734420-300-XS",
+      "storeId": "1177",
+      "onHand": 3,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture K-09"
+    },
+    {
+      "skuCode": "734420-300-XS",
+      "storeId": "1284",
+      "onHand": 5,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture K-09"
+    },
+    {
+      "skuCode": "734420-300-XS",
+      "storeId": "1391",
+      "onHand": 2,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture K-09"
+    },
+    {
+      "skuCode": "734420-300-S",
+      "storeId": "1969",
+      "onHand": 9,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 3",
+      "fixture": "Fixture K-09"
+    },
+    {
+      "skuCode": "734420-300-S",
+      "storeId": "1042",
+      "onHand": 6,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 3",
+      "fixture": "Fixture K-09"
+    },
+    {
+      "skuCode": "734420-300-S",
+      "storeId": "1177",
+      "onHand": 4,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture K-09"
+    },
+    {
+      "skuCode": "734420-300-S",
+      "storeId": "1284",
+      "onHand": 6,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture K-09"
+    },
+    {
+      "skuCode": "734420-300-S",
+      "storeId": "1391",
+      "onHand": 3,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture K-09"
+    },
+    {
+      "skuCode": "734420-300-M",
+      "storeId": "1969",
+      "onHand": 7,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 3",
+      "fixture": "Fixture K-09"
+    },
+    {
+      "skuCode": "734420-300-M",
+      "storeId": "1042",
+      "onHand": 5,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 3",
+      "fixture": "Fixture K-09"
+    },
+    {
+      "skuCode": "734420-300-M",
+      "storeId": "1177",
+      "onHand": 2,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture K-09"
+    },
+    {
+      "skuCode": "734420-300-M",
+      "storeId": "1284",
+      "onHand": 4,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture K-09"
+    },
+    {
+      "skuCode": "734420-300-M",
+      "storeId": "1391",
+      "onHand": 2,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture K-09"
+    },
+    {
+      "skuCode": "845006-105-0-3M",
+      "storeId": "1969",
+      "onHand": 5,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 3",
+      "fixture": "Fixture B-02"
+    },
+    {
+      "skuCode": "845006-105-0-3M",
+      "storeId": "1042",
+      "onHand": 3,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 3",
+      "fixture": "Fixture B-02"
+    },
+    {
+      "skuCode": "845006-105-0-3M",
+      "storeId": "1177",
+      "onHand": 2,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture B-02"
+    },
+    {
+      "skuCode": "845006-105-0-3M",
+      "storeId": "1284",
+      "onHand": 4,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture B-02"
+    },
+    {
+      "skuCode": "845006-105-0-3M",
+      "storeId": "1391",
+      "onHand": 1,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture B-02"
+    },
+    {
+      "skuCode": "845006-105-3-6M",
+      "storeId": "1969",
+      "onHand": 8,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 3",
+      "fixture": "Fixture B-02"
+    },
+    {
+      "skuCode": "845006-105-3-6M",
+      "storeId": "1042",
+      "onHand": 4,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 3",
+      "fixture": "Fixture B-02"
+    },
+    {
+      "skuCode": "845006-105-3-6M",
+      "storeId": "1177",
+      "onHand": 3,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture B-02"
+    },
+    {
+      "skuCode": "845006-105-3-6M",
+      "storeId": "1284",
+      "onHand": 5,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture B-02"
+    },
+    {
+      "skuCode": "845006-105-3-6M",
+      "storeId": "1391",
+      "onHand": 2,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture B-02"
+    },
+    {
+      "skuCode": "845006-105-6-12M",
+      "storeId": "1969",
+      "onHand": 3,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 3",
+      "fixture": "Fixture B-02"
+    },
+    {
+      "skuCode": "845006-105-6-12M",
+      "storeId": "1042",
+      "onHand": 2,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 3",
+      "fixture": "Fixture B-02"
+    },
+    {
+      "skuCode": "845006-105-6-12M",
+      "storeId": "1177",
+      "onHand": 0,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture B-02"
+    },
+    {
+      "skuCode": "845006-105-6-12M",
+      "storeId": "1284",
+      "onHand": 2,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture B-02"
+    },
+    {
+      "skuCode": "845006-105-6-12M",
+      "storeId": "1391",
+      "onHand": 0,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture B-02"
+    },
+    {
+      "skuCode": "912377-210-2",
+      "storeId": "1969",
+      "onHand": 0,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture C-21"
+    },
+    {
+      "skuCode": "912377-210-2",
+      "storeId": "1042",
+      "onHand": 0,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture C-21"
+    },
+    {
+      "skuCode": "912377-210-2",
+      "storeId": "1177",
+      "onHand": 0,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture C-21"
+    },
+    {
+      "skuCode": "912377-210-2",
+      "storeId": "1284",
+      "onHand": 0,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture C-21"
+    },
+    {
+      "skuCode": "912377-210-2",
+      "storeId": "1391",
+      "onHand": 0,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture C-21"
+    },
+    {
+      "skuCode": "912377-210-4",
+      "storeId": "1969",
+      "onHand": 2,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture C-21"
+    },
+    {
+      "skuCode": "912377-210-4",
+      "storeId": "1042",
+      "onHand": 1,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture C-21"
+    },
+    {
+      "skuCode": "912377-210-4",
+      "storeId": "1177",
+      "onHand": 0,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture C-21"
+    },
+    {
+      "skuCode": "912377-210-4",
+      "storeId": "1284",
+      "onHand": 0,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture C-21"
+    },
+    {
+      "skuCode": "912377-210-4",
+      "storeId": "1391",
+      "onHand": 1,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture C-21"
+    },
+    {
+      "skuCode": "912377-210-6",
+      "storeId": "1969",
+      "onHand": 1,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture C-21"
+    },
+    {
+      "skuCode": "912377-210-6",
+      "storeId": "1042",
+      "onHand": 0,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture C-21"
+    },
+    {
+      "skuCode": "912377-210-6",
+      "storeId": "1177",
+      "onHand": 1,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture C-21"
+    },
+    {
+      "skuCode": "912377-210-6",
+      "storeId": "1284",
+      "onHand": 0,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture C-21"
+    },
+    {
+      "skuCode": "912377-210-6",
+      "storeId": "1391",
+      "onHand": 0,
+      "shipFromStoreEligible": true,
+      "floor": "Floor 1",
+      "fixture": "Fixture C-21"
+    }
+  ]
+}

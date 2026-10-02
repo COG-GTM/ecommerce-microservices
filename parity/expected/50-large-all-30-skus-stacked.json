@@ -1,0 +1,14 @@
+{
+  "id": "50-large-all-30-skus-stacked",
+  "totals": {
+    "merchandiseTotal": 1283.5,
+    "servicesAndFees": 12,
+    "discountTotal": 607.49,
+    "taxableSubtotal": 688.01,
+    "taxRate": 0.08625,
+    "salesTax": 59.34,
+    "total": 747.35,
+    "savedToday": 607.49,
+    "taxExempt": false
+  }
+}

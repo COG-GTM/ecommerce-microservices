@@ -1,0 +1,14 @@
+{
+  "id": "38-tax-exempt-mockup",
+  "totals": {
+    "merchandiseTotal": 159.85,
+    "servicesAndFees": 12,
+    "discountTotal": 63.54,
+    "taxableSubtotal": 108.31,
+    "taxRate": 0.08625,
+    "salesTax": 0,
+    "total": 108.31,
+    "savedToday": 63.54,
+    "taxExempt": true
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "id": "39-tax-exempt-stacked-mixed",
+  "totals": {
+    "merchandiseTotal": 164.8,
+    "servicesAndFees": 12,
+    "discountTotal": 85.7,
+    "taxableSubtotal": 91.1,
+    "taxRate": 0.08625,
+    "salesTax": 0,
+    "total": 91.1,
+    "savedToday": 85.7,
+    "taxExempt": true
+  }
+}

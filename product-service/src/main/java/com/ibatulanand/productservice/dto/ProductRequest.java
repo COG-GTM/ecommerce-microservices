@@ -12,7 +12,18 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ProductRequest {
+    private String styleId;
+    private String skuCode;
     private String name;
     private String description;
+    private String department;
+    private String category;
+    private String colorName;
+    private String colorCode;
+    private String size;
+    private BigDecimal listPrice;
+    private BigDecimal salePrice;
+    private Integer clearancePercent;
+    private Boolean finalSale;
     private BigDecimal price;
 }

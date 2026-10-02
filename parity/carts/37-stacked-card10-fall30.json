@@ -1,0 +1,29 @@
+{
+  "id": "37-stacked-card10-fall30",
+  "description": "Mockup cart with CARD10 then FALL30 (order must not matter)",
+  "request": {
+    "storeId": "1969",
+    "registerId": "04",
+    "associateId": "A-4471",
+    "lineItems": [
+      {
+        "skuCode": "268341-016-L",
+        "quantity": 1
+      },
+      {
+        "skuCode": "471902-004-29",
+        "quantity": 1
+      },
+      {
+        "skuCode": "512884-022-M",
+        "quantity": 1
+      }
+    ],
+    "promotions": [
+      "CARD10",
+      "FALL30"
+    ],
+    "tenders": [],
+    "taxExempt": false
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "id": "33-multi-qty-mixed-card10",
+  "description": "Several non-final-sale lines at qty 2-4 with CARD10",
+  "request": {
+    "storeId": "1969",
+    "registerId": "04",
+    "associateId": "A-4471",
+    "lineItems": [
+      {
+        "skuCode": "471902-004-28",
+        "quantity": 2
+      },
+      {
+        "skuCode": "603115-110-M",
+        "quantity": 4
+      },
+      {
+        "skuCode": "734420-300-S",
+        "quantity": 2
+      }
+    ],
+    "promotions": [
+      "CARD10"
+    ],
+    "tenders": [],
+    "taxExempt": false
+  }
+}

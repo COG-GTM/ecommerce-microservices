@@ -1,0 +1,18 @@
+{
+  "id": "14-single-471902-004-29",
+  "description": "471902-004-29 alone, qty 1, no promotions",
+  "request": {
+    "storeId": "1969",
+    "registerId": "04",
+    "associateId": "A-4471",
+    "lineItems": [
+      {
+        "skuCode": "471902-004-29",
+        "quantity": 1
+      }
+    ],
+    "promotions": [],
+    "tenders": [],
+    "taxExempt": false
+  }
+}

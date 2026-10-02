@@ -1,0 +1,29 @@
+{
+  "id": "39-tax-exempt-stacked-mixed",
+  "description": "Mixed cart with FALL30+CARD10, tax exempt",
+  "request": {
+    "storeId": "1969",
+    "registerId": "04",
+    "associateId": "A-4471",
+    "lineItems": [
+      {
+        "skuCode": "268341-001-L",
+        "quantity": 2
+      },
+      {
+        "skuCode": "512884-022-XL",
+        "quantity": 1
+      },
+      {
+        "skuCode": "912377-210-6",
+        "quantity": 1
+      }
+    ],
+    "promotions": [
+      "FALL30",
+      "CARD10"
+    ],
+    "tenders": [],
+    "taxExempt": true
+  }
+}
