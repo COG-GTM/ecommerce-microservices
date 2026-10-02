@@ -11,7 +11,7 @@ import { CartLineItem } from '../components/CartLineItem';
 import { Header } from '../components/Header';
 import { ItemLookup } from '../components/ItemLookup';
 import { OrderSummary } from '../components/OrderSummary';
-import { PromotionsBar } from '../components/PromotionsBar';
+import { PromotionsBar, type PromoApplyResult } from '../components/PromotionsBar';
 import { TenderPanel } from '../components/TenderPanel';
 import { calculateTotals } from '../lib/totals';
 import styles from './StoreCheckout.module.css';
@@ -65,12 +65,14 @@ export function StoreCheckout() {
     setLineItems((current) => current.filter((line) => line.skuCode !== skuCode));
   }
 
-  function handleApplyPromotion(code: string) {
+  function handleApplyPromotion(code: string): PromoApplyResult {
     const promo = PROMO_CATALOG[code];
-    if (!promo) return;
+    if (!promo) return 'unknown';
+    if (promotions.some((p) => p.code === promo.code)) return 'duplicate';
     setPromotions((current) =>
       current.some((p) => p.code === promo.code) ? current : [...current, promo],
     );
+    return 'applied';
   }
 
   function handleRemovePromotion(code: string) {

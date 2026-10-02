@@ -83,6 +83,23 @@
   color: #ffffff;
 }
 
+.feedback {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+.feedbackSuccess {
+  color: var(--gap-navy);
+  font-weight: 600;
+}
+
+.feedbackError {
+  color: var(--sale);
+  font-weight: 600;
+}
+
 @media (max-width: 520px) {
   .apply {
     flex: 1;
