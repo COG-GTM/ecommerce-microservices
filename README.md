@@ -217,11 +217,22 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
     - Body: 
       ```json
       {
-         "name": "Iphone 15",
-         "description": "Apple Iphone 15",
-         "price": 1500
+         "styleId": "268341",
+         "skuCode": "268341-016-L",
+         "name": "Vintage Soft Crewneck Tee",
+         "description": "Vintage Soft Crewneck Tee",
+         "department": "WOMEN'S",
+         "category": "TOPS",
+         "colorName": "Heather Grey",
+         "colorCode": "#9b9ea3",
+         "size": "L",
+         "listPrice": 29.95,
+         "salePrice": 17.97,
+         "clearancePercent": 40,
+         "finalSale": true
       } 
       ```
+    - Returns `201 Created` with the created product (`price` mirrors `salePrice`; `salePrice` falls back to legacy `price` if omitted). A duplicate `skuCode` returns `409 Conflict`.
     - Output:
         ![Postman](docs/images/outputs/product_api_post_postman.png)
         ![Zipkin](docs/images/outputs/product_api_post_zipkin.png)
@@ -229,9 +240,18 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
   - GET /api/product
     - Method: GET
     - Endpoint: http://localhost:8181/api/product
+    - Optional query param: `?skuCode=<sku>` returns an array with the single matching product (or `[]` when unknown).
     - Authorization: Use the OAuth 2.0 token fetched, following the previous step.
     - Output:
         ![Postman](docs/images/outputs/product_api_get_postman.png)
+
+  - GET /api/product/sku/{skuCode}
+    - Method: GET
+    - Endpoint: http://localhost:8181/api/product/sku/{skuCode}
+    - Returns the single product (with `variants` listing every SKU of the same `styleId`), or `404` if the skuCode is unknown.
+    - Authorization: Use the OAuth 2.0 token fetched, following the previous step.
+
+  - Catalog seed: `product-service/src/main/resources/seed/gap-catalog.json` holds the 30-SKU Gap catalog; on startup `CatalogSeeder` upserts each row by `skuCode`. Disable with `catalog.seed.enabled=false`.
  
   - POST /api/order
     - Method: POST
