@@ -144,7 +144,7 @@ export function TenderPanel({
           <span>Amount due {formatCurrency(amountDue)}</span>
         </div>
 
-        {(splitTender || selected === 'CASH') && (
+        {(splitTender || selected === 'CASH') && changeDue === null && (
           <div className={styles.splitRow}>
             <span>Remaining {formatCurrency(remaining)}</span>
             <span>Change due {formatCurrency(expectedChange)}</span>
