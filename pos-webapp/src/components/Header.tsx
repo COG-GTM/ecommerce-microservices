@@ -7,6 +7,7 @@ export interface HeaderProps {
   associateId: string;
   transactionId: string;
   mode: 'Mock data' | 'Live gateway';
+  onLogout?: () => void | Promise<void>;
 }
 
 export function Header({
@@ -16,6 +17,7 @@ export function Header({
   associateId,
   transactionId,
   mode,
+  onLogout,
 }: HeaderProps) {
   return (
     <header className={styles.header}>
@@ -44,6 +46,11 @@ export function Header({
           <span className={styles.dot} />
           {mode}
         </div>
+        {onLogout && (
+          <button className={styles.logoutButton} onClick={onLogout} type="button">
+            Sign out
+          </button>
+        )}
       </div>
     </header>
   );
