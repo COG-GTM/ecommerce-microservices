@@ -1,40 +1,11 @@
 # Totals parity report: POS `calculateTotals` vs order-service `/api/order/quote`
 
-- Generated: 2026-10-02T02:30:48.091Z
+- Generated: 2026-10-02T02:43:29.115Z
 - Target: `http://localhost:8081/api/order/quote`
 - Old: `pos-webapp/src/lib/totals.ts` `calculateTotals`, with list/sale price and finalSale from the canonical catalog, `PROMO_CATALOG` from `StoreCheckout.tsx`, `TAX_RATE` from `api/config.ts` and `MOCK_SERVICES_AND_FEES` from `api/fixtures.ts`.
 - New: order-service `POST /api/order/quote` (the request body is the cart `request` as is).
 - Money fields are compared to the cent, `taxRate` exactly and `taxExempt` as a boolean.
-- Result: **46/51 carts match**; 5 differ: `44-penny-half-cent-discount-tee-x9`, `45-penny-half-cent-discount-jean-x11`, `46-penny-half-cent-discount-markdown-mix`, `47-penny-half-cent-discount-and-tax`, `49-penny-half-cent-tax-180`
-
-## Differences
-
-| Cart | Field | Old | New | Diff | Documented in known-divergences.json |
-|---|---|---|---|---|---|
-| 44-penny-half-cent-discount-tee-x9 | discountTotal | 80.86 | 80.87 | **+0.01** | yes |
-| 44-penny-half-cent-discount-tee-x9 | taxableSubtotal | 200.69 | 200.68 | **-0.01** | yes |
-| 44-penny-half-cent-discount-tee-x9 | total | 218.00 | 217.99 | **-0.01** | yes |
-| 44-penny-half-cent-discount-tee-x9 | savedToday | 80.86 | 80.87 | **+0.01** | yes |
-| 45-penny-half-cent-discount-jean-x11 | discountTotal | 76.94 | 76.95 | **+0.01** | yes |
-| 45-penny-half-cent-discount-jean-x11 | taxableSubtotal | 704.51 | 704.50 | **-0.01** | yes |
-| 45-penny-half-cent-discount-jean-x11 | total | 765.27 | 765.26 | **-0.01** | yes |
-| 45-penny-half-cent-discount-jean-x11 | savedToday | 76.94 | 76.95 | **+0.01** | yes |
-| 46-penny-half-cent-discount-markdown-mix | discountTotal | 38.93 | 38.94 | **+0.01** | yes |
-| 46-penny-half-cent-discount-markdown-mix | taxableSubtotal | 92.87 | 92.86 | **-0.01** | yes |
-| 46-penny-half-cent-discount-markdown-mix | total | 100.88 | 100.87 | **-0.01** | yes |
-| 46-penny-half-cent-discount-markdown-mix | savedToday | 38.93 | 38.94 | **+0.01** | yes |
-| 47-penny-half-cent-discount-and-tax | discountTotal | 16.97 | 16.98 | **+0.01** | yes |
-| 47-penny-half-cent-discount-and-tax | taxableSubtotal | 84.93 | 84.92 | **-0.01** | yes |
-| 47-penny-half-cent-discount-and-tax | salesTax | 7.33 | 7.32 | **-0.01** | yes |
-| 47-penny-half-cent-discount-and-tax | total | 92.26 | 92.24 | **-0.02** | yes |
-| 47-penny-half-cent-discount-and-tax | savedToday | 16.97 | 16.98 | **+0.01** | yes |
-| 49-penny-half-cent-tax-180 | salesTax | 15.52 | 15.53 | **+0.01** | yes |
-| 49-penny-half-cent-tax-180 | total | 195.52 | 195.53 | **+0.01** | yes |
-
-Documented causes:
-
-- discountTotal is exactly on a half cent (e.g. 80.865). The POS rounds the binary double (80.865 is stored as 80.864999999999995) with Math.round((v+EPSILON)*100)/100, and EPSILON (2.2e-16) is smaller than the float error at that magnitude, so it rounds down. order-service uses exact BigDecimal HALF_UP and rounds up. taxableSubtotal, salesTax, total and savedToday follow from the discount.
-- salesTax is exactly on a half cent (taxableSubtotal 180.00 x 0.08625 = 15.525). The POS double product is 15.524999999999999 and rounds down; order-service BigDecimal HALF_UP rounds up. total follows.
+- Result: **51/51 carts match**
 
 ## Carts
 
@@ -812,7 +783,7 @@ Lines: 268341-001-S x1. Promotions: CARD10. Tax exempt: false.
 | savedToday | 3.00 | 3.00 | 0 |
 | taxExempt | false | false | 0 |
 
-### 44-penny-half-cent-discount-tee-x9: DIFF
+### 44-penny-half-cent-discount-tee-x9: MATCH
 
 Discount lands exactly on a half cent (269.55 x 30% = 80.865)
 
@@ -822,15 +793,15 @@ Lines: 268341-001-XL x9. Promotions: FALL30. Tax exempt: false.
 |---|---|---|---|
 | merchandiseTotal | 269.55 | 269.55 | 0 |
 | servicesAndFees | 12.00 | 12.00 | 0 |
-| discountTotal | 80.86 | 80.87 | **+0.01** |
-| taxableSubtotal | 200.69 | 200.68 | **-0.01** |
+| discountTotal | 80.86 | 80.86 | 0 |
+| taxableSubtotal | 200.69 | 200.69 | 0 |
 | taxRate | 0.08625 | 0.08625 | 0 |
 | salesTax | 17.31 | 17.31 | 0 |
-| total | 218.00 | 217.99 | **-0.01** |
-| savedToday | 80.86 | 80.87 | **+0.01** |
+| total | 218.00 | 218.00 | 0 |
+| savedToday | 80.86 | 80.86 | 0 |
 | taxExempt | false | false | 0 |
 
-### 45-penny-half-cent-discount-jean-x11: DIFF
+### 45-penny-half-cent-discount-jean-x11: MATCH
 
 Discount lands exactly on a half cent (769.45 x 10% = 76.945)
 
@@ -840,15 +811,15 @@ Lines: 471902-004-30 x11. Promotions: CARD10. Tax exempt: false.
 |---|---|---|---|
 | merchandiseTotal | 769.45 | 769.45 | 0 |
 | servicesAndFees | 12.00 | 12.00 | 0 |
-| discountTotal | 76.94 | 76.95 | **+0.01** |
-| taxableSubtotal | 704.51 | 704.50 | **-0.01** |
+| discountTotal | 76.94 | 76.94 | 0 |
+| taxableSubtotal | 704.51 | 704.51 | 0 |
 | taxRate | 0.08625 | 0.08625 | 0 |
 | salesTax | 60.76 | 60.76 | 0 |
-| total | 765.27 | 765.26 | **-0.01** |
-| savedToday | 76.94 | 76.95 | **+0.01** |
+| total | 765.27 | 765.27 | 0 |
+| savedToday | 76.94 | 76.94 | 0 |
 | taxExempt | false | false | 0 |
 
-### 46-penny-half-cent-discount-markdown-mix: DIFF
+### 46-penny-half-cent-discount-markdown-mix: MATCH
 
 Markdown + promo land on a half cent (3 clearance tees + 1 full-price tee, CARD10)
 
@@ -858,15 +829,15 @@ Lines: 268341-016-S x3, 268341-001-M x1. Promotions: CARD10. Tax exempt: false.
 |---|---|---|---|
 | merchandiseTotal | 119.80 | 119.80 | 0 |
 | servicesAndFees | 12.00 | 12.00 | 0 |
-| discountTotal | 38.93 | 38.94 | **+0.01** |
-| taxableSubtotal | 92.87 | 92.86 | **-0.01** |
+| discountTotal | 38.93 | 38.93 | 0 |
+| taxableSubtotal | 92.87 | 92.87 | 0 |
 | taxRate | 0.08625 | 0.08625 | 0 |
 | salesTax | 8.01 | 8.01 | 0 |
-| total | 100.88 | 100.87 | **-0.01** |
-| savedToday | 38.93 | 38.94 | **+0.01** |
+| total | 100.88 | 100.88 | 0 |
+| savedToday | 38.93 | 38.93 | 0 |
 | taxExempt | false | false | 0 |
 
-### 47-penny-half-cent-discount-and-tax: DIFF
+### 47-penny-half-cent-discount-and-tax: MATCH
 
 Discount on a half cent, which also moves the tax by a cent (jean + baby bodysuit, CARD10)
 
@@ -876,12 +847,12 @@ Lines: 471902-004-27 x1, 845006-105-0-3M x1. Promotions: CARD10. Tax exempt: fal
 |---|---|---|---|
 | merchandiseTotal | 89.90 | 89.90 | 0 |
 | servicesAndFees | 12.00 | 12.00 | 0 |
-| discountTotal | 16.97 | 16.98 | **+0.01** |
-| taxableSubtotal | 84.93 | 84.92 | **-0.01** |
+| discountTotal | 16.97 | 16.97 | 0 |
+| taxableSubtotal | 84.93 | 84.93 | 0 |
 | taxRate | 0.08625 | 0.08625 | 0 |
-| salesTax | 7.33 | 7.32 | **-0.01** |
-| total | 92.26 | 92.24 | **-0.02** |
-| savedToday | 16.97 | 16.98 | **+0.01** |
+| salesTax | 7.33 | 7.33 | 0 |
+| total | 92.26 | 92.26 | 0 |
+| savedToday | 16.97 | 16.97 | 0 |
 | taxExempt | false | false | 0 |
 
 ### 48-penny-half-cent-tax-172: MATCH
@@ -902,7 +873,7 @@ Lines: 512884-022-S x3, 734420-300-XS x2, 845006-105-3-6M x3. Promotions: FALL30
 | savedToday | 159.60 | 159.60 | 0 |
 | taxExempt | false | false | 0 |
 
-### 49-penny-half-cent-tax-180: DIFF
+### 49-penny-half-cent-tax-180: MATCH
 
 Taxable 180.00 so the tax is exactly 15.525
 
@@ -915,8 +886,8 @@ Lines: 268341-016-L x1, 512884-022-M x3, 734420-300-S x2, 845006-105-6-12M x2. P
 | discountTotal | 161.60 | 161.60 | 0 |
 | taxableSubtotal | 180.00 | 180.00 | 0 |
 | taxRate | 0.08625 | 0.08625 | 0 |
-| salesTax | 15.52 | 15.53 | **+0.01** |
-| total | 195.52 | 195.53 | **+0.01** |
+| salesTax | 15.52 | 15.52 | 0 |
+| total | 195.52 | 195.52 | 0 |
 | savedToday | 161.60 | 161.60 | 0 |
 | taxExempt | false | false | 0 |
 

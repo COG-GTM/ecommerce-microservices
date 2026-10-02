@@ -7,8 +7,10 @@ import com.ibatulanand.orderservice.config.PricingProperties;
 import com.ibatulanand.orderservice.pricing.OrderTotals;
 import com.ibatulanand.orderservice.pricing.PricingEngine;
 import com.ibatulanand.orderservice.pricing.PricingLine;
+import com.ibatulanand.orderservice.pricing.PricingRoundingMode;
 import com.ibatulanand.orderservice.pricing.PromotionRule;
 import org.junit.jupiter.api.DynamicTest;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
 import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.boot.context.properties.source.ConfigurationPropertySources;
@@ -18,47 +20,48 @@ import org.springframework.core.io.FileSystemResource;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Golden parity: every cart in ../parity/carts is priced by the real
- * PricingEngine + PricingProperties (bound from the real application.properties)
- * and compared against ../parity/expected, honoring known-divergences.json.
+ * Golden parity: every cart in ../parity/carts priced by the real PricingEngine
+ * in LEGACY_POS mode must match ../parity/expected exactly on every OrderTotals
+ * field. A separate check asserts HALF_UP diverges only on the half-cent carts.
  */
 class GoldenParityTest {
 
     private static final Path PARITY_DIR = Path.of("..", "parity");
     private static final Path CARTS_DIR = PARITY_DIR.resolve("carts");
     private static final Path EXPECTED_DIR = PARITY_DIR.resolve("expected");
-    private static final Path DIVERGENCES = PARITY_DIR.resolve("known-divergences.json");
     private static final Path APP_PROPS = Path.of("src", "main", "resources", "application.properties");
 
-    private static final String[] MONEY_FIELDS = {
-            "merchandiseTotal", "servicesAndFees", "discountTotal", "taxableSubtotal",
-            "salesTax", "total", "savedToday"};
     private static final String[] ALL_FIELDS = {
             "merchandiseTotal", "servicesAndFees", "discountTotal", "taxableSubtotal",
             "taxRate", "salesTax", "total", "savedToday", "taxExempt"};
 
+    private static final Set<String> HALF_CENT_CARTS = Set.of(
+            "44-penny-half-cent-discount-tee-x9",
+            "45-penny-half-cent-discount-jean-x11",
+            "46-penny-half-cent-discount-markdown-mix",
+            "47-penny-half-cent-discount-and-tax",
+            "49-penny-half-cent-tax-180");
+
     private final ObjectMapper mapper = new ObjectMapper()
             .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS);
-    private final Set<String> matchedDivergences = ConcurrentHashMap.newKeySet();
 
     @TestFactory
     Stream<DynamicTest> carts() throws IOException {
         assertTrue(Files.isDirectory(CARTS_DIR), "missing " + CARTS_DIR.toAbsolutePath());
         assertTrue(Files.isDirectory(EXPECTED_DIR), "missing " + EXPECTED_DIR.toAbsolutePath());
-        assertTrue(Files.isRegularFile(DIVERGENCES), "missing " + DIVERGENCES.toAbsolutePath());
 
         Map<String, JsonNode> catalog = loadCatalog();
         PricingProperties props = bindPricingProperties();
-        Map<String, Map<String, JsonNode>> divergences = loadDivergences();
+        PricingEngine engine = new PricingEngine(PricingRoundingMode.LEGACY_POS);
 
         List<Path> cartFiles;
         try (Stream<Path> stream = Files.list(CARTS_DIR)) {
@@ -66,75 +69,111 @@ class GoldenParityTest {
         }
         assertTrue(cartFiles.size() >= 25, "expected >= 25 carts, found " + cartFiles.size());
 
-        List<DynamicTest> tests = new ArrayList<>();
+        return cartFiles.stream().map(cartFile -> {
+            try {
+                JsonNode cart = mapper.readTree(cartFile.toFile());
+                String cartId = cart.get("id").asText();
+                JsonNode expected = mapper.readTree(EXPECTED_DIR.resolve(cartId + ".json").toFile()).get("totals");
+                return DynamicTest.dynamicTest(cartId, () -> verifyCart(cartId, cart.get("request"), expected, catalog, props, engine));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    @Test
+    void halfUpModeDivergesOnlyOnHalfCentTies() throws IOException {
+        Map<String, JsonNode> catalog = loadCatalog();
+        PricingProperties props = bindPricingProperties();
+        PricingEngine engine = new PricingEngine(PricingRoundingMode.HALF_UP);
+
+        List<Path> cartFiles;
+        try (Stream<Path> stream = Files.list(CARTS_DIR)) {
+            cartFiles = stream.filter(p -> p.toString().endsWith(".json")).sorted().toList();
+        }
+        Set<String> diverged = new TreeSet<>();
         for (Path cartFile : cartFiles) {
             JsonNode cart = mapper.readTree(cartFile.toFile());
             String cartId = cart.get("id").asText();
-            JsonNode request = cart.get("request");
             JsonNode expected = mapper.readTree(EXPECTED_DIR.resolve(cartId + ".json").toFile()).get("totals");
-            tests.add(DynamicTest.dynamicTest(cartId, () -> verifyCart(cartId, request, expected, catalog, props, divergences)));
-        }
-        tests.add(DynamicTest.dynamicTest("no-stale-known-divergences", () -> {
-            List<String> unmatched = divergenceKeys(divergences).stream()
-                    .filter(k -> !matchedDivergences.contains(k)).toList();
-            assertTrue(unmatched.isEmpty(), "stale known-divergences entries: " + unmatched);
-        }));
-        return tests.stream();
-    }
+            OrderTotals actual = price(cart.get("request"), catalog, props, engine);
+            boolean match = totalsMatch(expected, actual);
+            if (!match) diverged.add(cartId);
 
-    private Set<String> divergenceKeys(Map<String, Map<String, JsonNode>> divergences) {
-        Set<String> keys = new TreeSet<>();
-        divergences.forEach((cartId, fields) -> fields.keySet().forEach(f -> keys.add(cartId + "|" + f)));
-        return keys;
+            if (cartId.equals("44-penny-half-cent-discount-tee-x9")) {
+                assertEquals(0, actual.discountTotal().compareTo(new BigDecimal("80.87")),
+                        cartId + ": HALF_UP discountTotal");
+                assertEquals(0, expected.get("discountTotal").decimalValue().compareTo(new BigDecimal("80.86")),
+                        cartId + ": expected discountTotal");
+            }
+            if (cartId.equals("49-penny-half-cent-tax-180")) {
+                assertEquals(0, actual.salesTax().compareTo(new BigDecimal("15.53")),
+                        cartId + ": HALF_UP salesTax");
+                assertEquals(0, expected.get("salesTax").decimalValue().compareTo(new BigDecimal("15.52")),
+                        cartId + ": expected salesTax");
+            }
+        }
+        assertEquals(new TreeSet<>(HALF_CENT_CARTS), diverged,
+                "HALF_UP should diverge from expected only on the half-cent carts");
     }
 
     private void verifyCart(String cartId, JsonNode request, JsonNode expected,
                             Map<String, JsonNode> catalog, PricingProperties props,
-                            Map<String, Map<String, JsonNode>> divergences) {
+                            PricingEngine engine) {
+        OrderTotals actual = price(request, catalog, props, engine);
+        for (String field : ALL_FIELDS) {
+            if (field.equals("taxExempt")) {
+                assertEquals(expected.get(field).asBoolean(), actual.taxExempt(), cartId + ".taxExempt");
+            } else {
+                assertEquals(0, expectedValue(expected, field)
+                                .compareTo(actualValue(actual, field)),
+                        cartId + "." + field + ": expected " + expected.get(field)
+                                + " engine " + actualValue(actual, field));
+            }
+        }
+    }
+
+    private BigDecimal expectedValue(JsonNode expected, String field) {
+        BigDecimal value = expected.get(field).decimalValue();
+        return field.equals("taxRate") ? value : value.setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal actualValue(OrderTotals actual, String field) {
+        return field.equals("taxRate") ? actual.taxRate() : moneyField(actual, field);
+    }
+
+    /** Reports whether every OrderTotals field matches expected. */
+    private boolean totalsMatch(JsonNode expected, OrderTotals actual) {
+        boolean ok = true;
+        for (String field : ALL_FIELDS) {
+            if (field.equals("taxExempt")) {
+                ok &= expected.get(field).asBoolean() == actual.taxExempt();
+            } else {
+                ok &= expectedValue(expected, field).compareTo(actualValue(actual, field)) == 0;
+            }
+        }
+        return ok;
+    }
+
+    private OrderTotals price(JsonNode request, Map<String, JsonNode> catalog,
+                              PricingProperties props, PricingEngine engine) {
         List<PricingLine> lines = new ArrayList<>();
         for (JsonNode item : request.get("lineItems")) {
             String sku = item.get("skuCode").asText();
             JsonNode product = catalog.get(sku);
-            assertNotNull(product, cartId + ": sku " + sku + " not in gap-catalog.json");
+            assertNotNull(product, "sku " + sku + " not in gap-catalog.json");
             lines.add(new PricingLine(
                     product.get("listPrice").decimalValue(),
                     product.get("salePrice").decimalValue(),
                     item.get("quantity").asInt(),
                     product.get("finalSale").asBoolean()));
         }
-
         List<PromotionRule> promos = resolvePromos(request.get("promotions"), props.getPromotions());
         String storeId = request.get("storeId").asText();
         BigDecimal taxRate = props.getTaxRates().get(storeId);
-        assertNotNull(taxRate, cartId + ": no tax rate for store " + storeId);
-
-        OrderTotals actual = new PricingEngine().calculate(
-                lines, promos, props.getServicesAndFees(), taxRate, request.get("taxExempt").asBoolean());
-
-        Map<String, JsonNode> known = divergences.getOrDefault(cartId, Map.of());
-        for (String field : ALL_FIELDS) {
-            if (known.containsKey(field)) {
-                JsonNode entry = known.get(field);
-                BigDecimal old = entry.get("old").decimalValue();
-                BigDecimal expectedNew = entry.get("new").decimalValue();
-                matchedDivergences.add(cartId + "|" + field);
-                assertEquals(0, expected.get(field).decimalValue().compareTo(old),
-                        cartId + "." + field + ": expected != divergence old");
-                assertEquals(0, moneyField(actual, field).compareTo(expectedNew),
-                        cartId + "." + field + ": engine != divergence new");
-            } else if (field.equals("taxExempt")) {
-                assertEquals(expected.get(field).asBoolean(), actual.taxExempt(), cartId + ".taxExempt");
-            } else if (field.equals("taxRate")) {
-                assertEquals(0, expected.get(field).decimalValue().compareTo(actual.taxRate()),
-                        cartId + ".taxRate");
-            } else {
-                assertEquals(0, expected.get(field).decimalValue()
-                                .setScale(2, java.math.RoundingMode.HALF_UP)
-                                .compareTo(moneyField(actual, field)),
-                        cartId + "." + field + ": expected " + expected.get(field)
-                                + " engine " + moneyField(actual, field));
-            }
-        }
+        assertNotNull(taxRate, "no tax rate for store " + storeId);
+        return engine.calculate(lines, promos, props.getServicesAndFees(), taxRate,
+                request.get("taxExempt").asBoolean());
     }
 
     private BigDecimal moneyField(OrderTotals t, String field) {
@@ -143,7 +182,6 @@ class GoldenParityTest {
             case "servicesAndFees" -> t.servicesAndFees();
             case "discountTotal" -> t.discountTotal();
             case "taxableSubtotal" -> t.taxableSubtotal();
-            case "taxRate" -> t.taxRate();
             case "salesTax" -> t.salesTax();
             case "total" -> t.total();
             case "savedToday" -> t.savedToday();
@@ -178,14 +216,5 @@ class GoldenParityTest {
         Binder binder = new Binder(ConfigurationPropertySources.from(sources));
         return binder.bind("pos.pricing", PricingProperties.class)
                 .orElseThrow(() -> new IllegalStateException("pos.pricing not bound from " + APP_PROPS));
-    }
-
-    private Map<String, Map<String, JsonNode>> loadDivergences() throws IOException {
-        Map<String, Map<String, JsonNode>> map = new LinkedHashMap<>();
-        for (JsonNode entry : mapper.readTree(DIVERGENCES.toFile())) {
-            map.computeIfAbsent(entry.get("cartId").asText(), k -> new LinkedHashMap<>())
-                    .put(entry.get("field").asText(), entry);
-        }
-        return map;
     }
 }

@@ -11,7 +11,6 @@ const CATALOG_PATH = join(REPO_DIR, 'order-service/src/test/resources/gap-catalo
 const STORE_CHECKOUT_PATH = join(REPO_DIR, 'pos-webapp/src/screens/StoreCheckout.tsx');
 const CARTS_DIR = join(PARITY_DIR, 'carts');
 const EXPECTED_DIR = join(PARITY_DIR, 'expected');
-const KNOWN_DIVERGENCES_PATH = join(PARITY_DIR, 'known-divergences.json');
 const REPORT_PATH = join(PARITY_DIR, 'parity-report.md');
 
 const MONEY_FIELDS = [
@@ -64,14 +63,6 @@ interface Cart {
     tenders: unknown[];
     taxExempt: boolean;
   };
-}
-
-interface KnownDivergence {
-  cartId: string;
-  field: Field;
-  old: number;
-  new: number;
-  reason: string;
 }
 
 interface FieldResult {
@@ -219,10 +210,8 @@ async function quote(
   return (body.totals ?? body) as Record<string, unknown>;
 }
 
-function writeReport(results: CartResult[], target: string, known: KnownDivergence[]): void {
+function writeReport(results: CartResult[], target: string): void {
   const failing = results.filter((r) => r.error || r.fields.some((f) => !f.match));
-  const isKnown = (cartId: string, field: Field) =>
-    known.some((k) => k.cartId === cartId && k.field === field);
   const lines: string[] = [];
   lines.push('# Totals parity report: POS `calculateTotals` vs order-service `/api/order/quote`', '');
   lines.push(`- Generated: ${new Date().toISOString()}`);
@@ -239,20 +228,16 @@ function writeReport(results: CartResult[], target: string, known: KnownDivergen
     '',
   );
   if (failing.length) {
-    lines.push('## Differences', '', '| Cart | Field | Old | New | Diff | Documented in known-divergences.json |', '|---|---|---|---|---|---|');
+    lines.push('## Differences', '', '| Cart | Field | Old | New | Diff |', '|---|---|---|---|---|');
     for (const r of failing) {
-      if (r.error) lines.push(`| ${r.cart.id} | _request failed_ | | | ${r.error.replace(/\|/g, '\\|')} | |`);
+      if (r.error) lines.push(`| ${r.cart.id} | _request failed_ | | | ${r.error.replace(/\|/g, '\\|')} |`);
       for (const f of r.fields.filter((x) => !x.match)) {
         lines.push(
-          `| ${r.cart.id} | ${f.field} | ${fmt(f.field, f.old)} | ${fmt(f.field, f.new)} | ${fmtDiff(f)} | ${isKnown(r.cart.id, f.field) ? 'yes' : '**no**'} |`,
+          `| ${r.cart.id} | ${f.field} | ${fmt(f.field, f.old)} | ${fmt(f.field, f.new)} | ${fmtDiff(f)} |`,
         );
       }
     }
     lines.push('');
-    const reasons = [...new Set(known.map((k) => k.reason))];
-    if (reasons.length) {
-      lines.push('Documented causes:', '', ...reasons.map((reason) => `- ${reason}`), '');
-    }
   }
   lines.push('## Carts', '');
   for (const r of results) {
@@ -301,7 +286,6 @@ async function main(): Promise<number> {
   }
   const url = `${base.replace(/\/$/, '')}/api/order/quote`;
   const token = args.direct ? args.token : (args.token ?? process.env.PARITY_TOKEN);
-  const known = existsSync(KNOWN_DIVERGENCES_PATH) ? readJson<KnownDivergence[]>(KNOWN_DIVERGENCES_PATH) : [];
 
   const results: CartResult[] = [];
   for (const cart of carts) {
@@ -328,7 +312,7 @@ async function main(): Promise<number> {
     console.log(`${error || bad.length ? 'DIFF ' : 'MATCH'} ${cart.id}${error ? ` (${error})` : bad.length ? ` [${bad.join(', ')}]` : ''}`);
   }
 
-  writeReport(results, url, known);
+  writeReport(results, url);
   const failing = results.filter((r) => r.error || r.fields.some((f) => !f.match)).length;
   console.log(`${results.length - failing}/${results.length} carts match. Report: ${REPORT_PATH}`);
   return failing === 0 ? 0 : 1;

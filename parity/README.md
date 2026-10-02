@@ -6,12 +6,12 @@ with the server-side engine in `order-service` (`PricingEngine`, exposed at
 
 - `carts/*.json` — 51 sample carts (single/multi line, promos, tax-exempt, half-cent edge cases).
 - `expected/*.json` — golden totals captured from the POS `calculateTotals` (offline mode).
-- `known-divergences.json` — field-level entries where the order-service result intentionally
-  differs: values that land exactly on a half cent. The POS rounds binary doubles via
-  `Math.round((v + EPSILON) * 100) / 100`; the double is slightly *below* the half cent, so it
-  rounds down, while order-service uses exact `BigDecimal` `HALF_UP` and rounds up.
-  Each entry records `old` (POS) and `new` (order-service) and is asserted both by
-  `GoldenParityTest` and by the `--direct` report ("documented: yes").
+  Every field must match the order-service result exactly; there is no allow-list.
+- `pricing.rounding-mode` (`order-service`, default `LEGACY_POS`): `LEGACY_POS` reproduces
+  the POS's IEEE-754 double arithmetic and `Math.round((v + EPSILON) * 100) / 100` rounding
+  bit-for-bit. `HALF_UP` uses exact `BigDecimal` math and can differ on values that land
+  exactly on a half cent (the double is slightly *below* the half cent and rounds down,
+  while `HALF_UP` rounds up).
 - `src/parity.ts` — the harness (vite-node).
 - `stub-server.mjs` — dependency-free stub for product-service and inventory-service.
 
@@ -30,8 +30,7 @@ npm run parity -- --base-url=http://localhost:8181 --token=$JWT
 npm run parity -- --direct=http://localhost:8081
 ```
 
-The report is written to `parity-report.md`. Exit code 0 = all carts match; 1 = diffs
-(acceptable only when every diff row is covered by `known-divergences.json`).
+The report is written to `parity-report.md`. Exit code 0 = all carts match; 1 = any diff.
 
 ## Local stack (live verification)
 
@@ -52,8 +51,7 @@ java -jar order-service/target/order-service-1.0-SNAPSHOT.jar \
 cd parity && npm run parity -- --direct=http://localhost:8081
 ```
 
-Expected direct result: **46/51 carts match**; only carts 44, 45, 46, 47 and 49 differ
-and every diff row is marked documented.
+Expected direct result: **51/51 carts match**, exit code 0.
 
 ## API surface
 

@@ -7,8 +7,9 @@ import com.ibatulanand.orderservice.exception.OrderValidationException;
 import com.ibatulanand.orderservice.pricing.OrderTotals;
 import com.ibatulanand.orderservice.pricing.PricingEngine;
 import com.ibatulanand.orderservice.pricing.PricingLine;
+import com.ibatulanand.orderservice.pricing.PricingRoundingMode;
 import com.ibatulanand.orderservice.pricing.PromotionRule;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -18,13 +19,22 @@ import java.util.List;
 import java.util.Map;
 
 @Service
-@RequiredArgsConstructor
 public class PricingService {
 
     private final PricingProperties pricingProperties;
     private final ProductClient productClient;
     private final PromotionResolver promotionResolver;
-    private final PricingEngine pricingEngine = new PricingEngine();
+    private final PricingEngine pricingEngine;
+
+    public PricingService(PricingProperties pricingProperties,
+                          ProductClient productClient,
+                          PromotionResolver promotionResolver,
+                          @Value("${pricing.rounding-mode:LEGACY_POS}") PricingRoundingMode roundingMode) {
+        this.pricingProperties = pricingProperties;
+        this.productClient = productClient;
+        this.promotionResolver = promotionResolver;
+        this.pricingEngine = new PricingEngine(roundingMode);
+    }
 
     public QuoteResponse quote(OrderRequest request, String storeIdHeader) {
         String storeId = firstNonBlank(storeIdHeader, request.getStoreId());
