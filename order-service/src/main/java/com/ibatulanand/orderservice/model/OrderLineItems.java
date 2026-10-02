@@ -21,4 +21,9 @@ public class OrderLineItems {
     private String skuCode;
     private BigDecimal price;
     private Integer quantity;
+    private BigDecimal listPrice;
+    private BigDecimal unitPrice;
+    private BigDecimal extendedPrice;
+    private boolean finalSale;
+    private String description;
 }
