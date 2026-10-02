@@ -3,9 +3,9 @@ package com.ibatulanand.orderservice.client;
 import com.ibatulanand.orderservice.dto.ProductResponse;
 import com.ibatulanand.orderservice.exception.UpstreamUnavailableException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
@@ -24,12 +24,12 @@ public class ProductClient {
             return webClientBuilder.build().get()
                     .uri("http://product-service/api/product/sku/{skuCode}", skuCode)
                     .retrieve()
-                    .onStatus(status -> status.value() == HttpStatus.NOT_FOUND.value(),
-                            response -> Mono.empty())
                     .bodyToMono(ProductResponse.class)
                     .timeout(TIMEOUT)
                     .map(Optional::of)
                     .defaultIfEmpty(Optional.empty())
+                    .onErrorResume(WebClientResponseException.NotFound.class,
+                            e -> Mono.just(Optional.empty()))
                     .onErrorMap(UpstreamUnavailableException.class, e -> e)
                     .onErrorMap(e -> new UpstreamUnavailableException(
                             "Product service unavailable", e))
