@@ -1,17 +1,15 @@
 # Keycloak demo realm
 
-Keycloak 26 expects import files to be named `<realm>-realm.json`, while the
-source file in this repository is `spring-boot-microservices-realm.json`. Copy
-it to a temporary import directory with the expected name:
+The realm export is named `spring-boot-microservices-realm-realm.json` to meet
+Keycloak 26's `<realm>-realm.json` directory-import naming requirement.
+Keycloak's importer ignores `README.md` and `verify_pkce_login.py` in this
+directory.
 
 ```bash
-import_dir="$(mktemp -d)"
-cp realms/spring-boot-microservices-realm.json \
-  "$import_dir/spring-boot-microservices-realm-realm.json"
 docker run --rm -p 8080:8080 \
   -e KC_BOOTSTRAP_ADMIN_USERNAME=admin \
   -e KC_BOOTSTRAP_ADMIN_PASSWORD=admin \
-  -v "$import_dir:/opt/keycloak/data/import:ro" \
+  -v "$PWD/realms:/opt/keycloak/data/import:ro" \
   quay.io/keycloak/keycloak:latest start-dev --import-realm
 ```
 
