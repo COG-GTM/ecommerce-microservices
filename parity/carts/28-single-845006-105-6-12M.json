@@ -1,0 +1,18 @@
+{
+  "id": "28-single-845006-105-6-12M",
+  "description": "845006-105-6-12M alone, qty 1, no promotions",
+  "request": {
+    "storeId": "1969",
+    "registerId": "04",
+    "associateId": "A-4471",
+    "lineItems": [
+      {
+        "skuCode": "845006-105-6-12M",
+        "quantity": 1
+      }
+    ],
+    "promotions": [],
+    "tenders": [],
+    "taxExempt": false
+  }
+}

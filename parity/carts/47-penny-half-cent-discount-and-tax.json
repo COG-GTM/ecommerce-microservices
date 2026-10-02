@@ -1,0 +1,24 @@
+{
+  "id": "47-penny-half-cent-discount-and-tax",
+  "description": "Discount on a half cent, which also moves the tax by a cent (jean + baby bodysuit, CARD10)",
+  "request": {
+    "storeId": "1969",
+    "registerId": "04",
+    "associateId": "A-4471",
+    "lineItems": [
+      {
+        "skuCode": "471902-004-27",
+        "quantity": 1
+      },
+      {
+        "skuCode": "845006-105-0-3M",
+        "quantity": 1
+      }
+    ],
+    "promotions": [
+      "CARD10"
+    ],
+    "tenders": [],
+    "taxExempt": false
+  }
+}

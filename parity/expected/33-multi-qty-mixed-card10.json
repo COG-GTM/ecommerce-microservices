@@ -1,0 +1,14 @@
+{
+  "id": "33-multi-qty-mixed-card10",
+  "totals": {
+    "merchandiseTotal": 419.6,
+    "servicesAndFees": 12,
+    "discountTotal": 59.92,
+    "taxableSubtotal": 371.68,
+    "taxRate": 0.08625,
+    "salesTax": 32.06,
+    "total": 403.74,
+    "savedToday": 59.92,
+    "taxExempt": false
+  }
+}

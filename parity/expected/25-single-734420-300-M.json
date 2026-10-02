@@ -1,0 +1,14 @@
+{
+  "id": "25-single-734420-300-M",
+  "totals": {
+    "merchandiseTotal": 39.95,
+    "servicesAndFees": 12,
+    "discountTotal": 9.98,
+    "taxableSubtotal": 41.97,
+    "taxRate": 0.08625,
+    "salesTax": 3.62,
+    "total": 45.59,
+    "savedToday": 9.98,
+    "taxExempt": false
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "id": "51-large-high-qty-fall30",
+  "totals": {
+    "merchandiseTotal": 1738,
+    "servicesAndFees": 12,
+    "discountTotal": 718.13,
+    "taxableSubtotal": 1031.87,
+    "taxRate": 0.08625,
+    "salesTax": 89,
+    "total": 1120.87,
+    "savedToday": 718.13,
+    "taxExempt": false
+  }
+}

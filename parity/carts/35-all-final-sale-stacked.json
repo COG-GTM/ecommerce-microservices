@@ -1,0 +1,25 @@
+{
+  "id": "35-all-final-sale-stacked",
+  "description": "Only final-sale lines with FALL30+CARD10: neither promotion applies",
+  "request": {
+    "storeId": "1969",
+    "registerId": "04",
+    "associateId": "A-4471",
+    "lineItems": [
+      {
+        "skuCode": "268341-016-XS",
+        "quantity": 1
+      },
+      {
+        "skuCode": "845006-105-0-3M",
+        "quantity": 3
+      }
+    ],
+    "promotions": [
+      "FALL30",
+      "CARD10"
+    ],
+    "tenders": [],
+    "taxExempt": false
+  }
+}

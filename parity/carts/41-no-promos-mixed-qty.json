@@ -1,0 +1,26 @@
+{
+  "id": "41-no-promos-mixed-qty",
+  "description": "Mixed cart, qty > 1, no promotions",
+  "request": {
+    "storeId": "1969",
+    "registerId": "04",
+    "associateId": "A-4471",
+    "lineItems": [
+      {
+        "skuCode": "603115-110-S",
+        "quantity": 2
+      },
+      {
+        "skuCode": "845006-105-6-12M",
+        "quantity": 2
+      },
+      {
+        "skuCode": "734420-300-M",
+        "quantity": 1
+      }
+    ],
+    "promotions": [],
+    "tenders": [],
+    "taxExempt": false
+  }
+}

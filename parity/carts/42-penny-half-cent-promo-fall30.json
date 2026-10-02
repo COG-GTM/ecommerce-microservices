@@ -1,0 +1,20 @@
+{
+  "id": "42-penny-half-cent-promo-fall30",
+  "description": "Promo lands exactly on a half cent (29.95 x 30% = 8.985)",
+  "request": {
+    "storeId": "1969",
+    "registerId": "04",
+    "associateId": "A-4471",
+    "lineItems": [
+      {
+        "skuCode": "268341-001-M",
+        "quantity": 1
+      }
+    ],
+    "promotions": [
+      "FALL30"
+    ],
+    "tenders": [],
+    "taxExempt": false
+  }
+}

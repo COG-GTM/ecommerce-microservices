@@ -1,0 +1,18 @@
+{
+  "id": "26-single-845006-105-0-3M",
+  "description": "845006-105-0-3M alone, qty 1, no promotions",
+  "request": {
+    "storeId": "1969",
+    "registerId": "04",
+    "associateId": "A-4471",
+    "lineItems": [
+      {
+        "skuCode": "845006-105-0-3M",
+        "quantity": 1
+      }
+    ],
+    "promotions": [],
+    "tenders": [],
+    "taxExempt": false
+  }
+}

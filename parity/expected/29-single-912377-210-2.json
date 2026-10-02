@@ -1,0 +1,14 @@
+{
+  "id": "29-single-912377-210-2",
+  "totals": {
+    "merchandiseTotal": 44.95,
+    "servicesAndFees": 12,
+    "discountTotal": 26.97,
+    "taxableSubtotal": 29.98,
+    "taxRate": 0.08625,
+    "salesTax": 2.59,
+    "total": 32.57,
+    "savedToday": 26.97,
+    "taxExempt": false
+  }
+}
