@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { lookupLineItem, placeOrder } from '../api/client';
 import { REGISTER_ID, STORE_ID, USE_MOCK_DATA } from '../api/config';
 import {
@@ -21,6 +21,10 @@ const PROMO_CATALOG: Record<string, Promotion> = {
   CARD10: { code: 'CARD10', description: '10% off', percentOff: 10, amountOff: 0 },
 };
 
+function newIdempotencyKey(): string {
+  return crypto.randomUUID();
+}
+
 export function StoreCheckout() {
   const [lineItems, setLineItems] = useState<OrderLineItem[]>(MOCK_LINE_ITEMS);
   const [promotions, setPromotions] = useState<Promotion[]>(MOCK_PROMOTIONS);
@@ -28,6 +32,10 @@ export function StoreCheckout() {
   const [tender, setTender] = useState<TenderType>('CREDIT_DEBIT');
   const [splitTender, setSplitTender] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
+  const [idempotencyKey, setIdempotencyKey] = useState(newIdempotencyKey);
+  const [charging, setCharging] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const chargeInFlight = useRef(false);
 
   const totals = useMemo(
     () =>
@@ -78,19 +86,37 @@ export function StoreCheckout() {
   }
 
   async function handleCharge() {
-    const response = await placeOrder({
-      storeId: STORE_ID,
-      registerId: REGISTER_ID,
-      associateId: 'A-4471',
-      lineItems: lineItems.map((item) => ({
-        skuCode: item.skuCode,
-        quantity: item.quantity,
-      })),
-      promotions: promotions.map((promo) => promo.code),
-      tenders: [{ type: tender, label: tender, amount: totals.total }],
-      taxExempt,
-    });
-    setStatus(`${response.status} · Order ${response.orderNumber}`);
+    if (chargeInFlight.current) return;
+    chargeInFlight.current = true;
+    setCharging(true);
+    setError(null);
+    setStatus(null);
+    try {
+      const response = await placeOrder({
+        storeId: STORE_ID,
+        registerId: REGISTER_ID,
+        associateId: 'A-4471',
+        lineItems: lineItems.map((item) => ({
+          skuCode: item.skuCode,
+          quantity: item.quantity,
+        })),
+        promotions: promotions.map((promo) => promo.code),
+        tenders: [{ type: tender, label: tender, amount: totals.total }],
+        taxExempt,
+        idempotencyKey,
+      });
+      setStatus(`${response.status} · Order ${response.orderNumber}`);
+      setLineItems([]);
+      setPromotions([]);
+      setIdempotencyKey(newIdempotencyKey());
+    } catch (err) {
+      setError(
+        `Charge failed: ${err instanceof Error ? err.message : String(err)}. Bag kept — try again.`,
+      );
+    } finally {
+      chargeInFlight.current = false;
+      setCharging(false);
+    }
   }
 
   return (
@@ -140,7 +166,9 @@ export function StoreCheckout() {
             selected={tender}
             splitTender={splitTender}
             status={status}
-            disabled={lineItems.length === 0}
+            pending={charging}
+            error={error}
+            disabled={lineItems.length === 0 || charging}
             onSelect={setTender}
             onSplitTenderChange={setSplitTender}
             onCharge={handleCharge}
