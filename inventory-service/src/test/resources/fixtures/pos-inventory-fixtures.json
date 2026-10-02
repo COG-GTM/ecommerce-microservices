@@ -1,0 +1,40 @@
+{
+  "268341-016-L": {
+    "skuCode": "268341-016-L",
+    "storeId": "1969",
+    "onHand": 23,
+    "nearbyStores": [
+      { "storeId": "1042", "storeName": "Union Square", "distanceMiles": 2.4, "onHand": 11 },
+      { "storeId": "1177", "storeName": "Stonestown", "distanceMiles": 5.1, "onHand": 6 },
+      { "storeId": "1284", "storeName": "Serramonte", "distanceMiles": 8.3, "onHand": 4 },
+      { "storeId": "1391", "storeName": "Bay Street", "distanceMiles": 9.6, "onHand": 2 }
+    ],
+    "shipFromStoreEligible": true,
+    "floor": "Floor 1",
+    "fixture": "Fixture T-12"
+  },
+  "471902-004-29": {
+    "skuCode": "471902-004-29",
+    "storeId": "1969",
+    "onHand": 7,
+    "nearbyStores": [
+      { "storeId": "1042", "storeName": "Union Square", "distanceMiles": 2.4, "onHand": 5 },
+      { "storeId": "1177", "storeName": "Stonestown", "distanceMiles": 5.1, "onHand": 3 }
+    ],
+    "shipFromStoreEligible": true,
+    "floor": "Floor 2",
+    "fixture": "Fixture D-04"
+  },
+  "512884-022-M": {
+    "skuCode": "512884-022-M",
+    "storeId": "1969",
+    "onHand": 12,
+    "nearbyStores": [
+      { "storeId": "1042", "storeName": "Union Square", "distanceMiles": 2.4, "onHand": 9 },
+      { "storeId": "1284", "storeName": "Serramonte", "distanceMiles": 8.3, "onHand": 1 }
+    ],
+    "shipFromStoreEligible": false,
+    "floor": "Floor 2",
+    "fixture": "Fixture F-07"
+  }
+}
