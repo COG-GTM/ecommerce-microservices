@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 2,
+  "orderNumber": "POS-1969-04-SFS",
+  "storeId": "1969",
+  "registerId": "04",
+  "associateId": "A-4471",
+  "placedAt": "2026-10-16T21:45:00Z",
+  "lineItems": [
+    {"skuCode": "268341-016-L", "description": "Vintage Soft Crewneck Tee", "colorName": "Heather Grey", "size": "L", "quantity": 1, "unitPrice": 17.97, "extendedPrice": 17.97, "finalSale": true, "fulfillmentType": "TAKE_WITH", "fulfillmentStoreId": "1969"},
+    {"skuCode": "471902-004-29", "description": "High Rise Straight Jean", "colorName": "Medium Indigo", "size": "29 Reg", "quantity": 1, "unitPrice": 69.95, "extendedPrice": 69.95, "finalSale": false, "fulfillmentType": "SHIP_FROM_STORE", "fulfillmentStoreId": "1042"}
+  ],
+  "promotions": [],
+  "services": [],
+  "tenders": [{"type": "MOBILE_WALLET", "amount": 95.42}],
+  "totals": {
+    "merchandiseTotal": 99.90,
+    "servicesAndFees": 0.00,
+    "discountTotal": 11.98,
+    "taxableSubtotal": 87.92,
+    "taxRate": 0.08625,
+    "salesTax": 7.58,
+    "total": 95.50,
+    "savedToday": 11.98,
+    "taxExempt": false
+  },
+  "taxExempt": false,
+  "receiptDelivery": {"channel": "SMS", "destination": "+1 (415) 555-0142"}
+}
