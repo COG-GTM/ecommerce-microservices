@@ -7,8 +7,8 @@ import com.ibatulanand.orderservice.service.OrderService;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
@@ -20,16 +20,23 @@ import java.net.URI;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
 
 @RestController
 @RequestMapping("/api/order")
-@RequiredArgsConstructor
 @Slf4j
 public class OrderController {
 
     private static final URI ORDER_PATH = URI.create("/api/order");
 
     private final OrderService orderService;
+    private final Executor orderExecutor;
+
+    /** Spring's pool, not the ForkJoin common pool, whose threads can't see fat-jar classes via the TCCL. */
+    public OrderController(OrderService orderService, @Qualifier("applicationTaskExecutor") Executor orderExecutor) {
+        this.orderService = orderService;
+        this.orderExecutor = orderExecutor;
+    }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -37,7 +44,7 @@ public class OrderController {
     @TimeLimiter(name = "inventory")
     @Retry(name = "inventory")
     public CompletableFuture<OrderResponse> placeOrder(@RequestBody OrderRequest orderRequest) {
-        return CompletableFuture.supplyAsync(() -> orderService.placeOrder(orderRequest));
+        return CompletableFuture.supplyAsync(() -> orderService.placeOrder(orderRequest), orderExecutor);
     }
 
     /** Business rejections pass through unchanged; anything else becomes a 503, never a 201. */

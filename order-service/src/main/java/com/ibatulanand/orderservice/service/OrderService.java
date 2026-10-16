@@ -42,7 +42,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 
 @Service
 @Slf4j
@@ -351,15 +350,18 @@ public class OrderService {
                 .build();
     }
 
-    /** Runs after commit. Sent off the request thread so a slow broker can't hold up the register. */
+    /** Runs after commit. {@code send} is already async; no extra pool hop, so the TCCL stays the app's. */
     private void publish(OrderPlacedEvent event) {
-        CompletableFuture.supplyAsync(() -> kafkaTemplate.send(NOTIFICATION_TOPIC, event.getOrderNumber(), event))
-                .thenCompose(send -> send)
-                .whenComplete((ignored, error) -> {
-                    if (error != null) {
-                        log.error("Failed to publish OrderPlacedEvent for {}", event.getOrderNumber(), error);
-                    }
-                });
+        try {
+            kafkaTemplate.send(NOTIFICATION_TOPIC, event.getOrderNumber(), event)
+                    .whenComplete((ignored, error) -> {
+                        if (error != null) {
+                            log.error("Failed to publish OrderPlacedEvent for {}", event.getOrderNumber(), error);
+                        }
+                    });
+        } catch (RuntimeException e) {
+            log.error("Failed to publish OrderPlacedEvent for {}", event.getOrderNumber(), e);
+        }
     }
 
     private OrderResponse toResponse(Order order, PricingResult pricing) {
