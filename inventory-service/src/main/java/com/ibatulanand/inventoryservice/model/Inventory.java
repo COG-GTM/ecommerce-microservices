@@ -23,7 +23,8 @@ public class Inventory {
     private String skuCode;
     @Column(name = "store_id", nullable = false, length = 16)
     private String storeId;
-    @Column(nullable = false)
+    // Mapped onto the pre-store `quantity` column so existing stock survives ddl-auto=update upgrades.
+    @Column(name = "quantity", nullable = false)
     private Integer onHand;
     private String floor;
     private String fixture;
