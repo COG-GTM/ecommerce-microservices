@@ -18,12 +18,12 @@ implementation.
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | PRE-1 | Shared DTO and versioning conventions | all | — | now (doc sign-off) | Signed off (conventions only, no code) | — | — |
 | PRE-2 | Keycloak auth flow for the POS app | `realms/`, `api-gateway`, `pos-webapp` | — | now | In review (QA pending) | [PRE-2](https://devin-gtm.devinenterprise.com/sessions/aeceb86ba6564defac2b72bb6765485a) | [#60](https://github.com/COG-GTM/ecommerce-microservices/pull/60) |
-| PRE-3 | Gateway routing and CORS | `api-gateway` | — | now | In review (QA pending) | [PRE-3](https://devin-gtm.devinenterprise.com/sessions/651450b8cc3f4555886e4b42a812b3c9) | [#59](https://github.com/COG-GTM/ecommerce-microservices/pull/59) |
-| POS-1 | SKU/hangtag lookup + variant model | `product-service` | PRE-1 | now | In review (QA pending) | [POS-1](https://devin-gtm.devinenterprise.com/sessions/8e3cd44367ce4dbc97bb674b41f2b66b) | [#58](https://github.com/COG-GTM/ecommerce-microservices/pull/58) |
-| POS-2 | Store inventory, nearby stores, ship-from-store | `inventory-service` | PRE-1 | now | In review (QA pending) | [POS-2](https://devin-gtm.devinenterprise.com/sessions/bc3ad732710e46ff9e384958dadf8a46) | [#56](https://github.com/COG-GTM/ecommerce-microservices/pull/56) |
+| PRE-3 | Gateway routing and CORS | `api-gateway` | — | now | In review (QA passed, video recorded) | [PRE-3](https://devin-gtm.devinenterprise.com/sessions/651450b8cc3f4555886e4b42a812b3c9) | [#59](https://github.com/COG-GTM/ecommerce-microservices/pull/59) |
+| POS-1 | SKU/hangtag lookup + variant model | `product-service` | PRE-1 | now | In review (QA passed, video recorded) | [POS-1](https://devin-gtm.devinenterprise.com/sessions/8e3cd44367ce4dbc97bb674b41f2b66b) | [#58](https://github.com/COG-GTM/ecommerce-microservices/pull/58) |
+| POS-2 | Store inventory, nearby stores, ship-from-store | `inventory-service` | PRE-1 | now | In review (QA passed, video recorded) | [POS-2](https://devin-gtm.devinenterprise.com/sessions/bc3ad732710e46ff9e384958dadf8a46) | [#56](https://github.com/COG-GTM/ecommerce-microservices/pull/56) |
 | POS-3 | POS order model + enriched order event | `order-service` | PRE-1 | now | In review (QA pending) | [POS-3](https://devin-gtm.devinenterprise.com/sessions/74e2a669675d4c9b96d776d171efa81a) | [#57](https://github.com/COG-GTM/ecommerce-microservices/pull/57) |
-| POS-4 | Receipt and fulfillment notifications | `notification-service` | POS-3 (event contract merged) | after POS-3 | Blocked (waiting on dependencies) | — | — |
-| POS-5 | Frontend contract alignment + live gateway path | `pos-webapp` | POS-1..3 contract freeze, PRE-2, PRE-3 | after freeze | Blocked (waiting on dependencies) | — | — |
+| POS-4 | Receipt and fulfillment notifications | `notification-service` | POS-3 (event contract merged) | after POS-3 | In progress | [POS-4](https://devin-gtm.devinenterprise.com/sessions/67ae9a0d9ae94f7288baa2eba268db5b) | [#61](https://github.com/COG-GTM/ecommerce-microservices/pull/61) |
+| POS-5 | Frontend contract alignment + live gateway path | `pos-webapp` | POS-1..3 contract freeze, PRE-2, PRE-3 | after freeze | In progress | [POS-5](https://devin-gtm.devinenterprise.com/sessions/3bfb563ac8a54d0ca3a840d49d7d91e2) | — |
 
 ```mermaid
 graph LR
