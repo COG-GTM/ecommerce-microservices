@@ -233,6 +233,19 @@ class ProductServiceApplicationTests {
     }
 
     @Test
+    void legacyListKeepsNullPriceKey() throws Exception {
+        productRepository.save(Product.builder().name("Old Tee").description("Old Tee").build());
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/product"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.name == 'Old Tee')].id", hasSize(1)))
+                .andExpect(jsonPath("$[?(@.name == 'Old Tee' && @.price == null)]", hasSize(1)))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("\"price\":null")));
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/product").param("skuCode", "268341-016-L"))
+                .andExpect(jsonPath("$.price").doesNotExist())
+                .andExpect(jsonPath("$.id").doesNotExist());
+    }
+
+    @Test
     void rejectsSalePriceAboveListPrice() throws Exception {
         expectValidationFailure(variant("600200-001-S", "Black", "29.95", "39.95", 0, false),
                 "variants[0].salePrice");

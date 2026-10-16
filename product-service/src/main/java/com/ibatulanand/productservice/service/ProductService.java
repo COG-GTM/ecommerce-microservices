@@ -1,5 +1,6 @@
 package com.ibatulanand.productservice.service;
 
+import com.ibatulanand.productservice.dto.ProductListItemResponse;
 import com.ibatulanand.productservice.dto.ProductRequest;
 import com.ibatulanand.productservice.dto.ProductResponse;
 import com.ibatulanand.productservice.dto.ProductVariantResponse;
@@ -213,7 +214,7 @@ public class ProductService {
                 : mapToSkuResponse(product, variants.get(0));
         response.setId(product.getId());
         response.setPrice(money(product.getPrice()));
-        return response;
+        return ProductListItemResponse.of(response);
     }
 
     private List<ProductVariantResponse> otherVariants(Product product, ProductVariant scanned) {
