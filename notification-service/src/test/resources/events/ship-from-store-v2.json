@@ -11,7 +11,7 @@
   ],
   "promotions": [],
   "services": [],
-  "tenders": [{"type": "MOBILE_WALLET", "amount": 95.42}],
+  "tenders": [{"type": "MOBILE_WALLET", "amount": 95.50}],
   "totals": {
     "merchandiseTotal": 99.90,
     "servicesAndFees": 0.00,
