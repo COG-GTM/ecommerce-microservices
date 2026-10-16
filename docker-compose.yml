@@ -69,10 +69,15 @@ services:
       DB_PASSWORD: password
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      # Fixed public hostname so browser-issued tokens and gateway validation share one issuer
+      KC_HOSTNAME: http://localhost:8080
     ports:
       - "8080:8080"
     volumes:
-      - ./realms/:/opt/keycloak/data/import/
+      # Keycloak 25+ only imports files named <realm>-realm.json from the import dir
+      - ./realms/spring-boot-microservices-realm.json:/opt/keycloak/data/import/spring-boot-microservices-realm-realm.json:ro
     depends_on:
       - keycloak-mysql
 
@@ -139,7 +144,8 @@ services:
       - LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY=TRACE
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka
       - SERVER_PORT=8080
-      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUERURI=http://keycloak:8080/realms/spring-boot-microservices-realm
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUERURI=http://localhost:8080/realms/spring-boot-microservices-realm
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWKSETURI=http://keycloak:8080/realms/spring-boot-microservices-realm/protocol/openid-connect/certs
       - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
     depends_on:
       - zipkin

@@ -1,4 +1,5 @@
-import { API_BASE_URL, AUTH_TOKEN, STORE_ID, USE_MOCK_DATA } from './config';
+import { getAccessToken } from './auth';
+import { API_BASE_URL, STORE_ID, USE_MOCK_DATA } from './config';
 import {
   MOCK_INVENTORY,
   MOCK_PRODUCTS,
@@ -17,9 +18,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     'Content-Type': 'application/json',
     ...((init?.headers as Record<string, string>) ?? {}),
   };
-  if (AUTH_TOKEN) {
-    headers.Authorization = `Bearer ${AUTH_TOKEN}`;
-  }
+  const token = await getAccessToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
 
   const response = await fetch(`${API_BASE_URL}${path}`, { ...init, headers });
   if (!response.ok) {
