@@ -5,6 +5,7 @@ import {
   MOCK_LINE_ITEMS,
   MOCK_ORDER_RESPONSE,
   MOCK_PRODUCTS,
+  MOCK_PROMO_CATALOG,
   MOCK_PROMOTIONS,
   MOCK_SERVICES,
   MOCK_SERVICES_AND_FEES,
@@ -176,6 +177,12 @@ describe('contract fixtures match types.ts at runtime', () => {
 
   it('MOCK_PROMOTIONS, MOCK_LINE_ITEMS and MOCK_SERVICES match their types', () => {
     expect(MOCK_PROMOTIONS.flatMap((p, i) => promotionShape(p, `MOCK_PROMOTIONS[${i}]`))).toEqual([]);
+    expect(
+      Object.entries(MOCK_PROMO_CATALOG).flatMap(([code, p]) => [
+        ...promotionShape(p, `MOCK_PROMO_CATALOG.${code}`),
+        ...(p.code === code ? [] : [`MOCK_PROMO_CATALOG.${code}.code`]),
+      ]),
+    ).toEqual([]);
     expect(MOCK_LINE_ITEMS.flatMap((l, i) => lineItemShape(l, `MOCK_LINE_ITEMS[${i}]`))).toEqual([]);
     expect(MOCK_SERVICES.flatMap((s, i) => serviceFeeShape(s, `MOCK_SERVICES[${i}]`))).toEqual([]);
     expect(MOCK_SERVICES.reduce((sum, s) => sum + s.amount, 0)).toBe(MOCK_SERVICES_AND_FEES);
@@ -227,6 +234,16 @@ describe('shipFromStoreFor', () => {
     expect(shipFromStoreFor({ ...jean, quantity: 4 })).toBe('1042');
     expect(shipFromStoreFor({ ...tee, quantity: 12 })).toBeNull();
     expect(shipFromStoreFor({ ...jean, quantity: 6 })).toBeNull();
+  });
+
+  it('buildOrderRequest refuses SHIP_FROM_STORE without a source store', () => {
+    expect(() =>
+      buildOrderRequest({
+        storeId: '1969', registerId: '04', associateId: 'A-4471', lineItems: [hoodie],
+        promotionCodes: [], tenderType: 'CREDIT_DEBIT', tenderLabel: 'CREDIT_DEBIT', amountDue: 0,
+        services: [], taxExempt: false, fulfillment: { [hoodie.skuCode]: 'SHIP_FROM_STORE' },
+      }),
+    ).toThrow(/No ship-from-store source store for 512884-022-M/);
   });
 
   it('returns null for SKUs that are not ship-from-store eligible', () => {
@@ -400,6 +417,11 @@ describe('mock mode (VITE_USE_MOCK=true) is unchanged', () => {
     );
     expect(teeOnly.totals.merchandiseTotal).toBe(29.95);
     expect(teeOnly.totals.total).toBe(19.52);
+    const jeanCard10 = await placeOrder(
+      goldenRequest({ lineItems: [MOCK_LINE_ITEMS[1]], promotionCodes: ['CARD10'], services: [] }),
+    );
+    expect(jeanCard10.totals.discountTotal).toBe(7);
+    expect(jeanCard10.totals.taxableSubtotal).toBe(62.95);
     expect(response.status).toBe('COMPLETED');
     expect(response.orderNumber).toMatch(/^1969-04-\d{5}$/);
     expect(response.message).toBe('Order placed (mock mode)');

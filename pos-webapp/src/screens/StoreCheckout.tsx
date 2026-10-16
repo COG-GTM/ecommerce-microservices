@@ -10,6 +10,7 @@ import {
 import { REGISTER_ID, STORE_ID, USE_MOCK_DATA } from '../api/config';
 import {
   MOCK_LINE_ITEMS,
+  MOCK_PROMO_CATALOG,
   MOCK_PROMOTIONS,
   MOCK_SERVICES,
   MOCK_SERVICES_AND_FEES,
@@ -31,10 +32,7 @@ import { TenderPanel } from '../components/TenderPanel';
 import { calculateTotals, formatCurrency } from '../lib/totals';
 import styles from './StoreCheckout.module.css';
 
-const PROMO_CATALOG: Record<string, Promotion> = {
-  FALL30: { code: 'FALL30', description: '30% off', percentOff: 30, amountOff: 0 },
-  CARD10: { code: 'CARD10', description: '10% off', percentOff: 10, amountOff: 0 },
-};
+const PROMO_CATALOG = MOCK_PROMO_CATALOG;
 
 const ASSOCIATE_ID = 'A-4471';
 
@@ -153,7 +151,8 @@ export function StoreCheckout() {
   const [notices, setNotices] = useState<Notice[]>([]);
   const [serverTotals, setServerTotals] = useState<OrderTotals | null>(null);
   const [charging, setCharging] = useState(false);
-  const [charged, setCharged] = useState(false);
+  /** Request snapshot of the last successful live charge; Charge re-enables once anything changes. */
+  const [chargedKey, setChargedKey] = useState<string | null>(null);
   const chargeInFlight = useRef(false);
 
   const totals = useMemo(
@@ -167,6 +166,66 @@ export function StoreCheckout() {
     [lineItems, promotions, taxExempt],
   );
 
+  const shipFromStoreIds = useMemo(
+    () =>
+      Object.fromEntries(
+        lineItems.flatMap((item) => {
+          const store = shipFromStoreFor(item);
+          return store ? [[item.skuCode, store]] : [];
+        }),
+      ) as Record<string, string>,
+    [lineItems],
+  );
+
+  // A SHIP_FROM_STORE choice that is no longer fulfillable (quantity grew past nearby stock)
+  // falls back to TAKE_WITH, and the select shows that.
+  const effectiveFulfillment = useMemo(
+    () =>
+      Object.fromEntries(
+        Object.entries(fulfillment).map(([sku, type]) => [
+          sku,
+          type === 'SHIP_FROM_STORE' && !shipFromStoreIds[sku] ? 'TAKE_WITH' : type,
+        ]),
+      ) as Record<string, FulfillmentType>,
+    [fulfillment, shipFromStoreIds],
+  );
+
+  const orderRequest = useMemo(
+    () =>
+      buildOrderRequest({
+        storeId: STORE_ID,
+        registerId: REGISTER_ID,
+        associateId: ASSOCIATE_ID,
+        lineItems,
+        promotionCodes: promotions.map((promo) => promo.code),
+        tenderType: tender,
+        tenderLabel: tender,
+        amountDue: totals.total,
+        services: MOCK_SERVICES,
+        taxExempt,
+        taxExemptCertificate,
+        fulfillment: effectiveFulfillment,
+        shipFromStoreIds,
+        receiptDelivery:
+          receiptChannel === 'EMAIL' || receiptChannel === 'SMS'
+            ? { channel: receiptChannel, destination: receiptDestination.trim() }
+            : { channel: receiptChannel },
+      }),
+    [
+      lineItems,
+      promotions,
+      tender,
+      totals.total,
+      taxExempt,
+      taxExemptCertificate,
+      effectiveFulfillment,
+      shipFromStoreIds,
+      receiptChannel,
+      receiptDestination,
+    ],
+  );
+  const requestKey = JSON.stringify(orderRequest);
+
   const itemCount = lineItems.reduce((sum, item) => sum + item.quantity, 0);
 
   async function handleLookup(skuCode: string): Promise<boolean> {
@@ -179,7 +238,6 @@ export function StoreCheckout() {
     }
     if (!item) return false;
     const found = item;
-    setCharged(false);
     setLineItems((current) => {
       const existing = current.find((line) => line.skuCode === found.skuCode);
       if (!existing) return [...current, found];
@@ -197,7 +255,6 @@ export function StoreCheckout() {
   }
 
   function handleRemove(skuCode: string) {
-    setCharged(false);
     setLineItems((current) => current.filter((line) => line.skuCode !== skuCode));
   }
 
@@ -210,44 +267,19 @@ export function StoreCheckout() {
         ? undefined
         : { code, description: 'validated at charge', percentOff: 0, amountOff: 0 });
     if (!promo) return;
-    setCharged(false);
     setPromotions((current) =>
       current.some((p) => p.code === promo.code) ? current : [...current, promo],
     );
   }
 
   function handleRemovePromotion(code: string) {
-    setCharged(false);
     setPromotions((current) => current.filter((promo) => promo.code !== code));
   }
 
   async function handleCharge() {
     if (chargeInFlight.current) return;
-    const shipFromStoreIds = Object.fromEntries(
-      lineItems.flatMap((item) => {
-        const store = shipFromStoreFor(item);
-        return store ? [[item.skuCode, store]] : [];
-      }),
-    );
-    const request = buildOrderRequest({
-      storeId: STORE_ID,
-      registerId: REGISTER_ID,
-      associateId: ASSOCIATE_ID,
-      lineItems,
-      promotionCodes: promotions.map((promo) => promo.code),
-      tenderType: tender,
-      tenderLabel: tender,
-      amountDue: totals.total,
-      services: MOCK_SERVICES,
-      taxExempt,
-      taxExemptCertificate,
-      fulfillment,
-      shipFromStoreIds,
-      receiptDelivery:
-        receiptChannel === 'EMAIL' || receiptChannel === 'SMS'
-          ? { channel: receiptChannel, destination: receiptDestination.trim() }
-          : { channel: receiptChannel },
-    });
+    const request = orderRequest;
+    const key = requestKey;
 
     if (USE_MOCK_DATA) {
       const response = await placeOrder(request);
@@ -263,7 +295,7 @@ export function StoreCheckout() {
     try {
       const response = await placeOrder(request);
       setServerTotals(response.totals);
-      setCharged(true);
+      setChargedKey(key);
       setStatus(
         `${response.status} · Order ${response.orderNumber} · Charged ${formatCurrency(response.totals.total)}`,
       );
@@ -350,7 +382,7 @@ export function StoreCheckout() {
                   <span>{item.skuCode}</span>
                   <select
                     aria-label={`Fulfillment for ${item.skuCode}`}
-                    value={fulfillment[item.skuCode] ?? 'TAKE_WITH'}
+                    value={effectiveFulfillment[item.skuCode] ?? 'TAKE_WITH'}
                     onChange={(event) =>
                       setFulfillment((current) => ({
                         ...current,
@@ -404,7 +436,7 @@ export function StoreCheckout() {
             selected={tender}
             splitTender={splitTender}
             status={status}
-            disabled={lineItems.length === 0 || charging || charged}
+            disabled={lineItems.length === 0 || charging || chargedKey === requestKey}
             onSelect={setTender}
             onSplitTenderChange={setSplitTender}
             onCharge={handleCharge}

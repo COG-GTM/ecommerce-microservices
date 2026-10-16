@@ -4,7 +4,7 @@ import {
   MOCK_LINE_ITEMS,
   MOCK_ORDER_RESPONSE,
   MOCK_PRODUCTS,
-  MOCK_PROMOTIONS,
+  MOCK_PROMO_CATALOG,
   mockLineItem,
 } from './fixtures';
 import type {
@@ -163,7 +163,9 @@ function mockOrderTotals(order: OrderRequest): OrderTotals {
   });
   return calculateTotals({
     lineItems,
-    promotions: MOCK_PROMOTIONS.filter((promo) => order.promotions.includes(promo.code)),
+    promotions: order.promotions.flatMap((code) =>
+      MOCK_PROMO_CATALOG[code] ? [MOCK_PROMO_CATALOG[code]] : [],
+    ),
     servicesAndFees: order.services.reduce((sum, fee) => sum + fee.amount, 0),
     taxExempt: order.taxExempt,
   });
@@ -223,14 +225,15 @@ export function buildOrderRequest(input: BuildOrderRequestInput): OrderRequest {
     associateId: input.associateId,
     lineItems: input.lineItems.map((item) => {
       const fulfillmentType = input.fulfillment?.[item.skuCode] ?? 'TAKE_WITH';
+      const shipFrom = input.shipFromStoreIds?.[item.skuCode];
+      if (fulfillmentType === 'SHIP_FROM_STORE' && !shipFrom) {
+        throw new Error(`No ship-from-store source store for ${item.skuCode}`);
+      }
       return {
         skuCode: item.skuCode,
         quantity: item.quantity,
         fulfillmentType,
-        fulfillmentStoreId:
-          fulfillmentType === 'SHIP_FROM_STORE'
-            ? (input.shipFromStoreIds?.[item.skuCode] ?? input.storeId)
-            : input.storeId,
+        fulfillmentStoreId: fulfillmentType === 'SHIP_FROM_STORE' ? shipFrom : input.storeId,
       };
     }),
     promotions: input.promotionCodes,

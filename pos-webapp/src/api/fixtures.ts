@@ -100,9 +100,13 @@ export const MOCK_INVENTORY: Record<string, Inventory> = {
   },
 };
 
-export const MOCK_PROMOTIONS: Promotion[] = [
-  { code: 'FALL30', description: '30% off', percentOff: 30, amountOff: 0 },
-];
+/** Every promo code the register previews (mock mode prices orders with the same catalog). */
+export const MOCK_PROMO_CATALOG: Record<string, Promotion> = {
+  FALL30: { code: 'FALL30', description: '30% off', percentOff: 30, amountOff: 0 },
+  CARD10: { code: 'CARD10', description: '10% off', percentOff: 10, amountOff: 0 },
+};
+
+export const MOCK_PROMOTIONS: Promotion[] = [MOCK_PROMO_CATALOG.FALL30];
 
 function lineItemFor(skuCode: string, quantity: number): OrderLineItem {
   const product = MOCK_PRODUCTS.find((p) => p.skuCode === skuCode)!;
