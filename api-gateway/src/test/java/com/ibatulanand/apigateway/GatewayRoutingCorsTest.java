@@ -29,6 +29,7 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -77,6 +78,7 @@ class GatewayRoutingCorsTest {
         Jwt jwt = Jwt.withTokenValue(TOKEN)
                 .header("alg", "none")
                 .subject("service-account-spring-cloud-client")
+                .claim("realm_access", Map.of("roles", List.of("pos-associate")))
                 .issuedAt(Instant.now())
                 .expiresAt(Instant.now().plusSeconds(300))
                 .build();
