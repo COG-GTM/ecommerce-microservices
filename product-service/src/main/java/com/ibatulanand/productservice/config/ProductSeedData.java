@@ -24,7 +24,10 @@ public class ProductSeedData implements CommandLineRunner {
     @Override
     public void run(String... args) {
         for (Product golden : goldenProducts()) {
-            productRepository.findByStyleId(golden.getStyleId()).ifPresent(existing -> golden.setId(existing.getId()));
+            if (productRepository.findByStyleId(golden.getStyleId()).isPresent()) {
+                log.info("Golden style {} already present, leaving it untouched", golden.getStyleId());
+                continue;
+            }
             productRepository.save(golden);
             log.info("Seeded golden style {} ({})", golden.getStyleId(), golden.getVariants().get(0).getSkuCode());
         }

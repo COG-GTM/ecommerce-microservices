@@ -44,6 +44,10 @@ public class ProductService {
         String styleId = trimToNull(productRequest.getStyleId());
 
         for (int i = 0; i < requestVariants.size(); i++) {
+            if (requestVariants.get(i) == null) {
+                errors.add(new FieldError("variants[" + i + "]", "variant must not be null"));
+                continue;
+            }
             ProductVariant variant = validateVariant(requestVariants.get(i), "variants[" + i + "]", errors);
             if (variant == null) {
                 continue;
@@ -82,6 +86,9 @@ public class ProductService {
         try {
             productRepository.save(product);
         } catch (DuplicateKeyException e) {
+            if (String.valueOf(e.getMessage()).contains(Product.STYLE_ID_INDEX)) {
+                throw new DuplicateStyleException(styleId, e);
+            }
             throw new DuplicateSkuException(
                     variants.stream().map(ProductVariant::getSkuCode).toList(), e);
         }
@@ -251,6 +258,16 @@ public class ProductService {
         public ProductValidationException(List<FieldError> errors) {
             super("Product request failed validation");
             this.errors = List.copyOf(errors);
+        }
+    }
+
+    @Getter
+    public static class DuplicateStyleException extends RuntimeException {
+        private final String styleId;
+
+        public DuplicateStyleException(String styleId, Throwable cause) {
+            super("Style " + styleId + " already exists", cause);
+            this.styleId = styleId;
         }
     }
 

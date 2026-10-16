@@ -4,6 +4,7 @@ import com.ibatulanand.productservice.dto.ProductRequest;
 import com.ibatulanand.productservice.dto.ProductResponse;
 import com.ibatulanand.productservice.service.ProductService;
 import com.ibatulanand.productservice.service.ProductService.DuplicateSkuException;
+import com.ibatulanand.productservice.service.ProductService.DuplicateStyleException;
 import com.ibatulanand.productservice.service.ProductService.ProductValidationException;
 import com.ibatulanand.productservice.service.ProductService.SkuNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -60,6 +61,13 @@ public class ProductController {
     public ProblemDetail handleDuplicateSku(DuplicateSkuException e) {
         ProblemDetail problem = problem(HttpStatus.CONFLICT, "duplicate-sku", "Duplicate SKU", e.getMessage());
         problem.setProperty("skuCodes", e.getSkuCodes());
+        return problem;
+    }
+
+    @ExceptionHandler(DuplicateStyleException.class)
+    public ProblemDetail handleDuplicateStyle(DuplicateStyleException e) {
+        ProblemDetail problem = problem(HttpStatus.CONFLICT, "duplicate-style", "Duplicate style", e.getMessage());
+        problem.setProperty("styleId", e.getStyleId());
         return problem;
     }
 

@@ -40,6 +40,7 @@ import java.util.List;
 import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.matchesPattern;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -169,15 +170,58 @@ class ProductServiceApplicationTests {
                 .findFirst().orElseThrow();
         Assertions.assertEquals(Boolean.TRUE, index.getBoolean("unique"));
         Assertions.assertEquals(new Document("variants.skuCode", 1), index.get("key", Document.class));
+        Document styleIndex = mongoTemplate.getCollection("product").listIndexes()
+                .into(new ArrayList<>()).stream()
+                .filter(d -> Product.STYLE_ID_INDEX.equals(d.getString("name")))
+                .findFirst().orElseThrow();
+        Assertions.assertEquals(Boolean.TRUE, styleIndex.getBoolean("unique"));
 
         post(newStyle("268341", variant("268341-016-L", "Heather Grey", "29.95", "17.97", 40, true)))
                 .andExpect(status().isConflict())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
-                .andExpect(jsonPath("$.type", endsWith("duplicate-sku")));
+                .andExpect(jsonPath("$.type", matchesPattern(".*/duplicate-(sku|style)$")));
 
-        Product duplicate = Product.builder().styleId("268341").name("dup")
+        Product duplicate = Product.builder().styleId("999999").name("dup")
                 .variants(List.of(ProductVariant.builder().skuCode("268341-016-L").build())).build();
-        Assertions.assertThrows(DuplicateKeyException.class, () -> productRepository.save(duplicate));
+        DuplicateKeyException e = Assertions.assertThrows(DuplicateKeyException.class,
+                () -> productRepository.save(duplicate));
+        Assertions.assertTrue(e.getMessage().contains(Product.SKU_CODE_INDEX), e.getMessage());
+        Assertions.assertEquals(3, productRepository.findAll().size());
+    }
+
+    @Test
+    void secondCreateForExistingStyleIsRejected() throws Exception {
+        post(newStyle("268341", variant("268341-099-XL", "Black", "29.95", "29.95", 0, false)))
+                .andExpect(status().isConflict())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.type", endsWith("duplicate-style")))
+                .andExpect(jsonPath("$.styleId").value("268341"));
+        Assertions.assertEquals(1, productRepository.findByStyleId("268341").orElseThrow().getVariants().size());
+    }
+
+    @Test
+    void nullVariantIsAValidationFailure() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/product")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"styleId\":\"600300\",\"name\":\"x\",\"variants\":[null]}"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.type", endsWith("validation-failed")))
+                .andExpect(jsonPath("$.errors[0].field").value("variants[0]"));
+    }
+
+    @Test
+    void devSeedDoesNotOverwriteExistingGoldenStyle() {
+        Product tee = productRepository.findByStyleId("268341").orElseThrow();
+        List<ProductVariant> variants = new ArrayList<>(tee.getVariants());
+        variants.add(ProductVariant.builder().skuCode("268341-001-M").colorName("Black").colorCode("#000000")
+                .size("M").listPrice(new BigDecimal("29.95")).salePrice(new BigDecimal("29.95"))
+                .clearancePercent(0).finalSale(false).build());
+        tee.setVariants(variants);
+        productRepository.save(tee);
+
+        productSeedData.run();
+
+        Assertions.assertEquals(2, productRepository.findByStyleId("268341").orElseThrow().getVariants().size());
         Assertions.assertEquals(3, productRepository.findAll().size());
     }
 

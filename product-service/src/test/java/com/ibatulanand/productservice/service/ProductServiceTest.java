@@ -7,6 +7,7 @@ import com.ibatulanand.productservice.model.Product;
 import com.ibatulanand.productservice.model.ProductVariant;
 import com.ibatulanand.productservice.repository.ProductRepository;
 import com.ibatulanand.productservice.service.ProductService.DuplicateSkuException;
+import com.ibatulanand.productservice.service.ProductService.DuplicateStyleException;
 import com.ibatulanand.productservice.service.ProductService.FieldError;
 import com.ibatulanand.productservice.service.ProductService.ProductValidationException;
 import com.ibatulanand.productservice.service.ProductService.SkuNotFoundException;
@@ -152,6 +153,26 @@ class ProductServiceTest {
 
         assertEquals(List.of("variants[1].skuCode", "variants[2].skuCode"),
                 e.getErrors().stream().map(FieldError::field).toList());
+    }
+
+    @Test
+    void nullVariantIsReportedNotDereferenced() {
+        List<ProductRequest.Variant> variants = new java.util.ArrayList<>();
+        variants.add(null);
+        ProductValidationException e = assertThrows(ProductValidationException.class,
+                () -> productService.createProduct(ProductRequest.builder().name("Tee").variants(variants).build()));
+        assertEquals("variants[0]", e.getErrors().get(0).field());
+    }
+
+    @Test
+    void duplicateStyleKeyBecomesDuplicateStyleException() {
+        when(productRepository.save(any())).thenThrow(new DuplicateKeyException(
+                "E11000 duplicate key error collection: product index: " + Product.STYLE_ID_INDEX));
+
+        DuplicateStyleException e = assertThrows(DuplicateStyleException.class, () -> productService.createProduct(
+                ProductRequest.builder().name("Tee")
+                        .variants(List.of(requestVariant("268341-099-XL", "29.95", "29.95", 0))).build()));
+        assertEquals("268341", e.getStyleId());
     }
 
     @Test

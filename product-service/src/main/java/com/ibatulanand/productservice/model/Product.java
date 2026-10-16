@@ -18,12 +18,18 @@ import java.util.List;
         def = "{'variants.skuCode': 1}",
         unique = true,
         partialFilter = "{'variants.skuCode': {$exists: true}}")
+@CompoundIndex(
+        name = Product.STYLE_ID_INDEX,
+        def = "{'styleId': 1}",
+        unique = true,
+        partialFilter = "{'styleId': {$exists: true}}")
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
 @Data
 public class Product {
     public static final String SKU_CODE_INDEX = "variants_skuCode_unique";
+    public static final String STYLE_ID_INDEX = "styleId_unique";
 
     @Id
     private String id;
