@@ -23,4 +23,10 @@ class PiiMaskerTest {
         assertThat(PiiMasker.mask(" ")).isEqualTo("<none>");
         assertThat(PiiMasker.mask("12")).isEqualTo("***");
     }
+
+    @Test
+    void maskedEmailCannotCarryControlCharacters() {
+        assertThat(PiiMasker.mask("a@b.com\nFORGED")).doesNotContain("\n").isEqualTo("a***@b***.com_FORGED");
+        assertThat(PiiMasker.mask("a@b\r\n.com")).doesNotContain("\r", "\n");
+    }
 }

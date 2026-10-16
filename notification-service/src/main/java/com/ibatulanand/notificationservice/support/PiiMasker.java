@@ -13,7 +13,7 @@ public final class PiiMasker {
         String value = destination.trim();
         int at = value.indexOf('@');
         if (at > 0) {
-            return maskEmail(value, at);
+            return LogText.oneLine(maskEmail(value, at));
         }
         String digits = value.replaceAll("\\D", "");
         if (digits.length() >= 4) {
