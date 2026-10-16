@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 2,
+  "orderNumber": "POS-1969-04-GOLDEN",
+  "storeId": "1969",
+  "registerId": "04",
+  "associateId": "A-4471",
+  "placedAt": "2026-10-16T21:30:00Z",
+  "lineItems": [
+    {"skuCode": "268341-016-L", "description": "Vintage Soft Crewneck Tee", "colorName": "Heather Grey", "size": "L", "quantity": 1, "unitPrice": 17.97, "extendedPrice": 17.97, "finalSale": true, "fulfillmentType": "TAKE_WITH", "fulfillmentStoreId": "1969"},
+    {"skuCode": "471902-004-29", "description": "High Rise Straight Jean", "colorName": "Medium Indigo", "size": "29 Reg", "quantity": 1, "unitPrice": 69.95, "extendedPrice": 69.95, "finalSale": false, "fulfillmentType": "TAKE_WITH", "fulfillmentStoreId": "1969"},
+    {"skuCode": "512884-022-M", "description": "Logo Fleece Hoodie", "colorName": "Navy Uniform", "size": "M", "quantity": 1, "unitPrice": 41.97, "extendedPrice": 41.97, "finalSale": false, "fulfillmentType": "TAKE_WITH", "fulfillmentStoreId": "1969"}
+  ],
+  "promotions": ["FALL30"],
+  "services": [{"code": "ALT", "description": "Alterations", "amount": 12.00}],
+  "tenders": [{"type": "CREDIT_DEBIT", "amount": 117.65}],
+  "totals": {
+    "merchandiseTotal": 159.85,
+    "servicesAndFees": 12.00,
+    "discountTotal": 63.54,
+    "taxableSubtotal": 108.31,
+    "taxRate": 0.08625,
+    "salesTax": 9.34,
+    "total": 117.65,
+    "savedToday": 63.54,
+    "taxExempt": false
+  },
+  "taxExempt": false,
+  "receiptDelivery": {"channel": "EMAIL", "destination": "jordan.lee@example.com"}
+}
