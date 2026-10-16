@@ -85,6 +85,11 @@ class DefaultSenderSendsOncePerTypeTest {
         verify(sender, atLeast(1)).send(sent.capture());
         List<NotificationType> types = sent.getAllValues().stream().map(Notification::type).toList();
         assertThat(types).containsExactly(NotificationType.RECEIPT, NotificationType.STORE_FULFILLMENT, NotificationType.SHIP_NOTICE);
+        Notification receipt = sent.getAllValues().get(0);
+        Notification shipNotice = sent.getAllValues().get(2);
+        assertThat(receipt.subject()).startsWith("Your Gap receipt");
+        assertThat(shipNotice.subject()).startsWith("Your Gap items will ship");
+        assertThat(shipNotice.body()).contains("will ship to you", "High Rise Straight Jean").isNotEqualTo(receipt.body());
 
         String logs = output.getAll();
         assertThat(count(logs, "Received Notification for Order - " + ORDER)).isEqualTo(1);
