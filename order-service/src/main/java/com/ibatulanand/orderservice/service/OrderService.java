@@ -182,7 +182,7 @@ public class OrderService {
     private void checkStock(OrderRequest request, List<PricedLineInput> pricingInputs) {
         String sellingStore = request.getStoreId();
         Map<String, InventoryResponse> inventoryBySku = new LinkedHashMap<>();
-        Map<String, Map<String, Integer>> quantityBySkuAndSource = new LinkedHashMap<>();
+        Map<String, Map<String, Long>> quantityBySkuAndSource = new LinkedHashMap<>();
         for (int i = 0; i < pricingInputs.size(); i++) {
             OrderLineItemsDto line = request.getLineItems().get(i);
             String sku = pricingInputs.get(i).product().getSkuCode();
@@ -199,7 +199,7 @@ public class OrderService {
                 source = line.getFulfillmentStoreId();
             }
             quantityBySkuAndSource.computeIfAbsent(sku, s -> new LinkedHashMap<>())
-                    .merge(source, line.getQuantity(), Integer::sum);
+                    .merge(source, line.getQuantity().longValue(), Long::sum);
         }
         quantityBySkuAndSource.forEach((sku, bySource) -> bySource.forEach((source, quantity) -> {
             int onHand = onHandAt(inventoryBySku.get(sku), sellingStore, source);
