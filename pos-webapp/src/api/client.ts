@@ -1,5 +1,4 @@
 import { API_BASE_URL, AUTH_TOKEN, STORE_ID, USE_MOCK_DATA } from './config';
-import { calculateTotals } from '../lib/totals';
 import {
   MOCK_INVENTORY,
   MOCK_LINE_ITEMS,
@@ -21,6 +20,7 @@ import type {
   ServiceFee,
   Tender,
 } from './types';
+import { calculateTotals } from '../lib/totals';
 
 /** A non-2xx gateway/service response, with the parsed `problem+json` body when there is one. */
 export class ApiError extends Error {
