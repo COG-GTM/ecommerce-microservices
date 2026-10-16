@@ -23,7 +23,7 @@ implementation.
 | POS-2 | Store inventory, nearby stores, ship-from-store | `inventory-service` | PRE-1 | now | In review (QA passed, video recorded) | [POS-2](https://devin-gtm.devinenterprise.com/sessions/bc3ad732710e46ff9e384958dadf8a46) | [#56](https://github.com/COG-GTM/ecommerce-microservices/pull/56) |
 | POS-3 | POS order model + enriched order event | `order-service` | PRE-1 | now | In review (QA passed, video recorded) | [POS-3](https://devin-gtm.devinenterprise.com/sessions/74e2a669675d4c9b96d776d171efa81a) | [#57](https://github.com/COG-GTM/ecommerce-microservices/pull/57) |
 | POS-4 | Receipt and fulfillment notifications | `notification-service` | POS-3 (event contract merged) | after POS-3 | In review (QA passed, video recorded) | [POS-4](https://devin-gtm.devinenterprise.com/sessions/67ae9a0d9ae94f7288baa2eba268db5b) | [#61](https://github.com/COG-GTM/ecommerce-microservices/pull/61) |
-| POS-5 | Frontend contract alignment + live gateway path | `pos-webapp` | POS-1..3 contract freeze, PRE-2, PRE-3 | after freeze | In progress | [POS-5](https://devin-gtm.devinenterprise.com/sessions/3bfb563ac8a54d0ca3a840d49d7d91e2) | [#62](https://github.com/COG-GTM/ecommerce-microservices/pull/62) |
+| POS-5 | Frontend contract alignment + live gateway path | `pos-webapp` | POS-1..3 contract freeze, PRE-2, PRE-3 | after freeze | In review (live E2E through :8181 passed, video recorded) | [POS-5](https://devin-gtm.devinenterprise.com/sessions/3bfb563ac8a54d0ca3a840d49d7d91e2) | [#62](https://github.com/COG-GTM/ecommerce-microservices/pull/62) |
 
 ```mermaid
 graph LR
