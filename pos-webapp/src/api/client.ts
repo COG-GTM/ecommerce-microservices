@@ -163,7 +163,7 @@ function mockOrderTotals(order: OrderRequest): OrderTotals {
   });
   return calculateTotals({
     lineItems,
-    promotions: order.promotions.flatMap((code) =>
+    promotions: [...new Set(order.promotions)].flatMap((code) =>
       MOCK_PROMO_CATALOG[code] ? [MOCK_PROMO_CATALOG[code]] : [],
     ),
     servicesAndFees: order.services.reduce((sum, fee) => sum + fee.amount, 0),

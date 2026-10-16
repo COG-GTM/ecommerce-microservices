@@ -177,8 +177,7 @@ export function StoreCheckout() {
     [lineItems],
   );
 
-  // A SHIP_FROM_STORE choice that is no longer fulfillable (quantity grew past nearby stock)
-  // falls back to TAKE_WITH, and the select shows that.
+  // Guards the render between a quantity change and the handler dropping the stale choice.
   const effectiveFulfillment = useMemo(
     () =>
       Object.fromEntries(
@@ -238,6 +237,10 @@ export function StoreCheckout() {
     }
     if (!item) return false;
     const found = item;
+    const existing = lineItems.find((line) => line.skuCode === found.skuCode);
+    if (existing && !shipFromStoreFor({ ...existing, quantity: existing.quantity + 1 })) {
+      dropFulfillment(found.skuCode);
+    }
     setLineItems((current) => {
       const existing = current.find((line) => line.skuCode === found.skuCode);
       if (!existing) return [...current, found];
@@ -254,7 +257,18 @@ export function StoreCheckout() {
     return true;
   }
 
+  /** Forget a ship-from-store choice that can no longer be fulfilled, so it never silently returns. */
+  function dropFulfillment(skuCode: string) {
+    setFulfillment((current) => {
+      if (!(skuCode in current)) return current;
+      const next = { ...current };
+      delete next[skuCode];
+      return next;
+    });
+  }
+
   function handleRemove(skuCode: string) {
+    dropFulfillment(skuCode);
     setLineItems((current) => current.filter((line) => line.skuCode !== skuCode));
   }
 

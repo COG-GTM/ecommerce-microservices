@@ -422,6 +422,11 @@ describe('mock mode (VITE_USE_MOCK=true) is unchanged', () => {
     );
     expect(jeanCard10.totals.discountTotal).toBe(7);
     expect(jeanCard10.totals.taxableSubtotal).toBe(62.95);
+    const dupCodes = await placeOrder({
+      ...goldenRequest({ lineItems: [MOCK_LINE_ITEMS[1]], services: [] }),
+      promotions: ['CARD10', 'CARD10'],
+    });
+    expect(dupCodes.totals).toEqual(jeanCard10.totals);
     expect(response.status).toBe('COMPLETED');
     expect(response.orderNumber).toMatch(/^1969-04-\d{5}$/);
     expect(response.message).toBe('Order placed (mock mode)');
