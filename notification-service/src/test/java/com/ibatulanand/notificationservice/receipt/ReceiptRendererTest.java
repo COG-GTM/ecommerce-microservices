@@ -57,6 +57,30 @@ class ReceiptRendererTest {
     }
 
     @Test
+    void overlongSkuIsTruncatedInsteadOfFailing() throws IOException {
+        OrderPlacedEvent event = golden();
+        event.getLineItems().get(0).setSkuCode("X".repeat(60));
+
+        String receipt = renderer.render(event);
+
+        assertThat(receipt).contains("X".repeat(ReceiptRenderer.WIDTH - 2));
+        assertThat(receipt.lines()).allSatisfy(line -> assertThat(line.length()).isLessThanOrEqualTo(ReceiptRenderer.WIDTH));
+    }
+
+    @Test
+    void controlCharactersInEventTextCannotAddReceiptLines() throws IOException {
+        OrderPlacedEvent event = golden();
+        int expectedLines = (int) renderer.render(event).lines().count();
+        event.setOrderNumber("O-1\nINFO forged entry");
+        event.getLineItems().get(0).setDescription("Tee\r\nINFO forged entry");
+
+        String receipt = renderer.render(event);
+
+        assertThat(receipt.lines().count()).isEqualTo(expectedLines);
+        assertThat(receipt.lines()).noneMatch(line -> line.startsWith("INFO"));
+    }
+
+    @Test
     void v1ShapedEventDoesNotBlowUp() {
         assertThat(renderer.render(new OrderPlacedEvent("ORD-1"))).contains("Order ORD-1", "TOTAL");
     }

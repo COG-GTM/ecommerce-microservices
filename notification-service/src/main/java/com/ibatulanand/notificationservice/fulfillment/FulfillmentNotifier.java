@@ -7,6 +7,7 @@ import com.ibatulanand.notificationservice.idempotency.NotificationDeduplicator;
 import com.ibatulanand.notificationservice.sender.Notification;
 import com.ibatulanand.notificationservice.sender.NotificationSender;
 import com.ibatulanand.notificationservice.sender.NotificationType;
+import com.ibatulanand.notificationservice.support.LogText;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -44,7 +45,8 @@ public class FulfillmentNotifier {
 
         ReceiptDelivery delivery = event.getReceiptDelivery();
         if (delivery == null || !delivery.isOutbound()) {
-            log.info("Order {} has ship-from-store lines but no customer email/SMS; skipping ship notice", orderNumber);
+            log.info("Order {} has ship-from-store lines but no customer email/SMS; skipping ship notice",
+                    LogText.oneLine(orderNumber));
             return;
         }
         deduplicator.sendOnce(orderNumber, NotificationType.SHIP_NOTICE.name(),
@@ -62,21 +64,21 @@ public class FulfillmentNotifier {
                 .collect(Collectors.groupingBy(line -> fulfillingStore(event, line), LinkedHashMap::new, Collectors.toList()));
     }
 
-    private static String fulfillingStore(OrderPlacedEvent event, LineItem line) {
+    public static String fulfillingStore(OrderPlacedEvent event, LineItem line) {
         String storeId = line.getFulfillmentStoreId();
         return storeId == null || storeId.isBlank() ? event.getStoreId() : storeId;
     }
 
     private static String storeRequest(OrderPlacedEvent event, String storeId, List<LineItem> lines) {
         StringBuilder body = new StringBuilder()
-                .append("Store ").append(storeId).append(": pick, pack and ship for order ").append(event.getOrderNumber())
-                .append(" (sold at store ").append(event.getStoreId()).append(", register ").append(event.getRegisterId())
+                .append("Store ").append(LogText.oneLine(storeId)).append(": pick, pack and ship for order ").append(LogText.oneLine(event.getOrderNumber()))
+                .append(" (sold at store ").append(LogText.oneLine(event.getStoreId())).append(", register ").append(LogText.oneLine(event.getRegisterId()))
                 .append(")\n");
         for (LineItem line : lines) {
             body.append("  ").append(line.getQuantity() == null ? 1 : line.getQuantity()).append(" x ")
-                    .append(line.getSkuCode()).append("  ").append(line.getDescription());
+                    .append(LogText.oneLine(line.getSkuCode())).append("  ").append(LogText.oneLine(line.getDescription()));
             if (line.getColorName() != null || line.getSize() != null) {
-                body.append(" (").append(line.getColorName()).append(" / ").append(line.getSize()).append(')');
+                body.append(" (").append(LogText.oneLine(line.getColorName())).append(" / ").append(LogText.oneLine(line.getSize())).append(')');
             }
             body.append('\n');
         }
@@ -84,10 +86,10 @@ public class FulfillmentNotifier {
     }
 
     private static String shipNotice(String orderNumber, Map<String, List<LineItem>> byStore) {
-        StringBuilder body = new StringBuilder("Good news! These items from order ").append(orderNumber)
+        StringBuilder body = new StringBuilder("Good news! These items from order ").append(LogText.oneLine(orderNumber))
                 .append(" will ship to you:\n");
         byStore.values().stream().flatMap(List::stream).forEach(line -> body.append("  ")
-                .append(line.getQuantity() == null ? 1 : line.getQuantity()).append(" x ").append(line.getDescription())
+                .append(line.getQuantity() == null ? 1 : line.getQuantity()).append(" x ").append(LogText.oneLine(line.getDescription()))
                 .append('\n'));
         return body.toString();
     }

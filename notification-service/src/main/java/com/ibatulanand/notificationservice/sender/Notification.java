@@ -1,5 +1,6 @@
 package com.ibatulanand.notificationservice.sender;
 
+import com.ibatulanand.notificationservice.support.LogText;
 import com.ibatulanand.notificationservice.support.PiiMasker;
 
 /**
@@ -19,7 +20,8 @@ public record Notification(NotificationType type,
 
     @Override
     public String toString() {
-        return "Notification(type=" + type + ", orderNumber=" + orderNumber + ", channel=" + channel
-                + ", recipient=" + maskedRecipient() + ", subject=" + subject + ")";
+        return "Notification(type=" + type + ", orderNumber=" + LogText.oneLine(orderNumber) + ", channel="
+                + LogText.oneLine(channel) + ", recipient=" + LogText.oneLine(maskedRecipient()) + ", subject="
+                + LogText.oneLine(subject) + ")";
     }
 }

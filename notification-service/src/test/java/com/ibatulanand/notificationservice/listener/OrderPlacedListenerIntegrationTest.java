@@ -201,6 +201,46 @@ class OrderPlacedListenerIntegrationTest {
     }
 
     @Test
+    void incompleteV2EventsGoToDltWithoutRetryOrSending(CapturedOutput output) throws IOException {
+        ObjectNode noTotals = eventNode("golden-cart-v2.json", "POS-NO-TOTALS");
+        noTotals.remove("totals");
+        ObjectNode noLines = eventNode("golden-cart-v2.json", "POS-NO-LINES");
+        noLines.remove("lineItems");
+        ObjectNode noStore = eventNode("ship-from-store-v2.json", "POS-NO-STORE");
+        noStore.putNull("storeId");
+        for (var line : noStore.get("lineItems")) {
+            ((ObjectNode) line).putNull("fulfillmentStoreId");
+        }
+        for (ObjectNode event : List.of(noTotals, noLines, noStore)) {
+            publish(event.get("orderNumber").asText(), event.toString());
+        }
+
+        for (String orderNumber : List.of("POS-NO-TOTALS", "POS-NO-LINES", "POS-NO-STORE")) {
+            ConsumerRecord<String, byte[]> dead = await().atMost(Duration.ofSeconds(15))
+                    .until(() -> deadLetter(orderNumber), Optional::isPresent).get();
+            assertThat(header(dead, "kafka_dlt-exception-cause-fqcn")).isEqualTo(InvalidOrderEventException.class.getName());
+            assertThat(sender.attempts(orderNumber)).isZero();
+            assertThat(output.getOut().split("Received Notification for Order - " + orderNumber + "\\R", -1)).hasSize(2);
+        }
+    }
+
+    @Test
+    void invalidContactDestinationSendsNoCustomerNotification() throws IOException {
+        ObjectNode badEmail = eventNode("golden-cart-v2.json", "POS-BAD-EMAIL");
+        ((ObjectNode) badEmail.get("receiptDelivery")).put("destination", "not-an-email");
+        ObjectNode badPhone = eventNode("ship-from-store-v2.json", "POS-BAD-SMS");
+        ((ObjectNode) badPhone.get("receiptDelivery")).put("destination", "call me");
+        publish("POS-BAD-EMAIL", badEmail.toString());
+        publish("POS-BAD-SMS", badPhone.toString());
+
+        await().atMost(Duration.ofSeconds(15))
+                .until(() -> sender.sentFor("POS-BAD-SMS", NotificationType.STORE_FULFILLMENT).size() == 1);
+        await().during(SETTLE).atMost(SETTLE.plusSeconds(2)).until(() -> sender.sentFor("POS-BAD-EMAIL").isEmpty()
+                && sender.sentFor("POS-BAD-SMS", NotificationType.RECEIPT).isEmpty()
+                && sender.sentFor("POS-BAD-SMS", NotificationType.SHIP_NOTICE).isEmpty());
+    }
+
+    @Test
     void senderFailureIsRetriedBoundedTimesThenGoesToDlt() throws IOException {
         String orderNumber = "FAIL-PROVIDER-1";
         publish(orderNumber, event("golden-cart-v2.json", orderNumber));

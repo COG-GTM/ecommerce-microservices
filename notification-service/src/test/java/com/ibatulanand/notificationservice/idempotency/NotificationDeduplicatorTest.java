@@ -49,6 +49,17 @@ class NotificationDeduplicatorTest {
         assertThat(dedupe.sendOnce("O1", "RECEIPT", sends::incrementAndGet)).isTrue();
     }
 
+    @Test
+    void redeliveryAtCapacityIsStillADuplicate() {
+        NotificationDeduplicator dedupe = new NotificationDeduplicator(2, Duration.ofHours(1), new MutableClock());
+        dedupe.sendOnce("O1", "RECEIPT", sends::incrementAndGet);
+        dedupe.sendOnce("O2", "RECEIPT", sends::incrementAndGet);
+
+        assertThat(dedupe.sendOnce("O1", "RECEIPT", sends::incrementAndGet)).isFalse();
+        assertThat(dedupe.sendOnce("O2", "RECEIPT", sends::incrementAndGet)).isFalse();
+        assertThat(sends).hasValue(2);
+    }
+
     private static final class MutableClock extends Clock {
         private Instant now = Instant.parse("2026-10-16T00:00:00Z");
 

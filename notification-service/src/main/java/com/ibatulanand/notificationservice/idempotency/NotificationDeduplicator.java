@@ -61,9 +61,14 @@ public class NotificationDeduplicator {
 
     private synchronized boolean claim(String key) {
         Instant now = clock.instant();
-        evict(now);
+        evictExpired(now);
         if (sent.containsKey(key)) {
             return false;
+        }
+        Iterator<String> oldest = sent.keySet().iterator();
+        while (sent.size() >= maxEntries && oldest.hasNext()) {
+            oldest.next();
+            oldest.remove();
         }
         sent.put(key, now);
         return true;
@@ -73,12 +78,12 @@ public class NotificationDeduplicator {
         sent.remove(key);
     }
 
-    private void evict(Instant now) {
+    private void evictExpired(Instant now) {
         Instant cutoff = now.minus(ttl);
         Iterator<Map.Entry<String, Instant>> it = sent.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry<String, Instant> oldest = it.next();
-            if (sent.size() >= maxEntries || oldest.getValue().isBefore(cutoff)) {
+            if (oldest.getValue().isBefore(cutoff)) {
                 it.remove();
             } else {
                 break;

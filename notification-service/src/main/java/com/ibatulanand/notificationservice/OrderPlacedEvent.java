@@ -112,6 +112,9 @@ public class OrderPlacedEvent {
     @NoArgsConstructor
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class ReceiptDelivery {
+        private static final java.util.regex.Pattern EMAIL = java.util.regex.Pattern.compile("[^@\\s]+@[^@\\s]+\\.[^@\\s]+");
+        private static final java.util.regex.Pattern PHONE_CHARS = java.util.regex.Pattern.compile("[0-9+()\\-. ]+");
+
         /** {@code EMAIL}, {@code SMS}, {@code PRINT} or {@code NONE}. */
         private String channel;
         private String destination;
@@ -119,7 +122,18 @@ public class OrderPlacedEvent {
         /** {@code true} for {@code EMAIL} / {@code SMS} with a destination; {@code PRINT} and {@code NONE} send nothing. */
         @JsonIgnore
         public boolean isOutbound() {
-            return ("EMAIL".equals(channel) || "SMS".equals(channel)) && destination != null && !destination.isBlank();
+            if (destination == null) {
+                return false;
+            }
+            String value = destination.trim();
+            if ("EMAIL".equals(channel)) {
+                return EMAIL.matcher(value).matches();
+            }
+            if ("SMS".equals(channel)) {
+                int digits = value.replaceAll("\\D", "").length();
+                return PHONE_CHARS.matcher(value).matches() && digits >= 7 && digits <= 15;
+            }
+            return false;
         }
 
         @Override

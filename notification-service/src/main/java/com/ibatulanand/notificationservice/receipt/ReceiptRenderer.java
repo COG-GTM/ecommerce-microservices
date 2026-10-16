@@ -5,6 +5,7 @@ import com.ibatulanand.notificationservice.OrderPlacedEvent.LineItem;
 import com.ibatulanand.notificationservice.OrderPlacedEvent.Service;
 import com.ibatulanand.notificationservice.OrderPlacedEvent.Tender;
 import com.ibatulanand.notificationservice.OrderPlacedEvent.Totals;
+import com.ibatulanand.notificationservice.support.LogText;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -59,7 +60,7 @@ public class ReceiptRenderer {
             row(out, "  " + joinNonBlank(line.getColorName(), line.getSize()), line.getSkuCode());
             row(out, "  " + qty + " @ " + money(line.getUnitPrice()), money(line.getExtendedPrice()));
             if ("SHIP_FROM_STORE".equals(line.getFulfillmentType())) {
-                out.append("  Ships from store ").append(line.getFulfillmentStoreId()).append('\n');
+                out.append(truncate("  Ships from store " + line.getFulfillmentStoreId())).append('\n');
             }
             if (line.isFinalSale()) {
                 out.append("  ** FINAL SALE - NO RETURNS **\n");
@@ -144,14 +145,18 @@ public class ReceiptRenderer {
     }
 
     private static String truncate(String text) {
-        String value = text == null ? "" : text;
+        String value = text == null ? "" : LogText.oneLine(text);
         return value.length() > WIDTH ? value.substring(0, WIDTH) : value;
     }
 
     private static void row(StringBuilder out, String left, String right) {
-        String r = right == null ? "" : right;
-        int room = Math.max(1, WIDTH - r.length() - 1);
-        String l = left.length() > room ? left.substring(0, room) : left;
+        String r = right == null ? "" : LogText.oneLine(right);
+        if (r.length() > WIDTH - 2) {
+            r = r.substring(0, WIDTH - 2);
+        }
+        String cleanLeft = LogText.oneLine(left);
+        int room = WIDTH - r.length() - 1;
+        String l = cleanLeft.length() > room ? cleanLeft.substring(0, room) : cleanLeft;
         out.append(l).append(" ".repeat(WIDTH - l.length() - r.length())).append(r).append('\n');
     }
 
