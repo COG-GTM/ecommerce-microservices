@@ -1,4 +1,11 @@
-import type { Inventory, OrderLineItem, Product, Promotion } from './types';
+import type {
+  Inventory,
+  OrderLineItem,
+  OrderResponse,
+  Product,
+  Promotion,
+  ServiceFee,
+} from './types';
 import { STORE_ID } from './config';
 
 export const MOCK_PRODUCTS: Product[] = [
@@ -126,6 +133,32 @@ export const MOCK_LINE_ITEMS: OrderLineItem[] = [
 ];
 
 export const MOCK_SERVICES_AND_FEES = 12.0;
+
+/** Services & fees as sent on `OrderRequest.services`; sums to MOCK_SERVICES_AND_FEES. */
+export const MOCK_SERVICES: ServiceFee[] = [
+  { code: 'ALT', description: 'Services & fees', amount: MOCK_SERVICES_AND_FEES },
+];
+
+/**
+ * order-service 201 body for the PRE-1 golden cart: the three fixture SKUs x 1,
+ * FALL30, $12.00 services & fees, 8.625% tax.
+ */
+export const MOCK_ORDER_RESPONSE: OrderResponse = {
+  orderNumber: '1969-04-20871',
+  status: 'COMPLETED',
+  message: 'Order Placed Successfully!',
+  totals: {
+    merchandiseTotal: 159.85,
+    servicesAndFees: 12.0,
+    discountTotal: 63.54,
+    taxableSubtotal: 108.31,
+    taxRate: 0.08625,
+    salesTax: 9.34,
+    total: 117.65,
+    savedToday: 63.54,
+    taxExempt: false,
+  },
+};
 
 export function mockLineItem(skuCode: string, quantity = 1): OrderLineItem | null {
   if (!MOCK_PRODUCTS.some((p) => p.skuCode === skuCode)) return null;

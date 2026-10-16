@@ -100,3 +100,29 @@ final-sale lines), then
 `taxable subtotal = merchandise − discounts + services & fees`, and
 `total = taxable subtotal + sales tax`, with tax zeroed when the transaction is
 tax exempt.
+
+## Live mode contracts (POS-5)
+
+With `VITE_USE_MOCK=false` the client speaks the backend contracts frozen in
+`src/api/types.ts` (checked at runtime by `src/api/contract.test.ts`):
+
+| Call | Success | Errors |
+| --- | --- | --- |
+| `GET /api/product?skuCode=` | one `Product` object | `404 sku-not-found` → "No item found" |
+| `GET /api/inventory?skuCode=&storeId=` | one `Inventory` row | `404` → "No item found" |
+| `POST /api/order` | `201 OrderResponse` with server-priced `totals` | `409 out-of-stock`, `422 invalid-promotion` / `validation-failed`, `503 dependency-unavailable` (`application/problem+json`) |
+
+- The bag starts empty and the request carries `services`, per-line
+  `fulfillmentType` / `fulfillmentStoreId`, `receiptDelivery` and
+  `taxExemptCertificate` (set in the "Fulfillment & receipt" panel). No prices are
+  sent; order-service re-prices every line.
+- The charge confirmation shows order-service's `totals`. Any difference from the
+  register preview (`calculateTotals`) is shown as a warning.
+- `problem+json` errors are shown in the UI with status, title, `type` slug and
+  detail. Promo codes the register doesn't know are sent to the server and come
+  back as `422 invalid-promotion` if they are not valid.
+- Mock mode is unchanged: preloaded fixture bag, browser-side totals, no network.
+
+The golden cart (3 fixture SKUs, `FALL30`, $12.00 services & fees, 8.625% tax)
+totals 159.85 / 63.54 / 108.31 / 9.34 / **117.65** in both the client preview and
+`MOCK_ORDER_RESPONSE`.
