@@ -178,40 +178,50 @@ public class OrderService {
      * POS-2 frozen contract, one call per SKU at the selling store. Unknown SKU or no inventory
      * row is a 409, so an empty response can never let an order through.
      */
+    /** Quantities are aggregated per (SKU, source store) across all lines, then checked once each. */
     private void checkStock(OrderRequest request, List<PricedLineInput> pricingInputs) {
+        String sellingStore = request.getStoreId();
         Map<String, InventoryResponse> inventoryBySku = new LinkedHashMap<>();
-        Map<String, Integer> takeWithQuantity = new LinkedHashMap<>();
+        Map<String, Map<String, Integer>> quantityBySkuAndSource = new LinkedHashMap<>();
         for (int i = 0; i < pricingInputs.size(); i++) {
             OrderLineItemsDto line = request.getLineItems().get(i);
             String sku = pricingInputs.get(i).product().getSkuCode();
-            InventoryResponse inventory = inventoryBySku.computeIfAbsent(sku,
-                    s -> fetchInventory(s, request.getStoreId()));
+            InventoryResponse inventory = inventoryBySku.computeIfAbsent(sku, s -> fetchInventory(s, sellingStore));
 
-            if (line.getFulfillmentType() == FulfillmentType.TAKE_WITH) {
-                takeWithQuantity.merge(sku, line.getQuantity(), Integer::sum);
-            } else {
+            String source = sellingStore;
+            if (line.getFulfillmentType() == FulfillmentType.SHIP_FROM_STORE) {
                 if (!inventory.isShipFromStoreEligible()) {
                     throw OrderProblemException.outOfStock(sku + " is not eligible for ship-from-store");
                 }
-                String source = line.getFulfillmentStoreId();
-                if (!isBlank(source) && !source.equals(request.getStoreId())) {
-                    boolean sourceHasStock = inventory.getNearbyStores() != null && inventory.getNearbyStores()
-                            .stream()
-                            .anyMatch(s -> source.equals(s.getStoreId())
-                                    && s.getOnHand() != null && s.getOnHand() >= line.getQuantity());
-                    if (!sourceHasStock) {
-                        throw OrderProblemException.outOfStock(sku + " is not available to ship from store " + source);
-                    }
+                if (isBlank(line.getFulfillmentStoreId())) {
+                    line.setFulfillmentStoreId(sellingStore);
                 }
+                source = line.getFulfillmentStoreId();
             }
+            quantityBySkuAndSource.computeIfAbsent(sku, s -> new LinkedHashMap<>())
+                    .merge(source, line.getQuantity(), Integer::sum);
         }
-        takeWithQuantity.forEach((sku, quantity) -> {
-            Integer onHand = inventoryBySku.get(sku).getOnHand();
-            if (onHand == null || onHand < quantity) {
-                throw OrderProblemException.outOfStock(sku + " has " + Objects.requireNonNullElse(onHand, 0)
-                        + " on hand at store " + request.getStoreId() + ", " + quantity + " requested");
+        quantityBySkuAndSource.forEach((sku, bySource) -> bySource.forEach((source, quantity) -> {
+            int onHand = onHandAt(inventoryBySku.get(sku), sellingStore, source);
+            if (onHand < quantity) {
+                throw OrderProblemException.outOfStock(sku + " has " + onHand + " on hand at store " + source
+                        + ", " + quantity + " requested");
             }
-        });
+        }));
+    }
+
+    private static int onHandAt(InventoryResponse inventory, String sellingStore, String source) {
+        if (source.equals(sellingStore)) {
+            return Objects.requireNonNullElse(inventory.getOnHand(), 0);
+        }
+        if (inventory.getNearbyStores() == null) {
+            return 0;
+        }
+        return inventory.getNearbyStores().stream()
+                .filter(s -> source.equals(s.getStoreId()) && s.getOnHand() != null)
+                .mapToInt(s -> s.getOnHand())
+                .findFirst()
+                .orElse(0);
     }
 
     private InventoryResponse fetchInventory(String skuCode, String storeId) {
@@ -343,7 +353,8 @@ public class OrderService {
 
     /** Runs after commit. Sent off the request thread so a slow broker can't hold up the register. */
     private void publish(OrderPlacedEvent event) {
-        CompletableFuture.runAsync(() -> kafkaTemplate.send(NOTIFICATION_TOPIC, event.getOrderNumber(), event))
+        CompletableFuture.supplyAsync(() -> kafkaTemplate.send(NOTIFICATION_TOPIC, event.getOrderNumber(), event))
+                .thenCompose(send -> send)
                 .whenComplete((ignored, error) -> {
                     if (error != null) {
                         log.error("Failed to publish OrderPlacedEvent for {}", event.getOrderNumber(), error);

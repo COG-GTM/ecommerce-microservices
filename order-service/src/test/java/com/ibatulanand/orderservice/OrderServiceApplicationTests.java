@@ -245,6 +245,21 @@ class OrderServiceApplicationTests {
     }
 
     @Test
+    void stockIsAggregatedPerSkuAndSourceStore() throws Exception {
+        String splitShip = goldenCart("117.65", false, null).replace(
+                "{\"skuCode\": \"471902-004-29\", \"quantity\": 1}",
+                "{\"skuCode\": \"471902-004-29\", \"quantity\": 2, \"fulfillmentType\": \"SHIP_FROM_STORE\", \"fulfillmentStoreId\": \"1177\"},"
+                        + "{\"skuCode\": \"471902-004-29\", \"quantity\": 2, \"fulfillmentType\": \"SHIP_FROM_STORE\", \"fulfillmentStoreId\": \"1177\"}");
+        assertProblem(post(splitShip), 409, "out-of-stock");
+
+        String sameStoreShip = goldenCart("117.65", false, null).replace(
+                "{\"skuCode\": \"471902-004-29\", \"quantity\": 1}",
+                "{\"skuCode\": \"471902-004-29\", \"quantity\": 4, \"fulfillmentType\": \"SHIP_FROM_STORE\"},"
+                        + "{\"skuCode\": \"471902-004-29\", \"quantity\": 4}");
+        assertProblem(post(sameStoreShip), 409, "out-of-stock");
+    }
+
+    @Test
     void tamperedClientPriceHasNoEffect() throws Exception {
         String tampered = goldenCart("117.65", false, null)
                 .replace("\"quantity\": 1}", "\"quantity\": 1, \"price\": 0.01, \"unitPrice\": 0.01, \"listPrice\": 0.01}");
