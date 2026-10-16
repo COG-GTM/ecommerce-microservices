@@ -99,18 +99,89 @@ export interface Order {
   totals: OrderTotals;
 }
 
+export type FulfillmentType = 'TAKE_WITH' | 'SHIP_FROM_STORE';
+
+export interface ServiceFee {
+  code: string;
+  description: string;
+  amount: number;
+}
+
+export type ReceiptChannel = 'EMAIL' | 'SMS' | 'PRINT' | 'NONE';
+
+export interface ReceiptDelivery {
+  channel: ReceiptChannel;
+  /** Required for EMAIL and SMS. */
+  destination?: string | null;
+}
+
+export interface OrderRequestLineItem {
+  skuCode: string;
+  quantity: number;
+  /** Defaults to TAKE_WITH on the server. */
+  fulfillmentType?: FulfillmentType;
+  fulfillmentStoreId?: string | null;
+}
+
 export interface OrderRequest {
   storeId: string;
   registerId: string;
   associateId: string;
-  lineItems: Array<{ skuCode: string; quantity: number }>;
+  lineItems: OrderRequestLineItem[];
   promotions: string[];
   tenders: Tender[];
   taxExempt: boolean;
+  services: ServiceFee[];
+  receiptDelivery?: ReceiptDelivery | null;
+  /** Required when taxExempt is true. */
+  taxExemptCertificate?: string | null;
+}
+
+export type OrderStatus = 'COMPLETED';
+
+export interface AppliedPromotion {
+  code: string;
+  amount: number;
+}
+
+/** Server-priced line returned by order-service (additive to the frozen contract). */
+export interface OrderResponseLine {
+  skuCode: string;
+  description: string;
+  quantity: number;
+  listPrice: number;
+  unitPrice: number;
+  markdownAmount: number;
+  extendedPrice: number;
+  finalSale: boolean;
+  promotionAmount: number;
+  promotions: AppliedPromotion[];
+  fulfillmentType: FulfillmentType;
+  fulfillmentStoreId: string | null;
 }
 
 export interface OrderResponse {
   orderNumber: string;
-  status: string;
+  status: OrderStatus;
   message: string;
+  totals: OrderTotals;
+  lineItems?: OrderResponseLine[];
+  promotions?: AppliedPromotion[];
+}
+
+export type ApiProblemType =
+  | 'sku-not-found'
+  | 'out-of-stock'
+  | 'invalid-promotion'
+  | 'validation-failed'
+  | 'dependency-unavailable';
+
+/** RFC 7807 `application/problem+json` body (Spring 6 `ProblemDetail`). */
+export interface ApiProblem {
+  type: string;
+  title: string;
+  status: number;
+  detail?: string;
+  instance?: string;
+  [extension: string]: unknown;
 }
