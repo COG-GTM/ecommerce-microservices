@@ -1,8 +1,11 @@
 import { API_BASE_URL, AUTH_TOKEN, STORE_ID, USE_MOCK_DATA } from './config';
+import { calculateTotals } from '../lib/totals';
 import {
   MOCK_INVENTORY,
+  MOCK_LINE_ITEMS,
   MOCK_ORDER_RESPONSE,
   MOCK_PRODUCTS,
+  MOCK_PROMOTIONS,
   mockLineItem,
 } from './fixtures';
 import type {
@@ -150,10 +153,27 @@ export async function lookupLineItem(
  * 422 `invalid-promotion` / `validation-failed` and 503 `dependency-unavailable`
  * reject with an `ApiError` carrying the `problem+json` body.
  */
+/** Mock mode prices the submitted request from the fixtures, like order-service would. */
+function mockOrderTotals(order: OrderRequest): OrderTotals {
+  const lineItems = order.lineItems.flatMap((line) => {
+    const fixture = MOCK_LINE_ITEMS.find((item) => item.skuCode === line.skuCode);
+    return fixture
+      ? [{ ...fixture, quantity: line.quantity, extendedPrice: fixture.unitPrice * line.quantity }]
+      : [];
+  });
+  return calculateTotals({
+    lineItems,
+    promotions: MOCK_PROMOTIONS.filter((promo) => order.promotions.includes(promo.code)),
+    servicesAndFees: order.services.reduce((sum, fee) => sum + fee.amount, 0),
+    taxExempt: order.taxExempt,
+  });
+}
+
 export async function placeOrder(order: OrderRequest): Promise<OrderResponse> {
   if (USE_MOCK_DATA) {
     return {
       ...MOCK_ORDER_RESPONSE,
+      totals: mockOrderTotals(order),
       orderNumber: `1969-04-${Math.floor(Math.random() * 90000 + 10000)}`,
       message: 'Order placed (mock mode)',
     };
@@ -177,8 +197,21 @@ export interface BuildOrderRequestInput {
   taxExempt: boolean;
   taxExemptCertificate?: string;
   fulfillment?: Record<string, FulfillmentType>;
-  shipFromStoreId?: string;
+  /** Fulfilling store per SKU for SHIP_FROM_STORE lines (see `shipFromStoreFor`). */
+  shipFromStoreIds?: Record<string, string>;
   receiptDelivery?: ReceiptDelivery | null;
+}
+
+/**
+ * Nearest nearby store that can ship `item` (enough on hand for the line quantity), or null when
+ * the SKU is not ship-from-store eligible at this store or no nearby store has the stock.
+ */
+export function shipFromStoreFor(item: OrderLineItem): string | null {
+  if (!item.inventory.shipFromStoreEligible) return null;
+  const source = [...item.inventory.nearbyStores]
+    .sort((a, b) => a.distanceMiles - b.distanceMiles)
+    .find((store) => store.onHand >= item.quantity);
+  return source?.storeId ?? null;
 }
 
 /** Builds the POS-3 `OrderRequest`. Prices are never sent; order-service re-prices every line. */
@@ -196,7 +229,7 @@ export function buildOrderRequest(input: BuildOrderRequestInput): OrderRequest {
         fulfillmentType,
         fulfillmentStoreId:
           fulfillmentType === 'SHIP_FROM_STORE'
-            ? (input.shipFromStoreId ?? input.storeId)
+            ? (input.shipFromStoreIds?.[item.skuCode] ?? input.storeId)
             : input.storeId,
       };
     }),

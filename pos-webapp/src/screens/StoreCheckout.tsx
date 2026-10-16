@@ -1,9 +1,10 @@
-import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
+import { useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import {
   ApiError,
   buildOrderRequest,
   lookupLineItem,
   placeOrder,
+  shipFromStoreFor,
   totalsMismatches,
 } from '../api/client';
 import { REGISTER_ID, STORE_ID, USE_MOCK_DATA } from '../api/config';
@@ -36,8 +37,6 @@ const PROMO_CATALOG: Record<string, Promotion> = {
 };
 
 const ASSOCIATE_ID = 'A-4471';
-/** Nearest fulfilling store (Union Square) used when a line is switched to ship-from-store. */
-const SHIP_FROM_STORE_ID = '1042';
 
 const TOTAL_LABELS: Record<string, string> = {
   merchandiseTotal: 'Merchandise',
@@ -153,6 +152,9 @@ export function StoreCheckout() {
   const [taxExemptCertificate, setTaxExemptCertificate] = useState('');
   const [notices, setNotices] = useState<Notice[]>([]);
   const [serverTotals, setServerTotals] = useState<OrderTotals | null>(null);
+  const [charging, setCharging] = useState(false);
+  const [charged, setCharged] = useState(false);
+  const chargeInFlight = useRef(false);
 
   const totals = useMemo(
     () =>
@@ -177,6 +179,7 @@ export function StoreCheckout() {
     }
     if (!item) return false;
     const found = item;
+    setCharged(false);
     setLineItems((current) => {
       const existing = current.find((line) => line.skuCode === found.skuCode);
       if (!existing) return [...current, found];
@@ -194,6 +197,7 @@ export function StoreCheckout() {
   }
 
   function handleRemove(skuCode: string) {
+    setCharged(false);
     setLineItems((current) => current.filter((line) => line.skuCode !== skuCode));
   }
 
@@ -206,16 +210,25 @@ export function StoreCheckout() {
         ? undefined
         : { code, description: 'validated at charge', percentOff: 0, amountOff: 0 });
     if (!promo) return;
+    setCharged(false);
     setPromotions((current) =>
       current.some((p) => p.code === promo.code) ? current : [...current, promo],
     );
   }
 
   function handleRemovePromotion(code: string) {
+    setCharged(false);
     setPromotions((current) => current.filter((promo) => promo.code !== code));
   }
 
   async function handleCharge() {
+    if (chargeInFlight.current) return;
+    const shipFromStoreIds = Object.fromEntries(
+      lineItems.flatMap((item) => {
+        const store = shipFromStoreFor(item);
+        return store ? [[item.skuCode, store]] : [];
+      }),
+    );
     const request = buildOrderRequest({
       storeId: STORE_ID,
       registerId: REGISTER_ID,
@@ -229,7 +242,7 @@ export function StoreCheckout() {
       taxExempt,
       taxExemptCertificate,
       fulfillment,
-      shipFromStoreId: SHIP_FROM_STORE_ID,
+      shipFromStoreIds,
       receiptDelivery:
         receiptChannel === 'EMAIL' || receiptChannel === 'SMS'
           ? { channel: receiptChannel, destination: receiptDestination.trim() }
@@ -242,12 +255,15 @@ export function StoreCheckout() {
       return;
     }
 
+    chargeInFlight.current = true;
+    setCharging(true);
     setNotices([]);
     setServerTotals(null);
     setStatus('Charging…');
     try {
       const response = await placeOrder(request);
       setServerTotals(response.totals);
+      setCharged(true);
       setStatus(
         `${response.status} · Order ${response.orderNumber} · Charged ${formatCurrency(response.totals.total)}`,
       );
@@ -277,6 +293,9 @@ export function StoreCheckout() {
     } catch (error) {
       setStatus(null);
       setNotices([describeError(error, 'Charge')]);
+    } finally {
+      chargeInFlight.current = false;
+      setCharging(false);
     }
   }
 
@@ -324,7 +343,9 @@ export function StoreCheckout() {
           />
           {!USE_MOCK_DATA && (
             <Panel title="Fulfillment & receipt" label="Fulfillment and receipt">
-              {lineItems.map((item) => (
+              {lineItems.map((item) => {
+                const shipStore = shipFromStoreFor(item);
+                return (
                 <label key={item.skuCode} style={rowStyle}>
                   <span>{item.skuCode}</span>
                   <select
@@ -338,10 +359,13 @@ export function StoreCheckout() {
                     }
                   >
                     <option value="TAKE_WITH">Take with</option>
-                    <option value="SHIP_FROM_STORE">Ship from store {SHIP_FROM_STORE_ID}</option>
+                    <option value="SHIP_FROM_STORE" disabled={!shipStore}>
+                      {shipStore ? `Ship from store ${shipStore}` : 'Ship from store (not eligible)'}
+                    </option>
                   </select>
                 </label>
-              ))}
+                );
+              })}
               <label style={rowStyle}>
                 <span>Receipt</span>
                 <select
@@ -380,7 +404,7 @@ export function StoreCheckout() {
             selected={tender}
             splitTender={splitTender}
             status={status}
-            disabled={lineItems.length === 0}
+            disabled={lineItems.length === 0 || charging || charged}
             onSelect={setTender}
             onSplitTenderChange={setSplitTender}
             onCharge={handleCharge}

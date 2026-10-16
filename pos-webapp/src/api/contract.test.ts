@@ -40,6 +40,7 @@ import {
   getProductBySku,
   lookupLineItem,
   placeOrder,
+  shipFromStoreFor,
   totalsMismatches,
 } from './client';
 
@@ -206,7 +207,7 @@ describe('contract fixtures match types.ts at runtime', () => {
   it('ship-from-store lines carry the fulfilling store; the certificate is only sent when exempt', () => {
     const request = goldenRequest({
       fulfillment: { '471902-004-29': 'SHIP_FROM_STORE' },
-      shipFromStoreId: '1042',
+      shipFromStoreIds: { '471902-004-29': '1042' },
       taxExempt: true,
       taxExemptCertificate: ' CA-123 ',
     });
@@ -215,6 +216,22 @@ describe('contract fixtures match types.ts at runtime', () => {
     });
     expect(request.taxExemptCertificate).toBe('CA-123');
     expect(goldenRequest({ taxExemptCertificate: 'CA-123' }).taxExemptCertificate).toBeNull();
+  });
+});
+
+describe('shipFromStoreFor', () => {
+  const [tee, jean, hoodie] = MOCK_LINE_ITEMS;
+
+  it('picks the nearest nearby store with enough stock for the line', () => {
+    expect(shipFromStoreFor(jean)).toBe('1042');
+    expect(shipFromStoreFor({ ...jean, quantity: 4 })).toBe('1042');
+    expect(shipFromStoreFor({ ...tee, quantity: 12 })).toBeNull();
+    expect(shipFromStoreFor({ ...jean, quantity: 6 })).toBeNull();
+  });
+
+  it('returns null for SKUs that are not ship-from-store eligible', () => {
+    expect(hoodie.inventory.shipFromStoreEligible).toBe(false);
+    expect(shipFromStoreFor(hoodie)).toBeNull();
   });
 });
 
@@ -377,6 +394,12 @@ describe('mock mode (VITE_USE_MOCK=true) is unchanged', () => {
     expect(await getProductBySku('nope')).toBeNull();
     expect(await lookupLineItem('512884-022-M')).toEqual(MOCK_LINE_ITEMS[2]);
     const response = await placeOrder(goldenRequest());
+    expect(response.totals).toEqual(MOCK_ORDER_RESPONSE.totals);
+    const teeOnly = await placeOrder(
+      goldenRequest({ lineItems: [MOCK_LINE_ITEMS[0]], promotionCodes: [], services: [] }),
+    );
+    expect(teeOnly.totals.merchandiseTotal).toBe(29.95);
+    expect(teeOnly.totals.total).toBe(19.52);
     expect(response.status).toBe('COMPLETED');
     expect(response.orderNumber).toMatch(/^1969-04-\d{5}$/);
     expect(response.message).toBe('Order placed (mock mode)');
