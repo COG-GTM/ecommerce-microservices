@@ -43,12 +43,12 @@ beforeEach(() => {
   errors = [];
 });
 
-const checkoutBody = {
-  items: [
-    { skuCode: 'iphone_15', name: 'iPhone 15', price: 799.99, quantity: 2 },
-    { skuCode: 'case', price: '19.50', quantity: 1 },
-  ],
-};
+const catalog = [
+  { id: 'p1', name: 'iPhone 15', price: 799.99, skuCode: 'iphone_15' },
+  { id: 'p2', name: 'Case', price: '19.50', skuCode: 'case' },
+  { id: 'p3', name: 'Legacy product', price: 5 },
+];
+const checkoutBody = { items: [{ productId: 'p1', quantity: 2 }, { productId: 'p2', quantity: 1 }] };
 
 function postCheckout(body) {
   return fetch(`${baseUrl}/api/checkout`, { method: 'POST', body: typeof body === 'string' ? body : JSON.stringify(body) });
@@ -115,6 +115,7 @@ describe('GET /api/products', () => {
 
 describe('POST /api/checkout', () => {
   test('places the order and returns a confirmation with totals', async () => {
+    gateway.routes['GET /api/product'] = () => response(200, catalog);
     gateway.routes['POST /api/order'] = () => response(201, ORDER_PLACED_MESSAGE);
 
     const res = await postCheckout(checkoutBody);
@@ -125,8 +126,8 @@ describe('POST /api/checkout', () => {
     assert.equal(body.message, ORDER_PLACED_MESSAGE);
     assert.equal(body.itemCount, 3);
     assert.equal(body.totalCents, 2 * 79999 + 1950);
-    assert.equal(body.items[1].name, 'case');
-    const sent = gateway.calls[0];
+    assert.equal(body.items[1].name, 'Case');
+    const sent = gateway.calls[1];
     assert.equal(sent.init.headers.Authorization, 'Bearer token-123');
     assert.equal(sent.init.headers['Content-Type'], 'application/json');
     assert.deepEqual(JSON.parse(sent.init.body), {
@@ -139,6 +140,7 @@ describe('POST /api/checkout', () => {
 
   test('reports the order-service fallback (out of stock / inventory down) as REJECTED', async () => {
     const fallback = 'Oops! Something went wrong, please order after some time!';
+    gateway.routes['GET /api/product'] = () => response(200, catalog);
     gateway.routes['POST /api/order'] = () => response(201, fallback);
 
     const res = await postCheckout(checkoutBody);
@@ -148,6 +150,7 @@ describe('POST /api/checkout', () => {
   });
 
   test('treats non-2xx gateway responses as REJECTED even with the success text', async () => {
+    gateway.routes['GET /api/product'] = () => response(200, catalog);
     gateway.routes['POST /api/order'] = () => response(503, ORDER_PLACED_MESSAGE);
     assert.equal((await postCheckout(checkoutBody)).status, 409);
   });
@@ -156,8 +159,7 @@ describe('POST /api/checkout', () => {
     ['invalid JSON', '{not json', /valid JSON/],
     ['missing items', {}, /non-empty items/],
     ['empty items', { items: [] }, /non-empty items/],
-    ['zero quantity', { items: [{ skuCode: 'a', price: 1, quantity: 0 }] }, /Quantity/],
-    ['negative price', { items: [{ skuCode: 'a', price: -1, quantity: 1 }] }, /Invalid price/],
+    ['zero quantity', { items: [{ productId: 'p1', quantity: 0 }] }, /Quantity/],
   ]) {
     test(`rejects ${name} with 400 without calling the gateway`, async () => {
       const res = await postCheckout(body);
@@ -166,6 +168,37 @@ describe('POST /api/checkout', () => {
       assert.equal(gateway.calls.length, 0);
     });
   }
+
+  test('prices from the catalog and ignores client-supplied prices, names and SKUs', async () => {
+    gateway.routes['GET /api/product'] = () => response(200, catalog);
+    gateway.routes['POST /api/order'] = () => response(201, ORDER_PLACED_MESSAGE);
+
+    const res = await postCheckout({ items: [{ productId: 'p1', quantity: 1, price: 0.01, skuCode: 'case', name: 'Free' }] });
+
+    assert.equal(res.status, 201);
+    assert.equal((await res.json()).totalCents, 79999);
+    assert.deepEqual(JSON.parse(gateway.calls[1].init.body).orderLineItemsDtoList,
+      [{ skuCode: 'iphone_15', price: '799.99', quantity: 1 }]);
+  });
+
+  for (const [name, productId, pattern] of [
+    ['unknown products', 'nope', /Unknown product nope/],
+    ['catalog products without a SKU', 'p3', /skuCode/],
+  ]) {
+    test(`rejects ${name} with 400 without placing an order`, async () => {
+      gateway.routes['GET /api/product'] = () => response(200, catalog);
+      const res = await postCheckout({ items: [{ productId, quantity: 1 }] });
+      assert.equal(res.status, 400);
+      assert.match((await res.json()).message, pattern);
+      assert.equal(gateway.calls.length, 1);
+    });
+  }
+
+  test('maps catalog failures during checkout to 502', async () => {
+    gateway.routes['GET /api/product'] = () => response(500, null);
+    assert.equal((await postCheckout(checkoutBody)).status, 502);
+    assert.equal(gateway.calls.length, 1);
+  });
 
   test('rejects oversized bodies with 413', async () => {
     const res = await postCheckout('x'.repeat(MAX_BODY_BYTES + 1));

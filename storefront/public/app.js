@@ -36,12 +36,16 @@ function renderCart() {
     const row = el('tr', { 'data-testid': 'cart-row', 'data-sku': item.skuCode });
     const qty = el('input', { type: 'number', min: '1', max: '99', value: String(item.quantity), 'aria-label': `Quantity for ${item.name}` });
     qty.addEventListener('change', () => {
-      state.cart = updateQuantity(state.cart, item.skuCode, Number(qty.value));
+      try {
+        state.cart = updateQuantity(state.cart, item.productId, Number(qty.value));
+      } catch {
+        // Invalid or blank input: re-render to restore the quantity that will actually be ordered.
+      }
       renderCart();
     });
     const remove = el('button', { type: 'button', class: 'secondary', 'aria-label': `Remove ${item.name}` }, 'Remove');
     remove.addEventListener('click', () => {
-      state.cart = removeItem(state.cart, item.skuCode);
+      state.cart = removeItem(state.cart, item.productId);
       renderCart();
     });
     const qtyCell = el('td');
@@ -82,7 +86,7 @@ async function checkout() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        items: state.cart.map((item) => ({ skuCode: item.skuCode, name: item.name, price: item.priceCents / 100, quantity: item.quantity })),
+        items: state.cart.map((item) => ({ productId: item.productId, quantity: item.quantity })),
       }),
     });
     const body = await response.json();
@@ -94,6 +98,7 @@ async function checkout() {
     state.cart = [];
     renderCart();
   } catch (failure) {
+    $('confirmation').hidden = true;
     error.textContent = `Checkout failed: ${failure.message}`;
     error.hidden = false;
     $('checkout').disabled = state.cart.length === 0;

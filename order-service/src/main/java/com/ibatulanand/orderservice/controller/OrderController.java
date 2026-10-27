@@ -31,7 +31,8 @@ public class OrderController {
         return CompletableFuture.supplyAsync(() -> orderService.placeOrder(orderRequest), applicationTaskExecutor);
     }
 
-    public CompletableFuture<String> fallbackMethod(OrderRequest orderRequest, RuntimeException runtimeException) {
+    // Throwable, not RuntimeException: TimeLimiter timeouts are checked TimeoutExceptions.
+    public CompletableFuture<String> fallbackMethod(OrderRequest orderRequest, Throwable failure) {
         return CompletableFuture.supplyAsync(() -> "Oops! Something went wrong, please order after some time!");
     }
 }

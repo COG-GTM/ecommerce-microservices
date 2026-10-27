@@ -45,11 +45,11 @@ There are no other excludes. `@SpringBootApplication` `main` methods are covered
 
 | Tier | Where | Count | Real dependencies |
 |---|---|---|---|
-| Unit (Java) | `*/src/test/**/*Test.java` (Surefire) | 40 | mocks and stubs only |
-| Unit (storefront) | `storefront/test/*.test.js` | 39 | none |
+| Unit (Java) | `*/src/test/**/*Test.java` (Surefire) | 41 | mocks and stubs only |
+| Unit (storefront) | `storefront/test/*.test.js` | 43 | none |
 | Service integration | `*/src/test/**/*IT.java` (Failsafe) | 7 | Testcontainers: MongoDB 4.4, MySQL 8.0, Kafka (cp-kafka 7.5) |
 | System integration | `system-tests/` (`-Psystem-tests`) | 6 | full `docker-compose.test.yml` topology, real HTTP through api-gateway with Keycloak JWT |
-| Browser E2E | `e2e/tests/checkout.spec.ts` (Playwright, Chromium) | 3 | same composed stack, through `storefront` |
+| Browser E2E | `e2e/tests/checkout.spec.ts` (Playwright, Chromium) | 4 | same composed stack, through `storefront` |
 
 ### Critical flows covered by the system and E2E tiers
 
@@ -59,13 +59,21 @@ There are no other excludes. `@SpringBootApplication` `main` methods are covered
 - An out-of-stock order is rejected with no order row and no Kafka event.
 - A mixed cart (one line out of stock) is rejected as a whole, with no partial persistence. The order transaction rolls back.
 - Inventory outage (container stopped): the circuit-breaker fallback answers with no side effects, and orders succeed again once inventory restarts.
-- Browser: browse products → add to cart → checkout → order confirmation; cart quantity edits and removals; out-of-stock checkout rejected with the cart kept.
+- Browser: browse products → add to cart → checkout → order confirmation; cart quantity edits and removals (a blank quantity restores the stored value); out-of-stock checkout rejected with the cart kept; a failed checkout after a successful one hides the old confirmation.
+- The storefront BFF prices every order from the product catalog. The browser sends only product ids and quantities, so client-supplied prices are ignored.
 
 **Not present in the codebase, so not tested:** there is no payment service, and order-service does not decrement inventory (it only checks stock). Testing these would mean inventing new domain behavior first.
 
-### Bug found by the system tier
+### Bugs found by the system tier
 
 Order placement always failed when running from the packaged jar. `OrderController` ran `orderService.placeOrder` through `CompletableFuture.supplyAsync(...)` on the common `ForkJoinPool`. Those threads use the system classloader, so Kafka could not load the configured `JsonSerializer` ("Failed to construct kafka producer"). Resilience4j then turned this into the generic fallback message. Unit tests and Testcontainers ITs run from an exploded classpath, so they could not see the bug. The fix runs the work on Spring's `applicationTaskExecutor`, and a unit test now pins that behavior.
+
+Two more `OrderController` resilience issues came up when inventory was stopped mid-run:
+
+- `fallbackMethod(OrderRequest, RuntimeException)` didn't match the checked `TimeoutException` thrown by the `TimeLimiter`, so a slow or unreachable inventory returned HTTP 500 instead of the fallback message. The parameter is now `Throwable`.
+- Out-of-stock rejections (`IllegalArgumentException`) counted as circuit-breaker failures. A few sold-out attempts opened the breaker and blocked every order for 5s. `ignoreExceptions=java.lang.IllegalArgumentException` stops that. Out-of-stock orders still get the same fallback response.
+
+Known behavior, documented but not changed: when an attempt exceeds the 3s `TimeLimiter`, the caller gets the fallback but the order can still commit afterwards, because the time limiter doesn't cancel the in-flight work. `inventoryOutageTriggersFallbackWithoutSideEffectsThenRecovers` allows for this during recovery.
 
 ## E2E recordings and artifacts
 
@@ -82,7 +90,7 @@ In CI, these are uploaded on every run (pass or fail) as the **`playwright-e2e-r
 
 1. **unit**: `mvn -B verify -DskipITs`. The JaCoCo `unit-coverage-gate` fails the build if line or branch `COVEREDRATIO` drops below `coverage.line.minimum` / `coverage.branch.minimum` (both `1.00`, set in the root `pom.xml`). It also runs `npm run test:coverage` in `storefront`, which uses node's built-in thresholds of 100% lines, branches and functions.
 2. **integration**: `mvn -B verify -DskipUTs` (Testcontainers ITs).
-3. **system-e2e**: `scripts/system-stack.sh up`, then `mvn -Psystem-tests verify -pl system-tests`, then `npx playwright test`. Uploads recordings and reports, then tears the stack down.
+3. **system-e2e**: `scripts/system-stack.sh up`, then `npx playwright test`, then `mvn -Psystem-tests verify -pl system-tests`. The system tests run last because they stop and restart inventory-service. The job uploads recordings and reports, then tears the stack down.
 
 ## Reproduce locally
 

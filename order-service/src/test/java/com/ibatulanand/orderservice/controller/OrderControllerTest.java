@@ -14,6 +14,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.List;
+import java.util.concurrent.TimeoutException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -71,5 +72,12 @@ class OrderControllerTest {
 
         assertThat(message).isEqualTo("Oops! Something went wrong, please order after some time!");
         verifyNoInteractions(orderService);
+    }
+
+    @Test
+    void fallbackAlsoHandlesCheckedTimeLimiterTimeouts() throws Exception {
+        String message = controller.fallbackMethod(new OrderRequest(List.of()), new TimeoutException("TimeLimiter 'inventory' recorded a timeout exception.")).get();
+
+        assertThat(message).isEqualTo("Oops! Something went wrong, please order after some time!");
     }
 }

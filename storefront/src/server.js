@@ -4,7 +4,7 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { cartTotals, toOrderRequest, validateQuantity, toCents } from './cart.js';
+import { addItem, cartTotals, toOrderRequest, validateQuantity } from './cart.js';
 
 export const ORDER_PLACED_MESSAGE = 'Order Placed Successfully!';
 export const MAX_BODY_BYTES = 64 * 1024;
@@ -51,17 +51,31 @@ export async function readJsonBody(req) {
   }
 }
 
+// The browser only chooses products and quantities; names, SKUs and prices come from the catalog.
 export function parseCheckoutItems(body) {
   if (!body || !Array.isArray(body.items) || body.items.length === 0) {
     throw new HttpError(400, 'Checkout requires a non-empty items array');
   }
   try {
     return body.items.map((item) => ({
-      skuCode: String(item.skuCode),
-      name: String(item.name ?? item.skuCode),
-      priceCents: toCents(item.price),
+      productId: String(item.productId),
       quantity: validateQuantity(item.quantity),
     }));
+  } catch (error) {
+    throw new HttpError(400, error.message);
+  }
+}
+
+export function priceFromCatalog(requested, catalog) {
+  const byId = new Map(catalog.map((product) => [product.id, product]));
+  try {
+    return requested.reduce((cart, { productId, quantity }) => {
+      const product = byId.get(productId);
+      if (!product) {
+        throw new RangeError(`Unknown product ${productId}`);
+      }
+      return addItem(cart, product, quantity);
+    }, []);
   } catch (error) {
     throw new HttpError(400, error.message);
   }
@@ -76,16 +90,21 @@ export function createApp({ gatewayUrl, getToken, fetchImpl = fetch, logger = co
     });
   }
 
-  async function listProducts(res) {
+  async function fetchCatalog() {
     const response = await callGateway('/api/product');
     if (!response.ok) {
       throw new HttpError(502, `Product service returned HTTP ${response.status}`);
     }
-    sendJson(res, 200, await response.json());
+    return response.json();
+  }
+
+  async function listProducts(res) {
+    sendJson(res, 200, await fetchCatalog());
   }
 
   async function checkout(req, res) {
-    const items = parseCheckoutItems(await readJsonBody(req));
+    const requested = parseCheckoutItems(await readJsonBody(req));
+    const items = priceFromCatalog(requested, await fetchCatalog());
     const response = await callGateway('/api/order', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

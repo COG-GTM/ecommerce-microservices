@@ -22,16 +22,18 @@ export function validateQuantity(quantity) {
   return quantity;
 }
 
+// Cart lines are keyed by catalog product id: several products may share one inventory SKU.
 export function addItem(cart, product, quantity = 1) {
   validateQuantity(quantity);
-  if (!product || !product.skuCode) {
-    throw new TypeError('Product must have a skuCode to be added to the cart');
+  if (!product || !product.id || !product.skuCode) {
+    throw new TypeError('Product must have an id and a skuCode to be added to the cart');
   }
-  const existing = cart.find((item) => item.skuCode === product.skuCode);
+  const existing = cart.find((item) => item.productId === product.id);
   if (existing) {
-    return updateQuantity(cart, product.skuCode, existing.quantity + quantity);
+    return updateQuantity(cart, product.id, existing.quantity + quantity);
   }
   return [...cart, {
+    productId: product.id,
     skuCode: product.skuCode,
     name: product.name,
     priceCents: toCents(product.price),
@@ -39,16 +41,16 @@ export function addItem(cart, product, quantity = 1) {
   }];
 }
 
-export function updateQuantity(cart, skuCode, quantity) {
+export function updateQuantity(cart, productId, quantity) {
   validateQuantity(quantity);
-  if (!cart.some((item) => item.skuCode === skuCode)) {
-    throw new RangeError(`SKU ${skuCode} is not in the cart`);
+  if (!cart.some((item) => item.productId === productId)) {
+    throw new RangeError(`Product ${productId} is not in the cart`);
   }
-  return cart.map((item) => (item.skuCode === skuCode ? { ...item, quantity } : item));
+  return cart.map((item) => (item.productId === productId ? { ...item, quantity } : item));
 }
 
-export function removeItem(cart, skuCode) {
-  return cart.filter((item) => item.skuCode !== skuCode);
+export function removeItem(cart, productId) {
+  return cart.filter((item) => item.productId !== productId);
 }
 
 export function lineTotalCents(item) {

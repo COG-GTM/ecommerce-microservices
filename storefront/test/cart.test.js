@@ -5,8 +5,9 @@ import {
   updateQuantity, validateQuantity,
 } from '../src/cart.js';
 
-const phone = { skuCode: 'iphone_15', name: 'iPhone 15', price: 799.99 };
-const case_ = { skuCode: 'case', name: 'Case', price: '19.5' };
+const phone = { id: 'p1', skuCode: 'iphone_15', name: 'iPhone 15', price: 799.99 };
+const case_ = { id: 'p2', skuCode: 'case', name: 'Case', price: '19.5' };
+const phoneRefurb = { id: 'p3', skuCode: 'iphone_15', name: 'iPhone 15 (refurbished)', price: 499.5 };
 
 describe('money helpers', () => {
   test('toCents rounds decimal and string prices to integer cents', () => {
@@ -43,10 +44,16 @@ describe('validateQuantity', () => {
 
 describe('cart operations', () => {
   test('addItem appends a new line with price in cents and default quantity 1', () => {
-    assert.deepEqual(addItem([], phone), [{ skuCode: 'iphone_15', name: 'iPhone 15', priceCents: 79999, quantity: 1 }]);
+    assert.deepEqual(addItem([], phone), [{ productId: 'p1', skuCode: 'iphone_15', name: 'iPhone 15', priceCents: 79999, quantity: 1 }]);
   });
 
-  test('addItem merges quantities for the same SKU without mutating the input', () => {
+  test('products sharing one SKU stay separate lines at their own prices', () => {
+    const cart = addItem(addItem([], phoneRefurb), phone);
+    assert.deepEqual(cart.map((i) => [i.productId, i.priceCents]), [['p3', 49950], ['p1', 79999]]);
+    assert.deepEqual(cartTotals(cart), { itemCount: 2, totalCents: 49950 + 79999 });
+  });
+
+  test('addItem merges quantities for the same product without mutating the input', () => {
     const cart = addItem([], phone, 2);
     const merged = addItem(cart, phone, 3);
     assert.equal(merged.length, 1);
@@ -55,7 +62,8 @@ describe('cart operations', () => {
   });
 
   test('addItem refuses products without a SKU and merges that would exceed the max', () => {
-    assert.throws(() => addItem([], { name: 'No SKU', price: 1 }), TypeError);
+    assert.throws(() => addItem([], { id: 'x', name: 'No SKU', price: 1 }), TypeError);
+    assert.throws(() => addItem([], { skuCode: 'x', name: 'No id', price: 1 }), TypeError);
     assert.throws(() => addItem([], null), TypeError);
     assert.throws(() => addItem(addItem([], phone, MAX_QUANTITY), phone, 1), RangeError);
     assert.throws(() => addItem([], phone, 0), RangeError);
@@ -63,19 +71,19 @@ describe('cart operations', () => {
 
   test('updateQuantity changes only the targeted line', () => {
     const cart = addItem(addItem([], phone), case_);
-    const updated = updateQuantity(cart, 'case', 4);
+    const updated = updateQuantity(cart, 'p2', 4);
     assert.deepEqual(updated.map((i) => i.quantity), [1, 4]);
   });
 
   test('updateQuantity rejects unknown SKUs and invalid quantities', () => {
     const cart = addItem([], phone);
     assert.throws(() => updateQuantity(cart, 'missing', 1), /not in the cart/);
-    assert.throws(() => updateQuantity(cart, 'iphone_15', 0), RangeError);
+    assert.throws(() => updateQuantity(cart, 'p1', 0), RangeError);
   });
 
   test('removeItem drops the SKU and is a no-op for unknown SKUs', () => {
     const cart = addItem(addItem([], phone), case_);
-    assert.deepEqual(removeItem(cart, 'iphone_15').map((i) => i.skuCode), ['case']);
+    assert.deepEqual(removeItem(cart, 'p1').map((i) => i.productId), ['p2']);
     assert.equal(removeItem(cart, 'missing').length, 2);
   });
 
