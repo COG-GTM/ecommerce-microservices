@@ -1,0 +1,15 @@
+{
+  "name": "storefront",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Browser storefront + BFF that drives the real api-gateway (product + order services) for end-to-end tests.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.8"
+  },
+  "scripts": {
+    "start": "node src/main.js",
+    "test": "node --test 'test/**/*.test.js'",
+    "test:coverage": "mkdir -p coverage && node --test --experimental-test-coverage --test-coverage-include='src/**' --test-coverage-exclude='src/main.js' --test-coverage-lines=100 --test-coverage-branches=100 --test-coverage-functions=100 --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=coverage/lcov.info 'test/**/*.test.js'"
+  }
+}
