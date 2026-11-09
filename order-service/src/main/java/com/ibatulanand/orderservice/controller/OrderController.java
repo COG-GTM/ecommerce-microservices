@@ -1,5 +1,6 @@
 package com.ibatulanand.orderservice.controller;
 
+import com.ibatulanand.observability.MdcPropagation;
 import com.ibatulanand.orderservice.dto.OrderRequest;
 import com.ibatulanand.orderservice.service.OrderService;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
@@ -24,7 +25,7 @@ public class OrderController {
     @TimeLimiter(name = "inventory")
     @Retry(name = "inventory")
     public CompletableFuture<String> placeOrder(@RequestBody OrderRequest orderRequest) {
-        return CompletableFuture.supplyAsync(() -> orderService.placeOrder(orderRequest));
+        return CompletableFuture.supplyAsync(MdcPropagation.wrap(() -> orderService.placeOrder(orderRequest)));
     }
 
     public CompletableFuture<String> fallbackMethod(OrderRequest orderRequest, RuntimeException runtimeException) {
