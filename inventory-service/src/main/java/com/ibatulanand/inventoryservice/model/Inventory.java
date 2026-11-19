@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "t_inventory")
+@Table(name = "t_inventory", indexes = @Index(name = "idx_inventory_sku_code", columnList = "sku_code"))
 @Getter
 @Setter
 @AllArgsConstructor
