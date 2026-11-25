@@ -19,6 +19,7 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -67,6 +68,14 @@ class InventoryControllerSecurityTest {
         mockMvc.perform(get("/api/inventory").param("skuCode", "iphone_15").with(jwt()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].skuCode").value("iphone_15"));
+    }
+
+    @Test
+    void prometheusAndHealthAreNotBehindAuthentication() throws Exception {
+        for (String path : new String[]{"/actuator/prometheus", "/actuator/health"}) {
+            int status = mockMvc.perform(get(path)).andReturn().getResponse().getStatus();
+            assertThat(status).as(path).isNotEqualTo(401);
+        }
     }
 
     @Test

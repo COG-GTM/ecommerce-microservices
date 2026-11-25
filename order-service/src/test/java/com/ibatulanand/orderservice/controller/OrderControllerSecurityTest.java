@@ -20,6 +20,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -84,6 +85,14 @@ class OrderControllerSecurityTest {
                 .andExpect(content().string("Order Placed Successfully!"));
 
         verify(orderService).placeOrder(any(OrderRequest.class), eq("caller-token"));
+    }
+
+    @Test
+    void prometheusAndHealthAreNotBehindAuthentication() throws Exception {
+        for (String path : new String[]{"/actuator/prometheus", "/actuator/health"}) {
+            int status = mockMvc.perform(get(path)).andReturn().getResponse().getStatus();
+            assertThat(status).as(path).isNotEqualTo(401);
+        }
     }
 
     @Test
