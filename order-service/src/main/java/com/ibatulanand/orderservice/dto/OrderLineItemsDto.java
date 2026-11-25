@@ -35,10 +35,16 @@ public class OrderLineItemsDto {
     @Max(10000)
     private Integer quantity;
 
-    /** Drops trailing zeros beyond cents (e.g. 1200.000 -> 1200.00) without expanding huge exponents. */
+    private static final int MAX_NORMALIZED_PRECISION = 30;
+
+    /**
+     * Rewrites prices to cents when that is exact (1200.000 -> 1200.00, 0e10 -> 0.00).
+     * Long or huge-exponent values are left as-is for validation to reject.
+     */
     public void setPrice(BigDecimal price) {
         this.price = price;
-        if (price != null && price.scale() > 2) {
+        if (price != null && (price.scale() > 2 || price.scale() < 0)
+                && price.precision() <= MAX_NORMALIZED_PRECISION) {
             BigDecimal stripped = price.stripTrailingZeros();
             if (stripped.scale() <= 2 && stripped.scale() >= -12) {
                 this.price = stripped.setScale(2);

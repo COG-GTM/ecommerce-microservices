@@ -38,7 +38,9 @@ class OrderRequestValidationTest {
     }
 
     private static OrderLineItemsDto item(String price, Integer quantity) {
-        return new OrderLineItemsDto(null, "iphone_13", price == null ? null : new BigDecimal(price), quantity);
+        OrderLineItemsDto dto = new OrderLineItemsDto(null, "iphone_13", null, quantity);
+        dto.setPrice(price == null ? null : new BigDecimal(price));
+        return dto;
     }
 
     private static Set<ConstraintViolation<OrderRequest>> validate(OrderLineItemsDto... items) {
@@ -63,6 +65,11 @@ class OrderRequestValidationTest {
         assertThat(priceAfterSetter("1e-1000000000")).isEqualTo(new BigDecimal("1e-1000000000"));
         assertThat(priceAfterSetter("1e1000000000")).isEqualTo(new BigDecimal("1e1000000000"));
         assertThat(priceAfterSetter("100000000000000000000.000").scale()).isEqualTo(3);
+        assertThat(priceAfterSetter("0e10")).isEqualTo(new BigDecimal("0.00"));
+        assertThat(priceAfterSetter("1e3")).isEqualTo(new BigDecimal("1000.00"));
+        assertThat(validate(item("0e10", 1))).isEmpty();
+        String longZeros = "1." + "0".repeat(999);
+        assertThat(priceAfterSetter(longZeros)).isEqualTo(new BigDecimal(longZeros));
     }
 
     private static BigDecimal priceAfterSetter(String price) {
