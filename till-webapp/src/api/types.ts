@@ -52,9 +52,29 @@ export interface Basket {
   savingsPence: number
   totalPence: number
   orderNumber: string | null
+  tenders: TenderLine[]
+  paidPence: number
+  balanceDuePence: number
 }
 
 export type TenderType = 'CARD' | 'CONTACTLESS' | 'CASH'
+
+export interface TenderLine {
+  tenderType: TenderType
+  amountPence: number
+  tenderedPence: number
+  changeDuePence: number
+  authCode: string | null
+}
+
+export interface CashQuote {
+  totalPence: number
+  paidPence: number
+  balanceDuePence: number
+  amountTenderedPence: number
+  changeDuePence: number
+  remainingPence: number
+}
 
 export interface Receipt {
   receiptNumber: string
@@ -68,15 +88,16 @@ export interface Receipt {
   subtotalPence: number
   savingsPence: number
   totalPence: number
-  tenderType: TenderType
+  tenderType: TenderType | 'SPLIT'
   amountTenderedPence: number
   changeDuePence: number
   authCode: string | null
   issuedAt: string
+  tenders: TenderLine[]
 }
 
 export interface TenderResult {
-  status: 'APPROVED' | 'DECLINED'
+  status: 'APPROVED' | 'DECLINED' | 'PARTIAL'
   tenderType: TenderType
   basket: Basket
   orderNumber: string | null
@@ -86,6 +107,7 @@ export interface TenderResult {
   declineReason: string | null
   receipt: Receipt | null
   nextBasketId: string
+  balanceDuePence: number
 }
 
 export interface ApiError {

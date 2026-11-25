@@ -7,6 +7,7 @@ import { Header } from './components/Header'
 import { SaleComplete } from './components/SaleComplete'
 import { SellPanel } from './components/SellPanel'
 import { TenderPanel } from './components/TenderPanel'
+import { formatPence } from './money'
 
 type Screen = 'sell' | 'tender' | 'complete'
 
@@ -64,6 +65,7 @@ export default function App() {
       if (!cancelled) {
         showBasket(b)
         setQuickKeys(keys)
+        if (b.paidPence > 0) setScreen('tender')
       }
     })().catch(() => setConnected(false))
     const timer = window.setInterval(loadSession, 15000)
@@ -113,19 +115,38 @@ export default function App() {
   const voidSale = () =>
     basket &&
     run(async () => {
+      const { paidPence } = await tillApi.basket(basket.basketId)
       showBasket(await tillApi.voidSale(basket.basketId))
-      setMessage({ kind: 'ok', text: 'Sale voided' })
-    }, (text) => setMessage({ kind: 'error', text }))
+      setMessage({ kind: 'ok', text: paidPence > 0 ? `Sale voided. Return ${formatPence(paidPence)} cash` : 'Sale voided' })
+      setScreen('sell')
+    }, (text) => (screen === 'tender' ? setTenderError(text) : setMessage({ kind: 'error', text })))
 
   const applyTender = (r: TenderResult) => {
     if (r.status === 'APPROVED') {
       setResult(r)
       setBasket(r.basket)
       setScreen('complete')
+    } else if (r.status === 'PARTIAL') {
+      showBasket(r.basket)
     } else {
       showBasket(r.basket)
       setDeclineMessage('Card declined. Ask for another payment method.')
     }
+  }
+
+  const tenderFailed = (text: string) => {
+    setTenderError(text)
+    if (!basket) return
+    tillApi.basket(basket.basketId).then(async (latest) => {
+      if (latest.status === 'OPEN') {
+        setBasket(latest)
+        return
+      }
+      const s = await tillApi.session(TILL_ID)
+      showBasket(await tillApi.basket(s.basketId))
+      setMessage({ kind: 'ok', text: `Sale ${latest.transactionNumber} was already ${latest.status === 'VOIDED' ? 'voided' : 'completed'}` })
+      setScreen('sell')
+    }).catch(() => undefined)
   }
 
   const payByCard = (type: TenderType, outcome: 'APPROVED' | 'DECLINED') =>
@@ -133,15 +154,16 @@ export default function App() {
     run(async () => {
       setDeclineMessage(null)
       setTenderError(null)
-      applyTender(await tillApi.tender(basket.basketId, type, { terminalOutcome: outcome, expectedTotalPence: basket.totalPence }))
-    }, setTenderError)
+      applyTender(await tillApi.tender(basket.basketId, type, { terminalOutcome: outcome, expectedTotalPence: basket.totalPence, expectedBalanceDuePence: basket.balanceDuePence }))
+    }, tenderFailed)
 
-  const payByCash = (amountTenderedPence: number) =>
+  const payByCash = (amountTenderedPence: number, partialPayment = false) =>
     basket &&
     run(async () => {
+      setDeclineMessage(null)
       setTenderError(null)
-      applyTender(await tillApi.tender(basket.basketId, 'CASH', { amountTenderedPence, expectedTotalPence: basket.totalPence }))
-    }, setTenderError)
+      applyTender(await tillApi.tender(basket.basketId, 'CASH', { amountTenderedPence, partialPayment, expectedTotalPence: basket.totalPence, expectedBalanceDuePence: basket.balanceDuePence }))
+    }, tenderFailed)
 
   const newSale = () =>
     result &&
@@ -184,7 +206,10 @@ export default function App() {
             )}
             {screen === 'tender' && basket && (
               <TenderPanel
+                basketId={basket.basketId}
                 totalPence={basket.totalPence}
+                paidPence={basket.paidPence ?? 0}
+                balanceDuePence={basket.balanceDuePence ?? basket.totalPence}
                 busy={busy}
                 declineMessage={declineMessage}
                 errorMessage={tenderError}
@@ -192,6 +217,7 @@ export default function App() {
                 onCard={payByCard}
                 onCash={payByCash}
                 onMethodChange={resetTenderState}
+                onVoidSale={voidSale}
               />
             )}
             {screen === 'complete' && result && <SaleComplete result={result} onNewSale={newSale} />}

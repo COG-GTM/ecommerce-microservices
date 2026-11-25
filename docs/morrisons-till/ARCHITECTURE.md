@@ -68,7 +68,8 @@ compute totals; they render `subtotalPence`, `savingsPence` and `totalPence` fro
 | PATCH | `/basket/lines/{lineId}` | `{ basketId, quantity }` | `Basket` |
 | DELETE | `/basket/lines/{lineId}?basketId=` | - | `Basket` (void line) |
 | POST | `/basket/void` | `{ basketId }` | new empty `Basket` (void sale) |
-| POST | `/basket/tender` | `{ basketId, tenderType: CARD\|CONTACTLESS\|CASH, amountTenderedPence?, terminalOutcome?: APPROVED\|DECLINED }` | `TenderResult` |
+| POST | `/basket/tender` | `{ basketId, tenderType: CARD\|CONTACTLESS\|CASH, amountTenderedPence?, terminalOutcome?: APPROVED\|DECLINED, expectedTotalPence?, partialPayment?, expectedBalanceDuePence? }` | `TenderResult` |
+| GET | `/basket/{basketId}/cash-quote?amountTenderedPence=` | - | `CashQuote { totalPence, paidPence, balanceDuePence, amountTenderedPence, changeDuePence, remainingPence }` |
 
 `tillId` is optional (default `07`). Each till id has its own basket, which is how parallel E2E tests stay isolated.
 `terminalOutcome` drives the simulated PIN pad. A real terminal adapter ignores it.
@@ -90,19 +91,27 @@ compute totals; they render `subtotalPence`, `savingsPence` and `totalPence` fro
   "lines": [ { "lineId": "l-1", "barcode": "1004", "skuCode": "MOR-BANANA-5", "name": "Bananas x5",
                "quantity": 2, "unitPricePence": 95, "linePence": 190 } ],
   "adjustments": [ { "code": "MULTIBUY", "label": "…", "amountPence": -50, "lineId": "l-1" } ],
-  "lastLineId": "l-1", "itemCount": 2, "subtotalPence": 190, "savingsPence": 0, "totalPence": 190, "orderNumber": null }
+  "lastLineId": "l-1", "itemCount": 2, "subtotalPence": 190, "savingsPence": 0, "totalPence": 190, "orderNumber": null,
+  "tenders": [], "paidPence": 0, "balanceDuePence": 190 }
 
 // TenderResult
 { "status": "APPROVED", "tenderType": "CARD", "basket": { /* Basket, status COMPLETED */ },
   "orderNumber": "8df1…", "amountTenderedPence": 190, "changeDuePence": 0, "authCode": "419508",
-  "declineReason": null, "receipt": { /* Receipt */ }, "nextBasketId": "c2d3…" }
+  "declineReason": null, "receipt": { /* Receipt */ }, "nextBasketId": "c2d3…", "balanceDuePence": 0 }
 // Declined: status DECLINED, basket still OPEN with all lines, orderNumber/receipt null, nextBasketId = same basket.
+// Part cash (CASH with partialPayment: true and less than balanceDuePence): status PARTIAL, basket still OPEN,
+// basket.tenders/paidPence/balanceDuePence updated, TenderResult.balanceDuePence = what is left, nextBasketId = same basket.
+// The next tender pays balanceDuePence (card authorises it; cash returns tendered - balance as change). The order is
+// placed when the balance reaches 0; receipt.tenders lists every line and tenderType is SPLIT when they mix types.
+// While a basket has tenders, line edits return 409 TENDER_IN_PROGRESS (void sale still works). A stale
+// expectedBalanceDuePence returns 409 BALANCE_CHANGED, so a retried request cannot take the same payment twice.
 
 // Receipt
 { "receiptNumber": "R-0417-07-0001", "storeNumber": "0417", "storeName": "Bradford Demo", "tillId": "07",
   "operatorName": "Demo Operator", "transactionNumber": "0417-07-0001", "orderNumber": "8df1…",
   "lines": [ /* BasketLine */ ], "subtotalPence": 190, "savingsPence": 0, "totalPence": 190,
-  "tenderType": "CARD", "amountTenderedPence": 190, "changeDuePence": 0, "authCode": "419508", "issuedAt": "2026-11-25T14:36:16Z" }
+  "tenderType": "CARD", "amountTenderedPence": 190, "changeDuePence": 0, "authCode": "419508", "issuedAt": "2026-11-25T14:36:16Z",
+  "tenders": [ { "tenderType": "CARD", "amountPence": 190, "tenderedPence": 190, "changeDuePence": 0, "authCode": "419508" } ] }
 
 // Error (any 4xx/5xx)
 { "error": "UNKNOWN_BARCODE", "message": "No product for barcode 9999" }

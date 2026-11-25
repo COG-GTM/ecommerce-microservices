@@ -248,3 +248,7 @@ h1, h2, h3, p { margin: 0; }
   .pinpad { min-height: 320px; }
   .cash { grid-template-columns: minmax(0, 1fr); }
 }
+
+.paid-so-far { margin-top: 4px; font-size: 14px; }
+.remaining-row .remaining { font-weight: 700; }
+.btn.part-cash { width: 100%; margin-top: 10px; }
