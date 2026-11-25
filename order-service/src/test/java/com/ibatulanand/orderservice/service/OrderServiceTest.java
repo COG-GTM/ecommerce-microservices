@@ -7,6 +7,7 @@ import com.ibatulanand.orderservice.exception.OrderRejectedException;
 import com.ibatulanand.orderservice.model.Order;
 import com.ibatulanand.orderservice.model.OrderLineItems;
 import com.ibatulanand.orderservice.repository.OrderRepository;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -14,6 +15,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.reactive.function.client.ClientRequest;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -58,6 +61,12 @@ class OrderServiceTest {
         });
         orderService = new OrderService(orderRepository, builder, kafkaTemplate);
         responses.put("/api/product", json(HttpStatus.OK, CATALOG));
+        TransactionSynchronizationManager.initSynchronization();
+    }
+
+    @AfterEach
+    void tearDown() {
+        TransactionSynchronizationManager.clearSynchronization();
     }
 
     @Test
@@ -134,9 +143,32 @@ class OrderServiceTest {
         when(orderRepository.saveAndFlush(any())).thenThrow(new IllegalStateException("db down"));
 
         assertThrows(IllegalStateException.class, () -> orderService.placeOrder(request(line("iphone_15", 1))));
+        completeTransaction(TransactionSynchronization.STATUS_ROLLED_BACK);
 
         assertEquals("/api/inventory/reservations/release", requests.get(requests.size() - 1).url().getPath());
         verify(kafkaTemplate, never()).send(anyString(), any(OrderPlacedEvent.class));
+    }
+
+    @Test
+    void releasesReservationWhenTransactionRollsBackAfterSave() {
+        when(kafkaTemplate.send(anyString(), any(OrderPlacedEvent.class))).thenThrow(new IllegalStateException("kafka down"));
+
+        assertThrows(IllegalStateException.class, () -> orderService.placeOrder(request(line("iphone_15", 1))));
+        completeTransaction(TransactionSynchronization.STATUS_ROLLED_BACK);
+
+        assertEquals("/api/inventory/reservations/release", requests.get(requests.size() - 1).url().getPath());
+    }
+
+    @Test
+    void keepsReservationWhenTransactionCommits() {
+        orderService.placeOrder(request(line("iphone_15", 1)));
+        completeTransaction(TransactionSynchronization.STATUS_COMMITTED);
+
+        assertEquals("/api/inventory/reservations", requests.get(requests.size() - 1).url().getPath());
+    }
+
+    private static void completeTransaction(int status) {
+        TransactionSynchronizationManager.getSynchronizations().forEach(sync -> sync.afterCompletion(status));
     }
 
     private static ClientResponse json(HttpStatus status, String body) {

@@ -17,6 +17,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
@@ -63,13 +65,9 @@ public class OrderService {
                 .map(entry -> new StockReservationItem(entry.getKey(), entry.getValue()))
                 .toList();
         reserveStock(reservation);
+        releaseStockOnRollback(reservation);
 
-        try {
-            orderRepository.saveAndFlush(order);
-        } catch (RuntimeException e) {
-            releaseStock(reservation);
-            throw e;
-        }
+        orderRepository.saveAndFlush(order);
 
         // Send order to the kafka topic
         kafkaTemplate.send("notificationTopic", new OrderPlacedEvent(order.getOrderNumber()));
@@ -134,6 +132,17 @@ public class OrderService {
                         response -> Mono.just(new OrderRejectedException("Invalid order quantities")))
                 .toBodilessEntity()
                 .block();
+    }
+
+    private void releaseStockOnRollback(List<StockReservationItem> items) {
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCompletion(int status) {
+                if (status == STATUS_ROLLED_BACK) {
+                    releaseStock(items);
+                }
+            }
+        });
     }
 
     private void releaseStock(List<StockReservationItem> items) {
