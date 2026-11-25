@@ -73,6 +73,14 @@ class ProductControllerValidationTest {
     }
 
     @Test
+    void rejectsFormPostWithoutReadingIt() throws Exception {
+        mockMvc.perform(post("/api/product").contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                        .content("name=n&description=d&price=1"))
+                .andExpect(status().isUnsupportedMediaType());
+        verify(productService, never()).createProduct(any());
+    }
+
+    @Test
     void passesPagingParametersToService() throws Exception {
         mockMvc.perform(get("/api/product").param("page", "2").param("size", "1000"))
                 .andExpect(status().isOk());
