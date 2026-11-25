@@ -172,9 +172,9 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
    cd ecommerce-microservices
    ```
 
-2. Create a private `.env` with a random Grafana admin password (it is gitignored; Grafana will not start without it):
+2. Create a private `.env` with a random Grafana admin password (it is gitignored; Grafana will not start without it). The command refuses to overwrite an existing `.env`:
    ```shell
-   (umask 077 && openssl rand -hex 24 | awk 'NR==FNR {pw=$0; next} {gsub(/CHANGE_ME/, pw)} 1' - .env.example > .env)
+   (set -C && umask 077 && GRAFANA_PW=$(openssl rand -hex 24) && export GRAFANA_PW && awk '{gsub(/CHANGE_ME/, ENVIRON["GRAFANA_PW"])} 1' .env.example > .env)
    ```
 
 3. Start the containers:
@@ -290,7 +290,7 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
 
 - Grafana Dashboard
   - Grafana Dashboard can be accessed on http://localhost:3000/
-  - The admin password comes from `.env` (see Deployment step 2). Grafana refuses to start without it. When it changes, Grafana applies it once to an existing `grafana_data` volume, so that volume stops accepting the old password.
+  - The admin password comes from `.env` (see Deployment step 2). Grafana refuses to start without it. When it changes, Grafana applies it once to an existing `grafana_data` volume, so that volume stops accepting the old password. To re-apply it (for example after restoring `grafana.db` from a backup), delete `grafana_data/.admin-password-applied` and restart Grafana.
   - Sign in as `GRAFANA_ADMIN_USER` (default `grafana-admin`; existing `grafana_data` volumes keep their original `admin` login) with `GRAFANA_ADMIN_PASSWORD`. Grafana listens on `127.0.0.1` only and can reach Prometheus (`http://prometheus:9090`) but not the databases.
   - To visualize the application, create a 'Data Source' and import the dashboard using `grafana-dashboard.json` file.
   - Data Source
