@@ -42,11 +42,11 @@ public class OrderService {
         });
     }
 
+    /** One page of a till's orders in the order they were stored, after the order with id {@code afterId}. */
     @Transactional(readOnly = true)
-    public List<Order> findByTillId(String tillId) {
-        // The latest 200 orders, oldest first.
-        List<Order> orders = new java.util.ArrayList<>(orderRepository.findTop200ByTillIdOrderByIdDesc(tillId));
-        java.util.Collections.reverse(orders);
+    public List<Order> findByTillId(String tillId, long afterId, int limit) {
+        List<Order> orders = orderRepository.findByTillIdAndIdGreaterThanOrderByIdAsc(tillId, afterId,
+                org.springframework.data.domain.PageRequest.of(0, limit));
         orders.forEach(order -> order.getOrderLineItemsList().size());
         return orders;
     }
