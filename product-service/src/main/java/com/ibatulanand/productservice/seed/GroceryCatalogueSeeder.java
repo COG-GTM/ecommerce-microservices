@@ -13,7 +13,8 @@ import java.math.BigDecimal;
 import java.util.List;
 
 /**
- * Seeds the Morrisons till demo grocery catalogue (barcodes 1001-1008). Idempotent: upserts by barcode.
+ * Seeds the Morrisons till demo grocery catalogue (quick keys 1001-1008, plus standard-rated VAT items 4001-4002
+ * that are scanned, not quick keys; weighed PLUs 2101-2299). Idempotent: upserts by barcode.
  * Enabled with catalogue.seed.grocery=true (set by scripts/till/up.sh).
  */
 @Component
@@ -22,18 +23,33 @@ import java.util.List;
 @Slf4j
 public class GroceryCatalogueSeeder implements ApplicationRunner {
 
-    record SeedItem(String barcode, String skuCode, String name, int pricePence) {
+    record SeedItem(String barcode, String skuCode, String name, int pricePence, String vatCode, boolean quickKey) {
+        SeedItem(String barcode, String skuCode, String name, int pricePence, String vatCode) {
+            this(barcode, skuCode, name, pricePence, vatCode, true);
+        }
     }
 
     static final List<SeedItem> ITEMS = List.of(
-            new SeedItem("1001", "MOR-MILK-SS-4PT", "Semi skimmed milk 4 pints", 155),
-            new SeedItem("1002", "MOR-BREAD-WM-800", "Wholemeal bread 800g", 110),
-            new SeedItem("1003", "MOR-EGGS-FR-6", "Free range eggs x6", 185),
-            new SeedItem("1004", "MOR-BANANA-5", "Bananas x5", 95),
-            new SeedItem("1005", "MOR-OJ-1L", "Orange juice 1L", 160),
-            new SeedItem("1006", "MOR-CHEDDAR-MAT-400", "Mature cheddar 400g", 350),
-            new SeedItem("1007", "MOR-CHICKEN-BF-600", "Chicken breast fillets 600g", 475),
-            new SeedItem("1008", "MOR-CARROT-1KG", "Carrots 1kg", 65));
+            new SeedItem("1001", "MOR-MILK-SS-4PT", "Semi skimmed milk 4 pints", 155, "Z"),
+            new SeedItem("1002", "MOR-BREAD-WM-800", "Wholemeal bread 800g", 110, "Z"),
+            new SeedItem("1003", "MOR-EGGS-FR-6", "Free range eggs x6", 185, "Z"),
+            new SeedItem("1004", "MOR-BANANA-5", "Bananas x5", 95, "Z"),
+            new SeedItem("1005", "MOR-OJ-1L", "Orange juice 1L", 160, "S"),
+            new SeedItem("1006", "MOR-CHEDDAR-MAT-400", "Mature cheddar 400g", 350, "Z"),
+            new SeedItem("1007", "MOR-CHICKEN-BF-600", "Chicken breast fillets 600g", 475, "Z"),
+            new SeedItem("1008", "MOR-CARROT-1KG", "Carrots 1kg", 65, "Z"),
+            // MBA-3932: standard-rated (20%) goods for the VAT breakdown; scanned by barcode, not quick keys.
+            new SeedItem("4001", "MOR-CHOC-BAR-100", "Milk chocolate bar 100g", 120, "S", false),
+            new SeedItem("4002", "MOR-WASHUP-500", "Washing up liquid 500ml", 135, "S", false));
+
+    /**
+     * Loose and counter items sold by weight (PLUs 2101-2299, price per kg, not quick keys). Keyed by PLU they prompt
+     * for a weight; counter labels carry the PLU and price in a prefix-2 EAN-13 (e.g. 2002101003490 = PLU 2101, £3.49).
+     */
+    static final List<SeedItem> WEIGHED_ITEMS = List.of(
+            new SeedItem("2101", "MOR-DELI-HAM-KG", "Deli honey roast ham", 1290, "Z", false),
+            new SeedItem("2201", "MOR-TOMATO-LOOSE-KG", "Loose tomatoes", 220, "Z", false),
+            new SeedItem("2202", "MOR-ONION-LOOSE-KG", "Loose brown onions", 99, "Z", false));
 
     private final ProductRepository productRepository;
 
@@ -47,9 +63,23 @@ public class GroceryCatalogueSeeder implements ApplicationRunner {
             product.setDescription(item.name());
             product.setPricePence(item.pricePence());
             product.setPrice(BigDecimal.valueOf(item.pricePence(), 2));
-            product.setQuickKey(true);
+            product.setQuickKey(item.quickKey());
+            product.setVatCode(item.vatCode());
             productRepository.save(product);
         }
-        log.info("Seeded {} grocery products for the till", ITEMS.size());
+        for (SeedItem item : WEIGHED_ITEMS) {
+            Product product = productRepository.findFirstByBarcode(item.barcode()).orElseGet(Product::new);
+            product.setBarcode(item.barcode());
+            product.setSkuCode(item.skuCode());
+            product.setName(item.name());
+            product.setDescription(item.name() + " (per kg)");
+            product.setPricePence(item.pricePence());
+            product.setPrice(BigDecimal.valueOf(item.pricePence(), 2));
+            product.setQuickKey(false);
+            product.setSoldByWeight(true);
+            product.setVatCode(item.vatCode());
+            productRepository.save(product);
+        }
+        log.info("Seeded {} grocery and {} weighed products for the till", ITEMS.size(), WEIGHED_ITEMS.size());
     }
 }

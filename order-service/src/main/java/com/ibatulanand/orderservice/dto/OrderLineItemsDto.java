@@ -14,4 +14,13 @@ public class OrderLineItemsDto {
     private String skuCode;
     private BigDecimal price;
     private Integer quantity;
+    private Integer minimumAge;
+    private String ageApprovedBy;
+    /** What the customer actually paid for the whole line after savings (More Card, promotions), in pence. */
+    private Integer paidPence;
+    private String name;
+
+    public OrderLineItemsDto(Long id, String skuCode, BigDecimal price, Integer quantity) {
+        this(id, skuCode, price, quantity, null, null, null, null);
+    }
 }

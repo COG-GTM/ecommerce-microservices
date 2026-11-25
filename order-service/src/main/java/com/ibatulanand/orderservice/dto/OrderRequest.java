@@ -19,4 +19,6 @@ public class OrderRequest {
     private String transactionId;
     private String tenderType;
     private Integer totalPence;
+    private List<OrderTenderDto> tenders;
+    private String idempotencyKey;
 }

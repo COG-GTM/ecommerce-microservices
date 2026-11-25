@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -25,6 +26,16 @@ public class Order {
     private String transactionId;
     private String tenderType;
     private Integer totalPence;
+    /** Till sale key (one per basket); a repeated sale request with the same key returns the existing order. */
+    @Column(unique = true)
+    private String idempotencyKey;
+    /** SALE (null on rows written before refunds existed) or REFUND. */
+    private String orderType;
+    /** For a REFUND: the sale it returns items from. */
+    private String originalOrderNumber;
     @OneToMany(cascade = CascadeType.ALL)
     private List<OrderLineItems> orderLineItemsList;
+    @OneToMany(cascade = CascadeType.ALL)
+    @OrderBy("id ASC")
+    private List<OrderTender> tenders = new ArrayList<>();
 }

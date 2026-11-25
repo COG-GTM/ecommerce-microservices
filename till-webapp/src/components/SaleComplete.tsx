@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import type { TenderResult } from '../api/types'
-import { formatPence } from '../money'
+import { formatKg, formatPence } from '../money'
 import { ApiChip } from './ApiChip'
+import { VatSummary } from './VatSummary'
 
-const PAID_BY: Record<string, string> = { CARD: 'card', CONTACTLESS: 'contactless', CASH: 'cash' }
+const PAID_BY: Record<string, string> = { CARD: 'card', CONTACTLESS: 'contactless', CASH: 'cash', SPLIT: 'cash and card' }
 
 export function SaleComplete({ result, onNewSale }: { result: TenderResult; onNewSale: () => void }) {
   const [showReceipt, setShowReceipt] = useState(false)
@@ -14,14 +15,23 @@ export function SaleComplete({ result, onNewSale }: { result: TenderResult; onNe
         <svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
       </div>
       <h2>Sale complete</h2>
-      <p className="muted paid">Paid by {PAID_BY[result.tenderType]} · {formatPence(receipt?.totalPence ?? 0)}</p>
+      <p className="muted paid">Paid by {PAID_BY[receipt?.tenderType ?? result.tenderType]} · {formatPence(receipt?.totalPence ?? 0)}</p>
       {result.tenderType === 'CASH' && (
         <div className="give-change" data-testid="give-change">
           <div>Give change</div>
           <div className="give-change-amount">{formatPence(result.changeDuePence)}</div>
         </div>
       )}
-      <p className="order-ref">Order <span data-testid="order-number">{result.orderNumber}</span></p>
+      {receipt?.moreCard && (
+        <p className="points-earned" data-testid="points-earned">
+          {receipt.moreCard.pointsEarned} More Card points earned
+        </p>
+      )}
+      {result.orderNumber ? (
+        <p className="order-ref">Order <span data-testid="order-number">{result.orderNumber}</span></p>
+      ) : (
+        <p className="order-ref" data-testid="queued-offline">Saved offline · order created when the till reconnects</p>
+      )}
       <ApiChip>POST /api/till/basket/tender → receipt</ApiChip>
       <div className="row-buttons">
         <button type="button" className="btn primary big" data-testid="start-new-sale" onClick={onNewSale}>Start new sale</button>
@@ -37,14 +47,34 @@ export function SaleComplete({ result, onNewSale }: { result: TenderResult; onNe
             <span>Txn {receipt.transactionNumber}</span>
           </div>
           {receipt.lines.map((l) => (
-            <div className="receipt-row" key={l.lineId}><span>{l.quantity} × {l.name}</span><span>{formatPence(l.linePence)}</span></div>
+            <div key={l.lineId}>
+              <div className="receipt-row">
+                <span>
+                  {l.quantity} × {l.name}
+                  {l.pricedBy === 'WEIGHT' && l.weightGrams != null && ` ${formatKg(l.weightGrams)} @ ${formatPence(l.unitPricePence)}/kg`}
+                  {l.vatCode && <span className="vat-code">{l.vatCode}</span>}
+                </span>
+                <span>{formatPence(l.linePence)}</span>
+              </div>
+              {l.ageApprovedBy && <div className="receipt-row age-note"><span>Age verified by {l.ageApprovedBy}</span></div>}
+            </div>
           ))}
           <div className="receipt-row rule"><span>Subtotal</span><span>{formatPence(receipt.subtotalPence)}</span></div>
           <div className="receipt-row"><span>Savings</span><span>{formatPence(receipt.savingsPence)}</span></div>
           <div className="receipt-row strong"><span>Total</span><span data-testid="receipt-total">{formatPence(receipt.totalPence)}</span></div>
-          <div className="receipt-row"><span className="cap">{PAID_BY[receipt.tenderType]}</span><span>{formatPence(receipt.amountTenderedPence)}</span></div>
+          {(receipt.tenders?.length ? receipt.tenders : [{ tenderType: receipt.tenderType, tenderedPence: receipt.amountTenderedPence }]).map((t, i) => (
+            <div className="receipt-row" key={i} data-testid="receipt-tender"><span className="cap">{PAID_BY[t.tenderType]}</span><span>{formatPence(t.tenderedPence)}</span></div>
+          ))}
           {receipt.changeDuePence > 0 && <div className="receipt-row"><span>Change</span><span>{formatPence(receipt.changeDuePence)}</span></div>}
           {receipt.authCode && <div className="receipt-row"><span>Auth code</span><span>{receipt.authCode}</span></div>}
+          <VatSummary bands={receipt.vatSummary ?? []} testId="receipt-vat-summary" />
+          {receipt.moreCard && (
+            <div className="receipt-more-card" data-testid="receipt-more-card">
+              <div className="receipt-row rule"><span>More Card ····{receipt.moreCard.cardLast4}</span><span>{receipt.moreCard.memberName}</span></div>
+              <div className="receipt-row"><span>Points earned</span><span data-testid="receipt-points">{receipt.moreCard.pointsEarned}</span></div>
+              <div className="receipt-row"><span>Points balance</span><span data-testid="receipt-points-balance">{receipt.moreCard.pointsBalance}</span></div>
+            </div>
+          )}
           <div className="receipt-foot">{receipt.receiptNumber} · {new Date(receipt.issuedAt).toLocaleString('en-GB')}</div>
         </div>
       )}

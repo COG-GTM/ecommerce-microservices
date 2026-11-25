@@ -15,8 +15,8 @@ Everything runs locally. This repo has no GitHub CI.
 
 ```bash
 make till-up       # mvn package (JDK 17) + docker compose up --build --wait + gateway/till readiness poll
-make till-e2e      # Playwright: api + desktop (1920x1080) + tablet (1024x768) projects against the running stack
-make till-test     # till-service JUnit/MockMvc contract tests
+make till-e2e      # Playwright: api + desktop (1920x1080) + tablet (1024x768) projects, then the outage project (stops/restarts api-gateway)
+make till-test     # till-service JUnit/MockMvc contract tests + product-service catalogue VAT seed test
 make till-down     # stop and remove volumes
 make till-logs     # follow container logs
 make till-dev      # Vite hot-reload UI on :5174 against the gateway on :8181
@@ -35,7 +35,8 @@ Useful variables: `TILL_SKIP_BUILD=1` reuses built jars, `TILL_WAIT_TIMEOUT` (se
 ### Auth
 
 The stack starts the gateway with `SPRING_PROFILES_ACTIVE=dev`, so `/api/till/**` needs no login and tests read orders
-and notifications with plain `GET`s. Every other route still needs a Keycloak JWT. The `api` spec asserts that
+and notifications with plain `GET`s. The product price feed (`/api/product/price-feed/**`, MBA-3941) is also public in
+`dev` so tests can publish prices. Every other route still needs a Keycloak JWT. The `api` spec asserts that
 `GET /api/product` returns 401. To run the fully secured path, use
 `TILL_GATEWAY_PROFILE=default make till-up`. The till routes then need a bearer token from the
 `spring-boot-microservices-realm` realm.

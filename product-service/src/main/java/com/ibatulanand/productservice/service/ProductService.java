@@ -52,6 +52,9 @@ public class ProductService {
                 .skuCode(product.getSkuCode())
                 .pricePence(product.getPricePence())
                 .quickKey(product.getQuickKey())
+                .vatCode(product.getVatCode())
+                .soldByWeight(product.getSoldByWeight())
+                .minimumAge(product.getMinimumAge())
                 .build();
     }
 }

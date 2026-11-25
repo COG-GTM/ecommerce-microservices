@@ -28,5 +28,12 @@ export default defineConfig({
       grep: /@tablet/,
       use: { ...devices['Desktop Chrome'], viewport: { width: 1024, height: 768 }, hasTouch: true },
     },
+    // MBA-3940: stops and restarts the real api-gateway, so it runs only after every other project has finished.
+    {
+      name: 'outage',
+      testDir: './e2e/outage',
+      dependencies: ['api', 'desktop', 'tablet'],
+      use: { ...devices['Desktop Chrome'], viewport: { width: 1920, height: 1080 } },
+    },
   ],
 })

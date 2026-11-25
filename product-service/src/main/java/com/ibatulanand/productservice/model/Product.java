@@ -24,4 +24,10 @@ public class Product {
     private String skuCode;
     private Integer pricePence;
     private Boolean quickKey;
+    /** UK VAT code: Z (zero-rated, 0%) or S (standard-rated, 20%). */
+    private String vatCode;
+    /** Sold loose by weight; pricePence is then the price per kg. */
+    private Boolean soldByWeight;
+    /** Minimum customer age to buy this item (Challenge 25 prompt at the till); null when unrestricted. */
+    private Integer minimumAge;
 }

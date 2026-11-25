@@ -31,15 +31,27 @@ export class TillPage {
   async scan(barcode: string) {
     await this.page.getByTestId('barcode-input').fill(barcode)
     await this.page.getByTestId('enter').click()
+    await this.settled()
   }
 
   async keyBarcode(barcode: string) {
     for (const digit of barcode) await this.page.getByTestId(`key-${digit}`).click()
     await this.page.getByTestId('enter').click()
+    await this.settled()
   }
 
   async quickKey(barcode: string) {
     await this.page.getByTestId(`quickkey-${barcode}`).click()
+    await this.settled()
+  }
+
+  /**
+   * Waits for the till to finish the last scan. The till keeps its buttons disabled while a request is in flight
+   * and selects the scanned line when the response lands, so acting before then (e.g. selecting another line)
+   * races that response.
+   */
+  async settled() {
+    await expect(this.page.getByTestId('enter')).toBeEnabled()
   }
 
   async expectLine(name: string, qty: number, each: string, total: string) {
@@ -58,7 +70,7 @@ export class TillPage {
     await expect(this.page.getByTestId('amount-due')).toBeVisible()
   }
 
-  async payByCard(outcome: 'approved' | 'declined', method: 'card' | 'contactless' = 'card') {
+  async payByCard(outcome: 'approved' | 'declined' | 'timeout', method: 'card' | 'contactless' = 'card') {
     await this.page.getByTestId(`tender-${method}`).click()
     await expect(this.page.getByTestId('pinpad-wait')).toBeVisible()
     await this.page.getByTestId(`simulate-${outcome}`).click()
@@ -67,5 +79,9 @@ export class TillPage {
   async orderNumber() {
     await expect(this.page.getByTestId('sale-complete')).toBeVisible()
     return (await this.page.getByTestId('order-number').textContent())!.trim()
+  }
+
+  async voidLine() {
+    await this.page.getByTestId('void-line').click()
   }
 }

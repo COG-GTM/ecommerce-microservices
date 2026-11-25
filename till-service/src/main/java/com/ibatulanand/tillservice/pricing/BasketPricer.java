@@ -22,7 +22,7 @@ public class BasketPricer {
         int subtotal = 0;
         int items = 0;
         for (BasketLine line : basket.getLines()) {
-            line.setLinePence(Math.multiplyExact(line.getQuantity(), line.getUnitPricePence()));
+            line.setLinePence(line.calculateLinePence());
             subtotal = Math.addExact(subtotal, line.getLinePence());
             items += line.getQuantity();
         }
@@ -37,6 +37,7 @@ public class BasketPricer {
         basket.setSubtotalPence(subtotal);
         basket.setSavingsPence(savings);
         basket.setTotalPence(Math.max(0, subtotal - savings + charges));
+        basket.setVatSummary(VatAnalysis.analyse(basket));
         return basket;
     }
 }
