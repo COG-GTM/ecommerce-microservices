@@ -127,10 +127,10 @@ public class TillService {
     }
 
     /**
-     * Challenge 25 decision for an age-restricted line: APPROVED records the operator who saw ID; REFUSED removes
-     * the line from the basket.
+     * Challenge 25 decision for an age-restricted line: APPROVED records the till's signed-in operator as the approver;
+     * REFUSED removes the line from the basket.
      */
-    public synchronized Basket ageCheck(String basketId, String lineId, String decision, String operatorId) {
+    public synchronized Basket ageCheck(String basketId, String lineId, String decision) {
         Basket basket = openForChange(basketId);
         BasketLine line = line(basket, lineId);
         if (line.getAgeCheck() == null) {
@@ -140,7 +140,7 @@ public class TillService {
         switch (decision.toUpperCase()) {
             case "APPROVED" -> {
                 line.setAgeCheck(BasketLine.AgeCheck.APPROVED);
-                line.setAgeApprovedBy(operatorId == null || operatorId.isBlank() ? properties.operatorId() : operatorId);
+                line.setAgeApprovedBy(properties.operatorId());
                 basket.setLastLineId(lineId);
                 log.info("Till {} age check approved by {} for {} on transaction {}", basket.getTillId(),
                         line.getAgeApprovedBy(), line.getSkuCode(), basket.getTransactionNumber());

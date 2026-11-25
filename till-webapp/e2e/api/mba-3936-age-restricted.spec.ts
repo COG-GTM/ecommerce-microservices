@@ -21,7 +21,7 @@ test('seeded alcohol carries a minimum age and is not a quick key', async ({ req
   expect(await (await request.get('/api/till/products/1001')).json()).toMatchObject({ minimumAge: null })
 })
 
-test('restricted line is pending; tender is 409 AGE_CHECK_REQUIRED until approved; order records the operator', async ({ request }) => {
+test('restricted line is pending; tender is 409 AGE_CHECK_REQUIRED until approved; order records the till operator', async ({ request }) => {
   const { basketId, basket } = await basketWithLager(request)
   const lager = basket.lines.find((l: { barcode: string }) => l.barcode === '3001')
   expect(lager).toMatchObject({ minimumAge: 18, ageCheck: 'PENDING', ageApprovedBy: null })
@@ -31,15 +31,15 @@ test('restricted line is pending; tender is 409 AGE_CHECK_REQUIRED until approve
   expect(blocked.status()).toBe(409)
   expect(await blocked.json()).toMatchObject({ error: 'AGE_CHECK_REQUIRED' })
 
-  const approved = await (await ageCheck(request, basketId, lager.lineId, 'APPROVED', 'OP-2002')).json()
+  const approved = await (await ageCheck(request, basketId, lager.lineId, 'APPROVED', 'OP-FORGED')).json()
   expect(approved.pendingAgeChecks).toBe(0)
-  expect(approved.lines[1]).toMatchObject({ ageCheck: 'APPROVED', ageApprovedBy: 'OP-2002' })
+  expect(approved.lines[1]).toMatchObject({ ageCheck: 'APPROVED', ageApprovedBy: 'OP-1001' })
 
   const sale = await (await request.post('/api/till/basket/tender', { data: { basketId, tenderType: 'CARD', terminalOutcome: 'APPROVED' } })).json()
   expect(sale).toMatchObject({ status: 'APPROVED', receipt: { totalPence: 605 } })
   const order = await (await request.get(`/api/order/${sale.orderNumber}`)).json()
   expect(order.lines).toEqual(expect.arrayContaining([
-    expect.objectContaining({ skuCode: 'MOR-LAGER-4X440', minimumAge: 18, ageApprovedBy: 'OP-2002' }),
+    expect.objectContaining({ skuCode: 'MOR-LAGER-4X440', minimumAge: 18, ageApprovedBy: 'OP-1001' }),
   ]))
 })
 

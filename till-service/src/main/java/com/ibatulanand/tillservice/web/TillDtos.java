@@ -29,7 +29,7 @@ public final class TillDtos {
     public record UpdateLineRequest(@NotBlank String basketId, @Min(1) int quantity) {
     }
 
-    public record AgeCheckRequest(@NotBlank String basketId, @NotBlank String decision, String operatorId) {
+    public record AgeCheckRequest(@NotBlank String basketId, @NotBlank String decision) {
     }
 
     public record VoidSaleRequest(@NotBlank String basketId) {

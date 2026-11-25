@@ -86,7 +86,7 @@ public class TillController {
 
     @PostMapping("/basket/lines/{lineId}/age-check")
     public Basket ageCheck(@PathVariable String lineId, @Valid @RequestBody AgeCheckRequest request) {
-        return tillService.ageCheck(request.basketId(), lineId, request.decision(), request.operatorId());
+        return tillService.ageCheck(request.basketId(), lineId, request.decision());
     }
 
     @PostMapping("/basket/void")

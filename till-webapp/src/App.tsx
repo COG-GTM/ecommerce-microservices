@@ -110,7 +110,7 @@ export default function App() {
   const decideAge = (decision: AgeDecision) =>
     basket && ageCheckLine &&
     run(async () => {
-      showBasket(await tillApi.ageCheck(basket.basketId, ageCheckLine.lineId, decision, session?.operator.id))
+      showBasket(await tillApi.ageCheck(basket.basketId, ageCheckLine.lineId, decision))
       setAgeCheckLineId(null)
       setMessage(decision === 'APPROVED'
         ? { kind: 'ok', text: `ID checked for ${ageCheckLine.name}` }

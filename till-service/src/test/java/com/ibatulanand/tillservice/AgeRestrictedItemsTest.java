@@ -81,25 +81,26 @@ class AgeRestrictedItemsTest {
         assertThat(error.get("error").asText()).isEqualTo("AGE_CHECK_REQUIRED");
         verify(services, never()).placeSale(any(), anyString(), anyString());
 
-        JsonNode basket = ageCheck(lineId, Map.of("basketId", basketId, "decision", "APPROVED", "operatorId", "OP-2002"),
+        JsonNode basket = ageCheck(lineId, Map.of("basketId", basketId, "decision", "APPROVED", "operatorId", "OP-FORGED"),
                 status().isOk());
         assertThat(basket.get("pendingAgeChecks").asInt()).isZero();
         assertThat(basket.get("lines").get(1).get("ageCheck").asText()).isEqualTo("APPROVED");
-        assertThat(basket.get("lines").get(1).get("ageApprovedBy").asText()).isEqualTo("OP-2002");
+        assertThat(basket.get("lines").get(1).get("ageApprovedBy").asText()).isEqualTo("OP-1001");
 
         JsonNode result = tender(status().isOk());
         assertThat(result.get("status").asText()).isEqualTo("APPROVED");
         ArgumentCaptor<Basket> sold = ArgumentCaptor.forClass(Basket.class);
         verify(services).placeSale(sold.capture(), eq("0417"), eq("CARD"));
         BasketLine soldLager = sold.getValue().getLines().get(1);
-        assertThat(soldLager.getAgeApprovedBy()).isEqualTo("OP-2002");
+        assertThat(soldLager.getAgeApprovedBy()).isEqualTo("OP-1001");
         assertThat(soldLager.getMinimumAge()).isEqualTo(18);
     }
 
     @Test
-    void approvalDefaultsToTheSessionOperator() throws Exception {
+    void approvalRecordsTheSessionOperatorAndIgnoresAClientSuppliedOne() throws Exception {
         String lineId = add("3001").get("lastLineId").asText();
-        JsonNode basket = ageCheck(lineId, Map.of("basketId", basketId, "decision", "approved"), status().isOk());
+        JsonNode basket = ageCheck(lineId, Map.of("basketId", basketId, "decision", "approved", "operatorId", "OP-FORGED"),
+                status().isOk());
         assertThat(basket.get("lines").get(0).get("ageApprovedBy").asText()).isEqualTo("OP-1001");
     }
 
