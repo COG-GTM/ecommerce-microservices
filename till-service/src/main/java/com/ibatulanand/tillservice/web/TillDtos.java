@@ -47,7 +47,7 @@ public final class TillDtos {
 
     /** A line of a sale the till completed while offline; name/sku/price are the till's cached catalogue values. */
     public record OfflineSaleLine(@NotBlank String barcode, String skuCode, String name, @Min(1) int quantity,
-                                  Integer unitPricePence) {
+                                  @Min(0) Integer unitPricePence) {
     }
 
     /** A cash sale completed while the till was offline, replayed on reconnect. {@code saleId} is the idempotency key. */

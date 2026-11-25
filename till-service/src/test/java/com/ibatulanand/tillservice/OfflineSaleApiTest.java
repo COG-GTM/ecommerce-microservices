@@ -119,6 +119,14 @@ class OfflineSaleApiTest {
         assertThat(error.get("error").asText()).isEqualTo("BACKEND_UNAVAILABLE");
     }
 
+    @Test
+    void rejectsCashBelowTheTotalAndNegativePrices() throws Exception {
+        JsonNode shortCash = sync(sale("CASH", List.of(line("1001", 3, 200))), status().isUnprocessableEntity());
+        assertThat(shortCash.get("error").asText()).isEqualTo("INSUFFICIENT_TENDER");
+        sync(sale("CASH", List.of(line("1001", 1, -50))), status().isBadRequest());
+        verify(services, org.mockito.Mockito.never()).placeSale(any(), anyString(), anyString(), anyString());
+    }
+
     private Map<String, Object> sale(String tender, List<Map<String, Object>> lines) {
         return Map.of("saleId", saleId, "tillId", "till-off", "transactionNumber", "0417-till-off-OFF1",
                 "tenderType", tender, "lines", lines, "amountTenderedPence", 500);
