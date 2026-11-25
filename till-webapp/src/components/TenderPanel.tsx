@@ -56,7 +56,7 @@ export function TenderPanel(props: Props) {
     return () => {
       current = false
     }
-  }, [method, basketId, cashPence, paidPence])
+  }, [method, basketId, cashPence, paidPence, balanceDuePence])
 
   const choose = (type: TenderType) => {
     setMethod(type)
@@ -65,7 +65,7 @@ export function TenderPanel(props: Props) {
   }
   const onCashKey = (key: string) =>
     setCashPence((value) => (key === 'C' ? 0 : Math.min(Number(String(value) + key), 99_999_99)))
-  const liveQuote = quote && quote.amountTenderedPence === cashPence && quote.paidPence === paidPence ? quote : null
+  const liveQuote = quote && quote.amountTenderedPence === cashPence && quote.paidPence === paidPence && quote.balanceDuePence === balanceDuePence ? quote : null
   const covers = cashPence >= balanceDuePence
 
   return (
@@ -119,7 +119,10 @@ export function TenderPanel(props: Props) {
       )}
 
       {method === null && (
-        <section className="panel dashed choose" data-testid="choose-method">Choose how the customer is paying</section>
+        <section className="panel dashed choose" data-testid="choose-method">
+          Choose how the customer is paying
+          {props.errorMessage && <p className="decline" data-testid="tender-error" role="alert">{props.errorMessage}</p>}
+        </section>
       )}
 
       {(method === 'CARD' || method === 'CONTACTLESS') && (

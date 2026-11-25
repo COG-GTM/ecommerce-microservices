@@ -141,7 +141,10 @@ export default function App() {
       offlineStore.setAbandonedBasket(null)
       // Keep anything scanned into the local basket while the request was in flight; it is sold offline instead.
       const current = basketRef.current
-      if (!isLocal(current) || current?.lines.length === 0) showBasket(next)
+      if (!isLocal(current) || current?.lines.length === 0) {
+        showBasket(next)
+        if (next.paidPence > 0) setScreen('tender')
+      }
       showQuickKeys(await tillApi.quickKeys())
     } catch (e) {
       if (isUnreachable(e)) markOffline()
@@ -324,7 +327,7 @@ export default function App() {
         setMessage({ kind: 'ok', text: paidPence > 0 ? `Sale voided. Return ${formatPence(paidPence)} cash` : 'Sale voided' })
       }
       setScreen('sell')
-    }, (text) => setMessage({ kind: 'error', text }))
+    }, (text) => (screen === 'tender' ? setTenderError(text) : setMessage({ kind: 'error', text })))
 
   const applyTender = (r: TenderResult) => {
     if (r.status === 'APPROVED') {
@@ -341,7 +344,17 @@ export default function App() {
 
   const tenderFailed = (text: string) => {
     setTenderError(text)
-    if (basket && !isLocal(basket)) tillApi.basket(basket.basketId).then(setBasket, () => undefined)
+    if (!basket || isLocal(basket)) return
+    tillApi.basket(basket.basketId).then(async (latest) => {
+      if (latest.status === 'OPEN') {
+        setBasket(latest)
+        return
+      }
+      const s = await tillApi.session(TILL_ID)
+      showBasket(await tillApi.basket(s.basketId))
+      setMessage({ kind: 'ok', text: `Sale ${latest.transactionNumber} was already ${latest.status === 'VOIDED' ? 'voided' : 'completed'}` })
+      setScreen('sell')
+    }).catch(() => undefined)
   }
 
   const cardAvailable = !offline && !isLocal(basket)

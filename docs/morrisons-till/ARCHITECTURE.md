@@ -104,12 +104,12 @@ still retry.
   "adjustments": [ { "code": "MULTIBUY", "label": "Greek yoghurt 3 for £3.50", "amountPence": -100, "lineId": "l-1" } ],
   "lastLineId": "l-1", "itemCount": 3, "subtotalPence": 450, "savingsPence": 100, "totalPence": 350,
   "vatSummary": [ { "code": "Z", "ratePercent": 0, "netPence": 350, "vatPence": 0, "grossPence": 350 } ], "orderNumber": null,
-  "member": null }  // More Card attached: { "cardLast4": "0001", "name": "Test Member One", "pointsBalance": 1200 }
+  "member": null, "tenders": [], "paidPence": 0, "balanceDuePence": 350 }  // More Card attached: { "cardLast4": "0001", "name": "Test Member One", "pointsBalance": 1200 }
 
 // TenderResult
 { "status": "APPROVED", "tenderType": "CARD", "basket": { /* Basket, status COMPLETED */ },
   "orderNumber": "8df1…", "amountTenderedPence": 140, "changeDuePence": 0, "authCode": "419508",
-  "declineReason": null, "receipt": { /* Receipt */ }, "nextBasketId": "c2d3…" }
+  "declineReason": null, "receipt": { /* Receipt */ }, "nextBasketId": "c2d3…", "balanceDuePence": 0 }
 // Declined: status DECLINED, basket still OPEN with all lines, orderNumber/receipt null, nextBasketId = same basket.
 // Part cash (CASH with partialPayment: true and less than balanceDuePence): status PARTIAL, basket still OPEN,
 // basket.tenders/paidPence/balanceDuePence updated, TenderResult.balanceDuePence = what is left, nextBasketId = same basket.
@@ -123,7 +123,8 @@ still retry.
   "operatorName": "Demo Operator", "transactionNumber": "0417-07-0001", "orderNumber": "8df1…",
   "lines": [ /* BasketLine */ ], "subtotalPence": 190, "savingsPence": 50, "totalPence": 140,
   "tenderType": "CARD", "amountTenderedPence": 140, "changeDuePence": 0, "authCode": "419508", "issuedAt": "2026-11-25T14:36:16Z",
-  "vatSummary": [ /* VatBand, same as the basket */ ], "moreCard": null }  // member sale: { "cardLast4": "0001", "memberName": "Test Member One", "pointsEarned": 20, "pointsBalance": 1220 }
+  "vatSummary": [ /* VatBand, same as the basket */ ],
+  "tenders": [ { "tenderType": "CARD", "amountPence": 140, "tenderedPence": 140, "changeDuePence": 0, "authCode": "419508" } ], "moreCard": null }  // member sale: { "cardLast4": "0001", "memberName": "Test Member One", "pointsEarned": 20, "pointsBalance": 1220 }
 
 // Error (any 4xx/5xx)
 { "error": "UNKNOWN_BARCODE", "message": "No product for barcode 9999" }

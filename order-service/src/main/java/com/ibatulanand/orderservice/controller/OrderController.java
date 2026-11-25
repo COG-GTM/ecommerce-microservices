@@ -39,6 +39,7 @@ public class OrderController {
     public CompletableFuture<String> placeOrder(@RequestBody OrderRequest orderRequest) {
         // Idempotency keys belong to till sales only, so an online order can never claim a till basket's key.
         orderRequest.setIdempotencyKey(null);
+        orderRequest.setTenders(null);
         return CompletableFuture.supplyAsync(() -> orderService.placeOrder(orderRequest), executor);
     }
 
