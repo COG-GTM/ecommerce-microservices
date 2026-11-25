@@ -93,12 +93,11 @@ export default function App() {
     if (reconnectingRef.current) return
     reconnectingRef.current = true
     try {
-      if (offlineStore.abandonedBasket() === s.basketId) {
-        showBasket(await tillApi.voidSale(s.basketId))
-        offlineStore.setAbandonedBasket(null)
-      } else {
-        showBasket(await tillApi.basket(s.basketId))
-      }
+      const next = offlineStore.abandonedBasket() === s.basketId ? await tillApi.voidSale(s.basketId) : await tillApi.basket(s.basketId)
+      offlineStore.setAbandonedBasket(null)
+      // Keep anything scanned into the local basket while the request was in flight; it is sold offline instead.
+      const current = basketRef.current
+      if (!isLocal(current) || current?.lines.length === 0) showBasket(next)
       showQuickKeys(await tillApi.quickKeys())
     } catch (e) {
       if (isUnreachable(e)) markOffline()
