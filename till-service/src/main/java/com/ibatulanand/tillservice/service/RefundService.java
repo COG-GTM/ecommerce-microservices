@@ -72,7 +72,7 @@ public class RefundService {
                         "Cannot refund " + entry.getValue() + " x " + displayName(line) + ": " + line.soldQuantity()
                                 + " sold, " + line.refundedQuantity() + " already refunded");
             }
-            int lineTotal = line.unitPricePence() * entry.getValue();
+            int lineTotal = line.refundPenceFor(entry.getValue());
             refunded.add(new RefundedLine(line.skuCode(), line.name(), entry.getValue(), line.unitPricePence(),
                     lineTotal));
             refundPence += lineTotal;
@@ -108,7 +108,7 @@ public class RefundService {
         }
         Map<String, String> known = names;
         List<RefundableLine> lines = sale.lines() == null ? List.of() : sale.lines().stream()
-                .map(l -> l.withName(known.getOrDefault(l.skuCode(), l.name() != null ? l.name() : l.skuCode())))
+                .map(l -> l.withName(l.name() != null ? l.name() : known.getOrDefault(l.skuCode(), l.skuCode())))
                 .toList();
         return new RefundableSale(sale.orderNumber(), sale.transactionId(), sale.storeNumber(), sale.tillId(),
                 sale.tenderType(), sale.totalPence(), sale.refundedPence(), sale.refundablePence(), lines,

@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -78,14 +79,18 @@ public class RefundService {
                         "Cannot refund " + entry.getValue() + " x " + entry.getKey() + ": " + available.soldQuantity()
                                 + " sold, " + available.refundedQuantity() + " already refunded");
             }
+            int quantity = entry.getValue().intValue();
+            int linePence = available.refundPenceFor(quantity);
             OrderLineItems item = new OrderLineItems();
             item.setSkuCode(entry.getKey());
-            item.setPrice(BigDecimal.valueOf(available.unitPricePence(), 2));
-            item.setQuantity(-entry.getValue().intValue());
+            item.setName(available.name());
+            item.setPrice(BigDecimal.valueOf(linePence).divide(BigDecimal.valueOf(quantity * 100L), 2, RoundingMode.HALF_UP));
+            item.setQuantity(-quantity);
+            item.setPaidPence(-linePence);
             refundLines.add(item);
-            refundPence += available.unitPricePence() * entry.getValue().intValue();
+            refundPence += linePence;
         }
-        // Never refund more money than the sale took (e.g. if the sale had basket-level savings).
+        // Never refund more money than the sale took.
         refundPence = Math.min(refundPence, summary.refundablePence());
 
         Order refund = new Order();
@@ -135,13 +140,17 @@ public class RefundService {
     }
 
     private RefundableSale summarise(Order sale) {
-        Map<String, int[]> soldBySku = new LinkedHashMap<>();
+        Map<String, Sold> soldBySku = new LinkedHashMap<>();
         for (OrderLineItems line : lines(sale)) {
-            int[] entry = soldBySku.computeIfAbsent(line.getSkuCode(), k -> new int[]{0, toPence(line.getPrice())});
-            entry[0] += line.getQuantity() == null ? 0 : line.getQuantity();
-            // A SKU sold on lines at different prices refunds at the lowest of them.
-            entry[1] = Math.min(entry[1], toPence(line.getPrice()));
+            int quantity = line.getQuantity() == null ? 0 : line.getQuantity();
+            Sold sold = soldBySku.computeIfAbsent(line.getSkuCode(), k -> new Sold());
+            sold.quantity += quantity;
+            sold.paidPence += line.getPaidPence() != null ? line.getPaidPence() : (long) toPence(line.getPrice()) * quantity;
+            if (sold.name == null) {
+                sold.name = line.getName();
+            }
         }
+        capToSaleTotal(soldBySku.values(), sale.getTotalPence());
         List<Order> refunds = orderRepository.findByOriginalOrderNumber(sale.getOrderNumber());
         Map<String, Integer> refundedBySku = new LinkedHashMap<>();
         int refundedPence = 0;
@@ -153,15 +162,46 @@ public class RefundService {
             }
         }
         List<RefundableLine> result = new ArrayList<>();
-        soldBySku.forEach((sku, entry) -> {
+        soldBySku.forEach((sku, sold) -> {
             int refunded = refundedBySku.getOrDefault(sku, 0);
-            result.add(new RefundableLine(sku, entry[1], entry[0], refunded, Math.max(0, entry[0] - refunded)));
+            int paid = (int) sold.paidPence;
+            int unit = sold.quantity == 0 ? 0 : Math.round((float) paid / sold.quantity);
+            result.add(new RefundableLine(sku, sold.name, unit, paid, sold.quantity, refunded,
+                    Math.max(0, sold.quantity - refunded)));
         });
         int total = sale.getTotalPence() != null ? sale.getTotalPence()
-                : result.stream().mapToInt(l -> l.unitPricePence() * l.soldQuantity()).sum();
+                : result.stream().mapToInt(RefundableLine::paidPence).sum();
         return new RefundableSale(sale.getOrderNumber(), sale.getTransactionId(), sale.getStoreNumber(),
                 sale.getTillId(), sale.getTenderType(), total, refundedPence, Math.max(0, total - refundedPence),
                 result, refunds.stream().map(Order::getOrderNumber).toList());
+    }
+
+    private static final class Sold {
+        int quantity;
+        long paidPence;
+        String name;
+    }
+
+    /**
+     * Lines written without paidPence carry shelf prices, which add up to more than the sale took when it had savings.
+     * Scale them down in proportion so that refunding every unit returns exactly the sale total.
+     */
+    private static void capToSaleTotal(java.util.Collection<Sold> sold, Integer saleTotalPence) {
+        long listed = sold.stream().mapToLong(s -> s.paidPence).sum();
+        if (saleTotalPence == null || listed <= saleTotalPence || listed == 0) {
+            return;
+        }
+        long assigned = 0;
+        for (Sold s : sold) {
+            s.paidPence = s.paidPence * saleTotalPence / listed;
+            assigned += s.paidPence;
+        }
+        for (Sold s : sold) {
+            if (assigned < saleTotalPence && s.paidPence > 0) {
+                s.paidPence++;
+                assigned++;
+            }
+        }
     }
 
     private static List<OrderLineItems> lines(Order order) {

@@ -138,6 +138,54 @@ class RefundServiceTest {
         assertThat(service.refundable("SALE-1").orderNumber()).isEqualTo("SALE-1");
     }
 
+    @Test
+    void refundPaysBackWhatTheCustomerPaidNotTheShelfPrice() {
+        // Mature cheddar: £3.50 shelf, £3.00 with a More Card.
+        OrderLineItems cheddar = line("MOR-CHEDDAR", 350, 1);
+        cheddar.setPaidPence(300);
+        cheddar.setName("Mature cheddar 400g");
+        sale.setOrderLineItemsList(List.of(cheddar));
+        sale.setTotalPence(300);
+
+        RefundableSale summary = service.refundable("SALE-1");
+        assertThat(summary.lines()).singleElement().satisfies(l -> {
+            assertThat(l.name()).isEqualTo("Mature cheddar 400g");
+            assertThat(l.paidPence()).isEqualTo(300);
+            assertThat(l.unitPricePence()).isEqualTo(300);
+        });
+        Order refund = service.refund("SALE-1", request(new RefundLineRequest("MOR-CHEDDAR", 1)));
+        assertThat(refund.getTotalPence()).isEqualTo(-300);
+        assertThat(refund.getOrderLineItemsList()).singleElement().satisfies(l -> {
+            assertThat(l.getPaidPence()).isEqualTo(-300);
+            assertThat(l.getName()).isEqualTo("Mature cheddar 400g");
+        });
+    }
+
+    @Test
+    void multiBuyRefundsSplitThePaidAmountAndAddUpExactly() {
+        // 3 for £2.50 on a £1.00 item.
+        OrderLineItems item = line("MOR-YOGHURT", 100, 3);
+        item.setPaidPence(250);
+        sale.setOrderLineItemsList(List.of(item));
+        sale.setTotalPence(250);
+
+        assertThat(service.refund("SALE-1", request(new RefundLineRequest("MOR-YOGHURT", 1))).getTotalPence()).isEqualTo(-83);
+        assertThat(service.refund("SALE-1", request(new RefundLineRequest("MOR-YOGHURT", 2))).getTotalPence()).isEqualTo(-167);
+        assertThat(service.refundable("SALE-1").refundablePence()).isZero();
+    }
+
+    @Test
+    void linesWithoutPaidAmountsAreScaledToTheSaleTotal() {
+        // Shelf prices add up to 560p but the sale took 500p.
+        sale.setTotalPence(500);
+        RefundableSale summary = service.refundable("SALE-1");
+        assertThat(summary.lines()).extracting(l -> l.paidPence()).containsExactly(416, 84);
+
+        int refunded = -service.refund("SALE-1", request(new RefundLineRequest("MOR-MILK", 3),
+                new RefundLineRequest("MOR-BANANA", 1))).getTotalPence();
+        assertThat(refunded).isEqualTo(500);
+    }
+
     private static RefundRequest request(RefundLineRequest... lines) {
         return new RefundRequest("0123", "T2", "0123-T2-R0001", List.of(lines));
     }

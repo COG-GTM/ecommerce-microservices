@@ -15,8 +15,18 @@ public final class RefundDtos {
                                 List<RefundLineRequest> lines) {
     }
 
-    public record RefundableLine(String skuCode, int unitPricePence, int soldQuantity, int refundedQuantity,
-                                 int refundableQuantity) {
+    /** paidPence is what the customer paid for all soldQuantity units of the SKU, after savings. */
+    public record RefundableLine(String skuCode, String name, int unitPricePence, int paidPence, int soldQuantity,
+                                 int refundedQuantity, int refundableQuantity) {
+
+        /** Money back for the next quantity units: an even share of paidPence, the pennies left over going to the last units. */
+        public int refundPenceFor(int quantity) {
+            return share(refundedQuantity + quantity) - share(refundedQuantity);
+        }
+
+        private int share(int units) {
+            return soldQuantity == 0 ? 0 : (int) ((long) paidPence * Math.min(units, soldQuantity) / soldQuantity);
+        }
     }
 
     /** A completed sale with what has already been refunded against it and what is still refundable. */

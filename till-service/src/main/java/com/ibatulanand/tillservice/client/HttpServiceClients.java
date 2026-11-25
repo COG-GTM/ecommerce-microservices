@@ -6,6 +6,7 @@ import com.ibatulanand.tillservice.config.TillProperties;
 import com.ibatulanand.tillservice.domain.Basket;
 import com.ibatulanand.tillservice.domain.BasketLine;
 import com.ibatulanand.tillservice.domain.CatalogueItem;
+import com.ibatulanand.tillservice.pricing.LinePayments;
 import com.ibatulanand.tillservice.web.RefundDtos.RefundLineRequest;
 import com.ibatulanand.tillservice.web.RefundDtos.RefundOrder;
 import com.ibatulanand.tillservice.web.RefundDtos.RefundableSale;
@@ -104,8 +105,9 @@ public class HttpServiceClients implements CatalogueClient, StockClient, OrderCl
 
     @Override
     public String placeSale(Basket basket, String storeNumber, String tenderType, String idempotencyKey) {
+        Map<String, Integer> paid = LinePayments.allocate(basket);
         List<Map<String, Object>> lines = basket.getLines().stream()
-                .map(HttpServiceClients::saleLine)
+                .map(l -> saleLine(l, paid.getOrDefault(l.getLineId(), l.getLinePence())))
                 .toList();
         List<Map<String, Object>> tenders = basket.getTenders().stream()
                 .map(t -> {
@@ -148,12 +150,14 @@ public class HttpServiceClients implements CatalogueClient, StockClient, OrderCl
         }
     }
 
-    private static Map<String, Object> saleLine(BasketLine line) {
+    private static Map<String, Object> saleLine(BasketLine line, int paidPence) {
         Map<String, Object> body = new HashMap<>();
         body.put("skuCode", line.getSkuCode());
         body.put("price", BigDecimal.valueOf(line.getPricedBy() == BasketLine.PricedBy.EACH
                 ? line.getUnitPricePence() : line.getLinePence() / Math.max(1, line.getQuantity()), 2));
         body.put("quantity", line.getQuantity());
+        body.put("paidPence", paidPence);
+        body.put("name", line.getName());
         if (line.getMinimumAge() != null) {
             body.put("minimumAge", line.getMinimumAge());
             body.put("ageApprovedBy", line.getAgeApprovedBy());

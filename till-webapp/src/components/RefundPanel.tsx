@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { TillApiError, tillApi } from '../api/client'
-import type { RefundableSale, RefundResult } from '../api/types'
+import type { RefundableLine, RefundableSale, RefundResult } from '../api/types'
 import { formatPence } from '../money'
 import { ApiChip } from './ApiChip'
 
@@ -47,7 +47,7 @@ export function RefundPanel({ tillId, onExit }: { tillId?: string; onExit: () =>
 
   const selected = sale ? sale.lines.filter((l) => (quantities[l.skuCode] ?? 0) > 0) : []
   // order-service never pays out more than the sale took, so the preview is capped the same way.
-  const refundPence = Math.min(sale?.refundablePence ?? 0, selected.reduce((sum, l) => sum + l.unitPricePence * quantities[l.skuCode], 0))
+  const refundPence = Math.min(sale?.refundablePence ?? 0, selected.reduce((sum, l) => sum + refundPenceFor(l, quantities[l.skuCode]), 0))
 
   const submit = () =>
     sale &&
@@ -152,4 +152,11 @@ export function RefundPanel({ tillId, onExit }: { tillId?: string; onExit: () =>
       )}
     </section>
   )
+}
+
+/** Same split as the server: an even share of what was paid, the leftover pennies going to the last units. */
+function refundPenceFor(line: RefundableLine, quantity: number): number {
+  const share = (units: number) =>
+    line.soldQuantity === 0 ? 0 : Math.floor((line.paidPence * Math.min(units, line.soldQuantity)) / line.soldQuantity)
+  return share(line.refundedQuantity + quantity) - share(line.refundedQuantity)
 }

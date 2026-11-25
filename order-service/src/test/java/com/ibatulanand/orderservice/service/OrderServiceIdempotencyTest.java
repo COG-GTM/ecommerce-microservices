@@ -118,7 +118,7 @@ class OrderServiceIdempotencyTest {
 
         new OrderService(repository, inventory, kafka).placeAndReturnOrder(OrderRequest.builder()
                 .idempotencyKey("basket-2").channel("TILL")
-                .orderLineItemsDtoList(List.of(new OrderLineItemsDto(null, "milk", BigDecimal.ONE, 1, null, null))).build());
+                .orderLineItemsDtoList(List.of(new OrderLineItemsDto(null, "milk", BigDecimal.ONE, 1))).build());
 
         ArgumentCaptor<Order> saved = ArgumentCaptor.forClass(Order.class);
         verify(repository).save(saved.capture());

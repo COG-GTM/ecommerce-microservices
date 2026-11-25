@@ -24,4 +24,8 @@ public class OrderLineItems {
     /** Age-restricted line: minimum age and the operator who approved the Challenge 25 check. */
     private Integer minimumAge;
     private String ageApprovedBy;
+    /** What the customer actually paid for the whole line after savings, in pence; null on rows written before refunds. */
+    private Integer paidPence;
+    /** Product name as printed on the receipt. */
+    private String name;
 }

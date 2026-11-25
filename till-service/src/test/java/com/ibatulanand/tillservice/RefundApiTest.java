@@ -91,6 +91,20 @@ class RefundApiTest {
     }
 
     @Test
+    void refundTotalIsTheSaleNotTheShelfPriceAndTheReceiptNameWins() throws Exception {
+        doReturn(new RefundableSale("ORDER-2", "0001-T1-0002", "0001", "T1", "CARD", 250, 0, 250,
+                List.of(new RefundableLine("MOR-MILK-SS-4PT", "Milk as printed", 83, 250, 3, 0, 3)), List.of()))
+                .when(services).refundable("ORDER-2");
+        when(services.refund(eq("ORDER-2"), anyString(), anyString(), anyString(), anyList()))
+                .thenReturn(new RefundOrder("REFUND-2", "ORDER-2", "0001-T1-R0001", null));
+        JsonNode result = call(post("/api/till/refund"), Map.of("reference", "ORDER-2",
+                "lines", List.of(Map.of("skuCode", "MOR-MILK-SS-4PT", "quantity", 2))), status().isCreated());
+
+        assertThat(result.get("refundPence").asInt()).isEqualTo(166);
+        assertThat(result.get("lines").get(0).get("name").asText()).isEqualTo("Milk as printed");
+    }
+
+    @Test
     void overRefundIsRejectedBeforeCallingOrderService() throws Exception {
         JsonNode error = call(post("/api/till/refund"), Map.of("reference", "ORDER-1",
                 "lines", List.of(Map.of("skuCode", "MOR-MILK-SS-4PT", "quantity", 3))), status().isConflict());
@@ -123,7 +137,7 @@ class RefundApiTest {
     private static RefundableSale sale(int alreadyRefunded) {
         return new RefundableSale("ORDER-1", "0001-T1-0001", "0001", "T1", "CARD", 465, 155 * alreadyRefunded,
                 465 - 155 * alreadyRefunded,
-                List.of(new RefundableLine("MOR-MILK-SS-4PT", null, 155, 3, alreadyRefunded, 3 - alreadyRefunded)),
+                List.of(new RefundableLine("MOR-MILK-SS-4PT", null, 155, 465, 3, alreadyRefunded, 3 - alreadyRefunded)),
                 List.of());
     }
 

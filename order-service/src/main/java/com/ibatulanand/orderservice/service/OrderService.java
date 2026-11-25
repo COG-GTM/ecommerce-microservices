@@ -176,6 +176,8 @@ public class OrderService {
         orderLineItems.setSkuCode(orderLineItemsDto.getSkuCode());
         orderLineItems.setMinimumAge(orderLineItemsDto.getMinimumAge());
         orderLineItems.setAgeApprovedBy(orderLineItemsDto.getAgeApprovedBy());
+        orderLineItems.setPaidPence(orderLineItemsDto.getPaidPence());
+        orderLineItems.setName(orderLineItemsDto.getName());
         return orderLineItems;
     }
 }
