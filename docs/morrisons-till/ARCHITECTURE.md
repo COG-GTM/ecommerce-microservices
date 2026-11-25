@@ -32,7 +32,7 @@ Changes to existing services are additive:
 | --- | --- |
 | product-service | `barcode`, `skuCode`, `pricePence`, `quickKey` on `Product`; `GET /api/product/barcode/{barcode}`, `GET /api/product?quickkey=true`; `GroceryCatalogueSeeder` (8 items, `catalogue.seed.grocery=true`) |
 | inventory-service | seeds the 8 grocery SKUs (500 each) when absent |
-| order-service | `POST /api/order/sale` (synchronous, returns the order), `GET /api/order/{orderNumber}`; till metadata (`channel`, `storeNumber`, `tillId`, `transactionId`, `tenderType`, `totalPence`) on order and on the Kafka `OrderPlacedEvent` |
+| order-service | `POST /api/order/sale` (synchronous, returns the order; idempotent on `idempotencyKey`), `GET /api/order/{orderNumber}`, `GET /api/order/transaction/{transactionId}`; till metadata (`channel`, `storeNumber`, `tillId`, `transactionId`, `tenderType`, `totalPence`) on order and on the Kafka `OrderPlacedEvent` |
 | notification-service | records consumed events in a bounded `NotificationLog`; `GET /api/notification`, `GET /api/notification/{orderNumber}` |
 | api-gateway | routes `/api/till/**` and `/api/notification/**`; `dev` profile makes `/api/till/**` public and `GET /api/order/**`, `GET /api/notification/**` readable for tests. Everything else still requires a Keycloak JWT. |
 
@@ -68,10 +68,13 @@ compute totals; they render `subtotalPence`, `savingsPence` and `totalPence` fro
 | PATCH | `/basket/lines/{lineId}` | `{ basketId, quantity }` | `Basket` |
 | DELETE | `/basket/lines/{lineId}?basketId=` | - | `Basket` (void line) |
 | POST | `/basket/void` | `{ basketId }` | new empty `Basket` (void sale) |
-| POST | `/basket/tender` | `{ basketId, tenderType: CARD\|CONTACTLESS\|CASH, amountTenderedPence?, terminalOutcome?: APPROVED\|DECLINED }` | `TenderResult` |
+| POST | `/basket/tender` | `{ basketId, tenderType: CARD\|CONTACTLESS\|CASH, amountTenderedPence?, terminalOutcome?: APPROVED\|DECLINED\|TIMEOUT, idempotencyKey? }` | `TenderResult` |
 
 `tillId` is optional (default `07`). Each till id has its own basket, which is how parallel E2E tests stay isolated.
-`terminalOutcome` drives the simulated PIN pad. A real terminal adapter ignores it.
+`terminalOutcome` drives the simulated PIN pad. A real terminal adapter ignores it. `TIMEOUT` waits
+`till.terminal.simulator.timeout-delay-ms` (default 1500) and models a charge whose response was lost: status `TIMEOUT`,
+basket still OPEN and locked until the same `idempotencyKey` is retried. A repeated attempt key replays the first
+result, so a retry never charges or orders twice; a different key, cash or a basket change gets 409 `PAYMENT_UNRESOLVED`.
 
 ### JSON shapes
 
@@ -138,7 +141,7 @@ Error codes: `UNKNOWN_BARCODE` / `UNKNOWN_BASKET` / `UNKNOWN_LINE` (404), `OUT_O
 | --- | --- |
 | VAT, multi-buys, More Card loyalty | new `PricingRule` bean(s), which add `Adjustment`s (savings) or VAT lines; the UI already renders `savingsPence` |
 | Weighed items, age-restricted items | product fields plus a line attribute; a `TillService.addLine` guard returns a new error code |
-| Cash/change, card terminal declines | `TillService.tender`, `PaymentTerminal` (decline reasons in `declineReason`) |
+| Cash/change, card terminal declines and timeouts | `TillService.tender`, `PaymentTerminal` (decline reasons in `declineReason`, retries keyed by `idempotencyKey`) |
 | Refunds | new `/api/till/refund/**` endpoints plus an order-service refund call |
 | Offline store-and-forward | decorate `OrderClient` with a durable queue |
 | Legacy price-feed bridge | alternative `CatalogueClient` or a product-service feed importer |

@@ -33,7 +33,7 @@ public final class TillDtos {
     }
 
     public record TenderRequest(@NotBlank String basketId, @NotBlank String tenderType, Integer amountTenderedPence,
-                                String terminalOutcome, Integer expectedTotalPence) {
+                                String terminalOutcome, Integer expectedTotalPence, String idempotencyKey) {
     }
 
     public record Receipt(String receiptNumber, String storeNumber, String storeName, String tillId,
@@ -44,6 +44,6 @@ public final class TillDtos {
 
     public record TenderResult(String status, String tenderType, Basket basket, String orderNumber,
                                int amountTenderedPence, int changeDuePence, String authCode, String declineReason,
-                               Receipt receipt, String nextBasketId) {
+                               Receipt receipt, String nextBasketId, String idempotencyKey) {
     }
 }

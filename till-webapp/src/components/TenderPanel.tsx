@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { TenderType } from '../api/types'
+import type { TenderType, TerminalOutcome } from '../api/types'
 import { formatPence } from '../money'
 import { ApiChip } from './ApiChip'
 import { Keypad } from './Keypad'
@@ -15,15 +15,17 @@ interface Props {
   totalPence: number
   busy: boolean
   declineMessage: string | null
+  /** The last card attempt timed out: only a retry of that attempt is allowed until it resolves. */
+  paymentUnresolved: boolean
   errorMessage: string | null
   onBack: () => void
-  onCard: (type: TenderType, outcome: 'APPROVED' | 'DECLINED') => void
+  onCard: (type: TenderType, outcome: TerminalOutcome) => void
   onCash: (amountTenderedPence: number) => void
   onMethodChange: () => void
 }
 
 export function TenderPanel(props: Props) {
-  const { totalPence, busy } = props
+  const { totalPence, busy, paymentUnresolved } = props
   const [method, setMethod] = useState<TenderType | null>(null)
   const [cashPence, setCashPence] = useState(0)
 
@@ -45,7 +47,7 @@ export function TenderPanel(props: Props) {
         </div>
         <div className="panel-head-right">
           <ApiChip>POST /api/till/basket/tender</ApiChip>
-          <button type="button" className="btn outline back" data-testid="back-to-basket" disabled={busy} onClick={props.onBack}>
+          <button type="button" className="btn outline back" data-testid="back-to-basket" disabled={busy || paymentUnresolved} onClick={props.onBack}>
             Back to basket
           </button>
         </div>
@@ -60,7 +62,7 @@ export function TenderPanel(props: Props) {
             aria-checked={method === m.type}
             className={'method' + (method === m.type ? ' active' : '')}
             data-testid={`tender-${m.type.toLowerCase()}`}
-            disabled={busy}
+            disabled={busy || paymentUnresolved}
             onClick={() => choose(m.type)}
           >
             <span className="method-title">{m.title}</span>
@@ -85,9 +87,17 @@ export function TenderPanel(props: Props) {
           <h3>{method === 'CARD' ? 'Waiting for customer on PIN pad' : 'Waiting for customer to tap on PIN pad'}</h3>
           <p className="muted">The payment terminal result comes back from the backend</p>
           <div className="row-buttons">
-            <button type="button" className="btn primary" data-testid="simulate-approved" disabled={busy} onClick={() => props.onCard(method, 'APPROVED')}>Simulate approved</button>
-            <button type="button" className="btn danger" data-testid="simulate-declined" disabled={busy} onClick={() => props.onCard(method, 'DECLINED')}>Simulate declined</button>
+            {paymentUnresolved ? (
+              <button type="button" className="btn primary" data-testid="retry-payment" disabled={busy} onClick={() => props.onCard(method, 'APPROVED')}>Retry payment</button>
+            ) : (
+              <>
+                <button type="button" className="btn primary" data-testid="simulate-approved" disabled={busy} onClick={() => props.onCard(method, 'APPROVED')}>Simulate approved</button>
+                <button type="button" className="btn danger" data-testid="simulate-declined" disabled={busy} onClick={() => props.onCard(method, 'DECLINED')}>Simulate declined</button>
+                <button type="button" className="btn outline" data-testid="simulate-timeout" disabled={busy} onClick={() => props.onCard(method, 'TIMEOUT')}>Simulate timeout</button>
+              </>
+            )}
           </div>
+          {busy && <p className="muted" data-testid="terminal-waiting" role="status">Contacting PIN pad…</p>}
           {props.declineMessage && <p className="decline" data-testid="decline-message" role="alert">{props.declineMessage}</p>}
           {props.errorMessage && <p className="decline" data-testid="tender-error" role="alert">{props.errorMessage}</p>}
         </section>
