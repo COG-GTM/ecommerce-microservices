@@ -24,6 +24,19 @@ export class WeightDialog {
     await expect(this.root).toBeHidden()
   }
 
+  /** The basket line's "0.452 kg × £2.20/kg" detail. */
+  lineWeight(line: Locator) {
+    return line.getByTestId('line-weight')
+  }
+
+  lineLabel(line: Locator) {
+    return line.getByTestId('line-label')
+  }
+
+  get qtyPlus() {
+    return this.page.getByTestId('qty-plus')
+  }
+
   async cancel() {
     await this.page.getByTestId('weight-cancel').click()
     await expect(this.root).toBeHidden()
