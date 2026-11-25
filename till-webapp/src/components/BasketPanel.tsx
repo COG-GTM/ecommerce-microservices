@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import type { Basket } from '../api/types'
 import { formatPence } from '../money'
 import { ApiChip } from './ApiChip'
+import { VatSummary } from './VatSummary'
 
 interface Props {
   basket: Basket | null
@@ -41,7 +42,10 @@ export function BasketPanel({ basket, selectedLineId, onSelect }: Props) {
                 aria-selected={line.lineId === selectedLineId}
                 onClick={() => onSelect(line.lineId)}
               >
-                <td className="item" data-testid="line-name">{line.name}</td>
+                <td className="item">
+                  <span data-testid="line-name">{line.name}</span>
+                  {line.vatCode && <span className="vat-code" data-testid="line-vat-code" title={`VAT code ${line.vatCode}`}>{line.vatCode}</span>}
+                </td>
                 <td className="num qty" data-testid="line-qty">{line.quantity}</td>
                 <td className="num each" data-testid="line-each">{formatPence(line.unitPricePence)}</td>
                 <td className="num total" data-testid="line-total">{formatPence(line.linePence)}</td>
@@ -55,6 +59,7 @@ export function BasketPanel({ basket, selectedLineId, onSelect }: Props) {
         <div className="row"><span>Subtotal</span><span data-testid="subtotal">{formatPence(basket?.subtotalPence ?? 0)}</span></div>
         <div className="row savings"><span>Savings</span><span data-testid="savings">{formatPence(basket?.savingsPence ?? 0)}</span></div>
         <div className="row grand"><span>Total to pay</span><span data-testid="total">{formatPence(basket?.totalPence ?? 0)}</span></div>
+        <VatSummary bands={basket?.vatSummary ?? []} testId="basket-vat-summary" />
       </div>
     </section>
   )

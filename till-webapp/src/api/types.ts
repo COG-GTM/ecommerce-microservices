@@ -19,6 +19,19 @@ export interface Product {
   name: string
   pricePence: number
   quickKey: boolean
+  vatCode: VatCode
+}
+
+/** UK VAT code: Z = zero-rated (0%), S = standard-rated (20%). */
+export type VatCode = 'Z' | 'S'
+
+/** VAT for one rate band, computed server-side once per band (not per line). grossPence = netPence + vatPence. */
+export interface VatBand {
+  code: VatCode
+  ratePercent: number
+  netPence: number
+  vatPence: number
+  grossPence: number
 }
 
 export interface BasketLine {
@@ -29,6 +42,7 @@ export interface BasketLine {
   quantity: number
   unitPricePence: number
   linePence: number
+  vatCode: VatCode | null
 }
 
 export interface Adjustment {
@@ -51,6 +65,7 @@ export interface Basket {
   subtotalPence: number
   savingsPence: number
   totalPence: number
+  vatSummary: VatBand[]
   orderNumber: string | null
 }
 
@@ -73,6 +88,7 @@ export interface Receipt {
   changeDuePence: number
   authCode: string | null
   issuedAt: string
+  vatSummary: VatBand[]
 }
 
 export interface TenderResult {

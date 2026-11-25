@@ -37,6 +37,7 @@ public class BasketPricer {
         basket.setSubtotalPence(subtotal);
         basket.setSavingsPence(savings);
         basket.setTotalPence(Math.max(0, subtotal - savings + charges));
+        basket.setVatSummary(VatAnalysis.analyse(basket));
         return basket;
     }
 }

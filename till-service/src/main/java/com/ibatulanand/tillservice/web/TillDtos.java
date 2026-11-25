@@ -2,6 +2,7 @@ package com.ibatulanand.tillservice.web;
 
 import com.ibatulanand.tillservice.domain.Basket;
 import com.ibatulanand.tillservice.domain.BasketLine;
+import com.ibatulanand.tillservice.domain.VatBand;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 
@@ -39,7 +40,8 @@ public final class TillDtos {
     public record Receipt(String receiptNumber, String storeNumber, String storeName, String tillId,
                           String operatorName, String transactionNumber, String orderNumber, List<BasketLine> lines,
                           int subtotalPence, int savingsPence, int totalPence, String tenderType,
-                          int amountTenderedPence, int changeDuePence, String authCode, Instant issuedAt) {
+                          int amountTenderedPence, int changeDuePence, String authCode, Instant issuedAt,
+                          List<VatBand> vatSummary) {
     }
 
     public record TenderResult(String status, String tenderType, Basket basket, String orderNumber,
