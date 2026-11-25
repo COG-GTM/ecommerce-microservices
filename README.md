@@ -237,6 +237,7 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
     - Method: POST
     - Endpoint: http://localhost:8181/api/order
     - Authorization: Use the OAuth 2.0 token fetched, following the previous step.
+    - Header: `Idempotency-Key: <unique id per order, e.g. a UUID>`. Send the same key when retrying the same order so it is placed only once.
     - Body:
       ```json
       {
