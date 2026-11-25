@@ -147,6 +147,15 @@ class WeighedItemsApiTest {
     }
 
     @Test
+    void cataloguedPrefix2BarcodeStillNeedsAValidCheckDigit() throws Exception {
+        String bad = "212345678901" + (EmbeddedPriceBarcode.checkDigit("212345678901") + 1) % 10;
+        when(services.findByBarcode(bad)).thenReturn(Optional.of(
+                new CatalogueItem(bad, "MOR-GIFT-CARD", "Gift card", 1000, false)));
+        assertThat(add(Map.of("barcode", bad), status().isUnprocessableEntity()).get("error").asText())
+                .isEqualTo("INVALID_CHECK_DIGIT");
+    }
+
+    @Test
     void cataloguedPrefix2BarcodeIsSoldAsTheCatalogueItem() throws Exception {
         String barcode = "212345678901" + EmbeddedPriceBarcode.checkDigit("212345678901");
         CatalogueItem gift = new CatalogueItem(barcode, "MOR-GIFT-CARD", "Gift card", 1000, false);
