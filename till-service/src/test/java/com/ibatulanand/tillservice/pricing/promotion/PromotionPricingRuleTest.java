@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class PromotionPricingRuleTest {
 
@@ -134,6 +135,29 @@ class PromotionPricingRuleTest {
                 line("l-cola", COLA, 40, 135)));
         assertThat(basket.getSavingsPence()).isPositive();
         assertThat(basket.getTotalPence()).isEqualTo(basket.getSubtotalPence() - basket.getSavingsPence());
+    }
+
+    @Test
+    void veryLargeQuantityOfOneItemDoesNotOverflowTheSearch() {
+        Basket basket = pricer.price(basket(line("l-yog", YOGHURT, 30_000, 150)));
+        assertThat(basket.getSavingsPence()).isEqualTo(10_000 * 100);
+    }
+
+    @Test
+    void unrelatedOffersDoNotChangeEachOthersBestPrice() {
+        BasketLine[] meals = {line("l-chk", CHICKEN_SANDWICH, 40, 300), line("l-crisps", CRISPS, 40, 85),
+                line("l-water", WATER, 40, 90), line("l-cola", COLA, 40, 135)};
+        int mealSavings = pricer.price(basket(meals)).getSavingsPence();
+        Basket withYoghurt = basket(meals);
+        withYoghurt.getLines().add(line("l-yog", YOGHURT, 6, 150));
+        assertThat(pricer.price(withYoghurt).getSavingsPence()).isEqualTo(mealSavings + 200);
+    }
+
+    @Test
+    void offerWithoutAPriceIsRejected() {
+        PromotionProperties properties = new PromotionProperties(List.of(new PromotionProperties.MultiBuyConfig(
+                "MB-NO-PRICE", "No price", Set.of(YOGHURT), 3, null)), null);
+        assertThatThrownBy(properties::promotions).hasMessageContaining("MB-NO-PRICE").hasMessageContaining("price-pence");
     }
 
     @Test

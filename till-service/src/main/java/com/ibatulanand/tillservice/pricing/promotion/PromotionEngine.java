@@ -13,7 +13,7 @@ import java.util.Set;
 /**
  * Picks the set of promotion applications that gives the customer the biggest total saving. A unit can count towards
  * at most one application, so when items qualify for several offers every combination is searched (memoised on the
- * remaining unit counts). Very large baskets fall back to a greedy best-saving-first allocation.
+ * remaining unit counts). Very large baskets (too many states or too deep a search) fall back to a greedy best-saving-first allocation.
  */
 public final class PromotionEngine {
 
@@ -22,6 +22,7 @@ public final class PromotionEngine {
     }
 
     static final int MAX_STATES = 20_000;
+    static final int MAX_DEPTH = 500;
 
     private final List<Promotion> promotions;
 
@@ -41,13 +42,50 @@ public final class PromotionEngine {
         if (counts.isEmpty()) {
             return List.of();
         }
-        Search search = new Search(List.copyOf(counts.keySet()), prices);
-        int[] state = counts.values().stream().mapToInt(Integer::intValue).toArray();
-        try {
-            return search.best(state).applications;
-        } catch (StateBudgetExceeded e) {
-            return search.greedy(state);
+        List<Application> applications = new ArrayList<>();
+        for (List<String> group : independentGroups(counts.keySet())) {
+            List<Promotion> relevant = promotions.stream()
+                    .filter(p -> p.slots().stream().anyMatch(s -> group.stream().anyMatch(s::contains)))
+                    .toList();
+            Search search = new Search(group, prices, relevant);
+            int[] state = group.stream().mapToInt(counts::get).toArray();
+            try {
+                applications.addAll(search.best(state, 0).applications);
+            } catch (StateBudgetExceeded e) {
+                applications.addAll(search.greedy(state));
+            }
         }
+        return applications;
+    }
+
+    /** Barcodes linked by a shared promotion; groups never compete for units, so each is searched on its own. */
+    private List<List<String>> independentGroups(Set<String> barcodes) {
+        Map<String, String> parent = new LinkedHashMap<>();
+        barcodes.forEach(b -> parent.put(b, b));
+        for (Promotion promotion : promotions) {
+            String first = null;
+            for (String barcode : barcodes) {
+                if (promotion.slots().stream().anyMatch(s -> s.contains(barcode))) {
+                    if (first == null) {
+                        first = barcode;
+                    } else {
+                        parent.put(root(parent, barcode), root(parent, first));
+                    }
+                }
+            }
+        }
+        Map<String, List<String>> groups = new LinkedHashMap<>();
+        for (String barcode : barcodes) {
+            groups.computeIfAbsent(root(parent, barcode), k -> new ArrayList<>()).add(barcode);
+        }
+        return List.copyOf(groups.values());
+    }
+
+    private static String root(Map<String, String> parent, String barcode) {
+        while (!parent.get(barcode).equals(barcode)) {
+            barcode = parent.get(barcode);
+        }
+        return barcode;
     }
 
     private boolean isPromoted(String barcode) {
@@ -70,25 +108,27 @@ public final class PromotionEngine {
     private final class Search {
         private final List<String> barcodes;
         private final int[] unitPrices;
+        private final List<Promotion> promotions;
         private final Map<String, Result> memo = new HashMap<>();
 
-        Search(List<String> barcodes, Map<String, Integer> prices) {
+        Search(List<String> barcodes, Map<String, Integer> prices, List<Promotion> promotions) {
             this.barcodes = barcodes;
             this.unitPrices = barcodes.stream().mapToInt(prices::get).toArray();
+            this.promotions = promotions;
         }
 
-        Result best(int[] state) {
+        Result best(int[] state, int depth) {
             String key = Arrays.toString(state);
             Result cached = memo.get(key);
             if (cached != null) {
                 return cached;
             }
-            if (memo.size() >= MAX_STATES) {
+            if (memo.size() >= MAX_STATES || depth >= MAX_DEPTH) {
                 throw new StateBudgetExceeded();
             }
             Result best = Result.NONE;
             for (Option option : options(state)) {
-                Result rest = best(minus(state, option.take));
+                Result rest = best(minus(state, option.take), depth + 1);
                 int total = option.savingsPence + rest.savingsPence;
                 if (total > best.savingsPence) {
                     List<Application> applications = new ArrayList<>();
