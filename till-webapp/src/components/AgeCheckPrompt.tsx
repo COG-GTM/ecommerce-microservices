@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, type KeyboardEvent } from 'react'
 import type { AgeDecision, BasketLine } from '../api/types'
 import { ApiChip } from './ApiChip'
 
@@ -12,11 +12,34 @@ interface Props {
 /** Challenge 25: the operator must confirm photo ID was seen, or refuse the item, before the sale can be paid. */
 export function AgeCheckPrompt({ line, busy, onDecide, onLater }: Props) {
   const dialogRef = useRef<HTMLElement>(null)
-  // Take focus from the barcode field so further scanner keystrokes cannot add items behind the prompt.
-  useEffect(() => dialogRef.current?.focus(), [line.lineId])
+  // Take focus from the barcode field so scanner keystrokes cannot add items behind the prompt; hand it back on close
+  // (not to Pay or a quick key, where a scanner's trailing Enter would press the button).
+  useEffect(() => {
+    dialogRef.current?.focus()
+    return () => document.getElementById('barcode')?.focus()
+  }, [line.lineId])
+  // aria-modal does not stop Tab: keep keyboard focus inside the prompt so Pay and Void stay out of reach.
+  const trapTab = (e: KeyboardEvent<HTMLElement>) => {
+    if (e.key !== 'Tab') return
+    const buttons = Array.from(dialogRef.current?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)') ?? [])
+    if (buttons.length === 0) {
+      e.preventDefault()
+      return
+    }
+    const first = buttons[0]
+    const last = buttons[buttons.length - 1]
+    const active = document.activeElement
+    if (e.shiftKey && (active === first || active === dialogRef.current)) {
+      e.preventDefault()
+      last.focus()
+    } else if (!e.shiftKey && active === last) {
+      e.preventDefault()
+      first.focus()
+    }
+  }
   return (
     <div className="age-overlay">
-      <section ref={dialogRef} tabIndex={-1} className="age-prompt" role="dialog" aria-modal="true" aria-labelledby="age-title" data-testid="age-check-prompt">
+      <section ref={dialogRef} tabIndex={-1} className="age-prompt" role="dialog" aria-modal="true" aria-labelledby="age-title" data-testid="age-check-prompt" onKeyDown={trapTab}>
         <div className="age-head">
           <span className="age-logo" aria-hidden="true">25</span>
           <div>

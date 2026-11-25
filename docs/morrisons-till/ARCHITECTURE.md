@@ -202,7 +202,8 @@ yoghurt 3 for £3.50, still water/cola 2 for £2.00, and a £3.50 meal deal (san
 | --- | --- |
 | Multi-buys, More Card loyalty | new `PricingRule` bean(s), which add `Adjustment`s (savings); the UI already renders `savingsPence`, and `VatAnalysis` apportions them to VAT bands |
 | VAT rates | `VatRate` (codes and rates) and `VatAnalysis` (per-band rounding), applied by `BasketPricer` after the rules |
-| Weighed items, age-restricted items | product fields plus a line attribute; a `TillService.addLine` guard returns a new error code |
+| Weighed items | product fields plus a line attribute; a `TillService.addLine` guard returns a new error code |
+| Age-restricted items (Challenge 25) | `minimumAge` on the product; `addLine` adds the line as a pending age check, `/basket/lines/{lineId}/age-check` approves or refuses it, and `tender` returns `AGE_CHECK_REQUIRED` while any check is pending |
 | Cash/change, card terminal declines and timeouts | `TillService.tender`, `PaymentTerminal` (decline reasons in `declineReason`, retries keyed by `idempotencyKey`) |
 | Refunds | `/api/till/refund/**` (MBA-3939); order-service stores a negative `REFUND` order linked to the sale and emits a `REFUND` event |
 | Offline store-and-forward (MBA-3940) | the webapp sells cash from its cached catalogue and queues sales in `localStorage` (`src/offline/`); on reconnect it replays them to `POST /offline-sales`, which places the order with idempotency key `offline-<saleId>` (order-service stores one order per key; `GET /api/order?tillId=` lists a till's orders) |
