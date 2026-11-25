@@ -31,6 +31,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -180,6 +181,15 @@ class OrderServiceDuplicateOrderTest {
                         e -> assertThat(e.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST));
         assertThat(inventoryCalls.get()).isZero();
         assertThat(savedOrders).isEmpty();
+    }
+
+    @Test
+    void hugePriceExponentIsFingerprintedWithoutExpandingIt() {
+        assertTimeoutPreemptively(Duration.ofSeconds(2),
+                () -> orderService.placeOrder(orderRequest("1E+999999999"), "key-huge-price-1"));
+        assertThat(orderService.placeOrder(orderRequest("10E+999999998"), "key-huge-price-1"))
+                .isEqualTo("Order Placed Successfully!");
+        assertThat(savedOrders).hasSize(1);
     }
 
     @Test

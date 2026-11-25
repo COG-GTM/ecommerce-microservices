@@ -114,7 +114,7 @@ public class OrderService {
             for (OrderLineItemsDto item : items) {
                 BigDecimal price = item.getPrice();
                 canonical.append(item.getSkuCode()).append('\u0000')
-                        .append(price == null ? "null" : price.stripTrailingZeros().toPlainString()).append('\u0000')
+                        .append(price == null ? "null" : price.stripTrailingZeros().toString()).append('\u0000')
                         .append(item.getQuantity()).append('\n');
             }
         }
