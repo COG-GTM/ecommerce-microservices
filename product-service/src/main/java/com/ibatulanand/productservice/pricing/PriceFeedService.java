@@ -20,8 +20,8 @@ public class PriceFeedService {
     static final int MAX_PRICE_PENCE = 9_999_999;
     static final int MAX_BATCH_SIZE = 10_000;
 
-    /** {@code pricePence} is a {@link Number} so fractional values (399.9) are rejected rather than truncated by Jackson. */
-    public record PriceUpdate(String barcode, Number pricePence) {
+    /** {@code pricePence} is a {@link BigDecimal} so fractional values (399.9) are rejected rather than truncated or rounded. */
+    public record PriceUpdate(String barcode, BigDecimal pricePence) {
     }
 
     public record PriceSnapshot(PriceSource source, List<PriceRecord> prices) {
@@ -109,13 +109,13 @@ public class PriceFeedService {
     }
 
     /** The value as whole pence (425 or 425.0), or null when missing, fractional or out of int range. */
-    private static Integer wholePence(Number raw) {
+    private static Integer wholePence(BigDecimal raw) {
         if (raw == null) {
             return null;
         }
         try {
-            return new BigDecimal(raw.toString()).intValueExact();
-        } catch (ArithmeticException | NumberFormatException e) {
+            return raw.intValueExact();
+        } catch (ArithmeticException e) {
             return null;
         }
     }
