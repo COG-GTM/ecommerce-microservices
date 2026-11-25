@@ -172,13 +172,40 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
    cd ecommerce-microservices
    ```
 
-2. Start the containers:
+2. Create a `.env` file (git-ignored) and set every password in it:
+   ```shell
+   install -m 600 .env.example .env   # owner-only: it will hold the root password
+   ```
+   The order database is initialised from `mysql-order-init/`: the schema is created by root, and the
+   service connects as `ORDER_DB_APP_USER`, which only has `SELECT`/`INSERT`/`UPDATE`/`DELETE` on
+   `order_service`. These scripts only run on an empty `./mysql_order` directory. For an existing one,
+   apply them with the data directory's **current** root password. Re-run the same commands after
+   changing `ORDER_DB_APP_USER`/`ORDER_DB_APP_PASSWORD` in `.env`, or if first initialisation stopped
+   on a missing or invalid value; `up -d` recreates the container so it picks up the new `.env`:
+   ```shell
+   docker compose up -d mysql-order
+   MYSQL_ROOT_PASSWORD=$(trap 'stty echo' EXIT; stty -echo; printf 'Current root password: ' >&2; IFS= read -r p; printf '%s' "$p"); echo
+   export MYSQL_ROOT_PASSWORD
+   docker compose exec -e MYSQL_ROOT_PASSWORD mysql-order bash -c \
+     'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -uroot order_service < /docker-entrypoint-initdb.d/01-schema.sql \
+      && /docker-entrypoint-initdb.d/02-app-user.sh' \
+     && docker compose up -d order-service   # only switch the service once the account is ready
+   ```
+   Then rotate root to the value in `.env`:
+   `ALTER USER 'root'@'%' IDENTIFIED BY '<new root password>';` (repeat for `'root'@'localhost'`).
+   Unless `ORDER_DB_APP_USER` is `ibatulanand`, also remove the old shared login:
+   `DROP USER IF EXISTS 'ibatulanand'@'%';`. Likewise, after renaming `ORDER_DB_APP_USER`, drop the
+   previous name: `DROP USER IF EXISTS '<previous app user>'@'%';`
+   To run `order-service` on the host against this database, set `SPRING_DATASOURCE_USERNAME`,
+   `SPRING_DATASOURCE_PASSWORD` and `SPRING_DATASOURCE_URL=jdbc:mysql://localhost:3307/order_service`.
+
+3. Start the containers:
    ```shell
    docker compose up -d
    ```
 
 
-3. Confirm that the containers are up and running:
+4. Confirm that the containers are up and running:
    ```shell
    docker ps
    ```
