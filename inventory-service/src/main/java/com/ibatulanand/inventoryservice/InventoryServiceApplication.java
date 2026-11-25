@@ -31,6 +31,10 @@ public class InventoryServiceApplication {
             for (String sku : VAT_DEMO_SKUS) {
                 seed.put(sku, 500);
             }
+            // Price-feed demo SKUs (barcodes 394101-394103 in product-service)
+            for (String sku : PRICE_FEED_SKUS) {
+                seed.put(sku, 500);
+            }
             seed.forEach((sku, quantity) -> {
                 if (!inventoryRepository.existsBySkuCode(sku)) {
                     Inventory inventory = new Inventory();
@@ -50,5 +54,7 @@ public class InventoryServiceApplication {
 
     /** Standard-rated VAT demo items (barcodes 4001-4002 in product-service, MBA-3932). */
     static final List<String> VAT_DEMO_SKUS = List.of("MOR-CHOC-BAR-100", "MOR-WASHUP-500");
+
+    static final List<String> PRICE_FEED_SKUS = List.of("MOR-TEA-BAGS-80", "MOR-COFFEE-INST-200", "MOR-DIGESTIVE-400");
 
 }
