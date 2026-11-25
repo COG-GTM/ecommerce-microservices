@@ -70,7 +70,7 @@ compute totals; they render `subtotalPence`, `savingsPence` and `totalPence` fro
 | POST | `/basket/void` | `{ basketId }` | new empty `Basket` (void sale) |
 | POST | `/basket/tender` | `{ basketId, tenderType: CARD\|CONTACTLESS\|CASH, amountTenderedPence?, terminalOutcome?: APPROVED\|DECLINED }` | `TenderResult` |
 | GET | `/refund/{reference}` | - | `RefundableSale` (reference: receipt `R-...`, transaction or order number) |
-| POST | `/refund` | `{ reference, tillId?, lines: [{ skuCode, quantity }] }` | `RefundResult`; `409 REFUND_EXCEEDS_SOLD` beyond what is left |
+| POST | `/refund` | `{ reference, tillId?, lines: [{ skuCode, quantity }] }` | `RefundResult` (`remaining` is null if the refund committed but the refreshed sale could not be read); `409 REFUND_EXCEEDS_SOLD` beyond what is left |
 
 `tillId` is optional (default `07`). Each till id has its own basket, which is how parallel E2E tests stay isolated.
 `terminalOutcome` drives the simulated PIN pad. A real terminal adapter ignores it.
