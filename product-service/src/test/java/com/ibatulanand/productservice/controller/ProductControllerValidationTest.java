@@ -112,6 +112,7 @@ class ProductControllerValidationTest {
         UnreadableRequest(MockHttpServletRequest original) {
             super(original.getServletContext(), original.getMethod(), original.getRequestURI());
             setContentType(original.getContentType());
+            setContent(original.getContentAsByteArray());
         }
 
         @Override
