@@ -195,6 +195,7 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
   - Go to the Client `spring-cloud-client`
   - Go the the 'Credentials' section, and get the 'Client Secret'
   - The realm export does not ship a client secret; if none has been generated yet (or it may have leaked), click 'Regenerate' and store it in your secret manager rather than committing it
+  - The realm export also ships no realm keys, so Keycloak generates fresh signing keys on first import. A Keycloak that imported an older export still signs with the key that was committed to this repository: rotate it (Realm settings → Keys → Providers: add a new `rsa-generated` provider, then disable and delete the old one) and regenerate the client secret. Until then the API Gateway rejects every token signed with that key (`CompromisedSigningKeys`)
   - The client's service account holds the realm roles the API Gateway enforces: `product-read` (GET /api/product), `product-write` (POST /api/product) and `order-write` (POST /api/order). The gateway also only accepts tokens whose `azp` claim is listed in `gateway.security.allowed-clients`
 
 

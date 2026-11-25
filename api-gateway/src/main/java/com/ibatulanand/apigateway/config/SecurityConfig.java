@@ -54,7 +54,9 @@ public class SecurityConfig {
             @Value("${gateway.security.allowed-clients}") List<String> allowedClients) {
         OAuth2TokenValidator<Jwt> validator = jwtValidator(issuerUri, allowedClients);
         return new SupplierReactiveJwtDecoder(() -> {
-            NimbusReactiveJwtDecoder decoder = NimbusReactiveJwtDecoder.withIssuerLocation(issuerUri).build();
+            NimbusReactiveJwtDecoder decoder = NimbusReactiveJwtDecoder.withIssuerLocation(issuerUri)
+                    .jwtProcessorCustomizer(new CompromisedSigningKeys(CompromisedSigningKeys.KNOWN)::apply)
+                    .build();
             decoder.setJwtValidator(validator);
             return decoder;
         });
