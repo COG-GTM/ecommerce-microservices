@@ -47,8 +47,6 @@ export default function App() {
   const offline = healthKnown && !connected
   const basketRef = useRef<Basket | null>(null)
   basketRef.current = basket
-  /** Server basket left behind when the till went offline mid-sale; voided on reconnect (its lines were sold offline). */
-  const abandonedBasketRef = useRef<string | null>(null)
   const syncingRef = useRef(false)
   const reconnectingRef = useRef(false)
 
@@ -95,9 +93,9 @@ export default function App() {
     if (reconnectingRef.current) return
     reconnectingRef.current = true
     try {
-      if (abandonedBasketRef.current === s.basketId) {
+      if (offlineStore.abandonedBasket() === s.basketId) {
         showBasket(await tillApi.voidSale(s.basketId))
-        abandonedBasketRef.current = null
+        offlineStore.setAbandonedBasket(null)
       } else {
         showBasket(await tillApi.basket(s.basketId))
       }
@@ -155,7 +153,7 @@ export default function App() {
     if (!offline || !session) return
     setQuickKeys((keys) => (keys.length ? keys : offlineStore.quickKeys()))
     if (basket?.status === 'COMPLETED' || isLocal(basket)) return
-    if (basket) abandonedBasketRef.current = basket.basketId
+    if (basket) offlineStore.setAbandonedBasket(basket.basketId)
     showBasket(newOfflineBasket(session, basket?.lines ?? []))
   }, [offline, session, basket, newOfflineBasket, showBasket])
 
