@@ -52,7 +52,13 @@ export function RefundPanel({ tillId, onExit }: { tillId?: string; onExit: () =>
   const submit = () =>
     sale &&
     run(async () => {
-      const r = await tillApi.refund(sale.orderNumber, selected.map((l) => ({ skuCode: l.skuCode, quantity: quantities[l.skuCode] })), tillId)
+      const r = await tillApi
+        .refund(sale.orderNumber, selected.map((l) => ({ skuCode: l.skuCode, quantity: quantities[l.skuCode] })), tillId)
+        .catch(async (e) => {
+          // Another till may have refunded these lines: show what is actually left alongside the error.
+          await tillApi.refundLookup(sale.orderNumber).then(showSale).catch(() => undefined)
+          throw e
+        })
       setResult(r)
       if (r.remaining) setSale(r.remaining)
       else await tillApi.refundLookup(sale.orderNumber).then(setSale).catch(() => setSale(null))
@@ -68,7 +74,7 @@ export function RefundPanel({ tillId, onExit }: { tillId?: string; onExit: () =>
         <p className="order-ref">Refund <span data-testid="refund-number">{result.refundNumber}</span> · {result.transactionNumber}</p>
         <ApiChip>POST /api/till/refund</ApiChip>
         <div className="row-buttons">
-          <button type="button" className="btn primary big" data-testid="refund-exit" onClick={onExit}>Back to sale</button>
+          <button type="button" className="btn primary big" data-testid="refund-exit" disabled={busy} onClick={onExit}>Back to sale</button>
           <button type="button" className="btn outline big" data-testid="refund-again" onClick={() => setResult(null)}>Refund more from this receipt</button>
         </div>
       </section>
@@ -81,7 +87,7 @@ export function RefundPanel({ tillId, onExit }: { tillId?: string; onExit: () =>
         <h2>Refund</h2>
         <div className="panel-head-right">
           <ApiChip>{'GET /api/till/refund/{receipt}'}</ApiChip>
-          <button type="button" className="btn outline small" data-testid="refund-exit" onClick={onExit}>Back to sale</button>
+          <button type="button" className="btn outline small" data-testid="refund-exit" disabled={busy} onClick={onExit}>Back to sale</button>
         </div>
       </div>
       <form className="refund-lookup" onSubmit={lookup}>
