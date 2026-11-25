@@ -172,13 +172,19 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
    cd ecommerce-microservices
    ```
 
-2. Start the containers:
+2. Create a `.env` file with your own secrets (it is git-ignored; compose refuses to start without it):
+   ```shell
+   cp .env.example .env
+   # fill in every value, e.g. with: openssl rand -base64 32
+   ```
+
+3. Start the containers:
    ```shell
    docker compose up -d
    ```
 
 
-3. Confirm that the containers are up and running:
+4. Confirm that the containers are up and running:
    ```shell
    docker ps
    ```
@@ -190,7 +196,8 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
 ### Interacting with Application
 
 - **Getting Credentials from KeyCloak**
-  - Access the KeyCloak Admin UI at http://localhost:8080/
+  - Access the KeyCloak Admin UI at http://localhost:8080/ and sign in with `KEYCLOAK_ADMIN_USERNAME` / `KEYCLOAK_ADMIN_PASSWORD` from your `.env`
+    (Keycloak runs in production mode and is published on `127.0.0.1` only, so the console is not reachable from other machines)
   - Go to the Realm `spring-boot-microservices-realm`
   - Go to the Client `spring-cloud-client`
   - Go the the 'Credentials' section, and get the 'Client Secret'
