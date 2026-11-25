@@ -1,32 +1,32 @@
 package com.ibatulanand.discoveryserver;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.boot.test.web.server.LocalServerPort;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest(properties = {
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
         "EUREKA_USERNAME=registry-user",
         "EUREKA_PASSWORD=registry-secret",
-        "management.tracing.enabled=false"
+        "management.tracing.enabled=false",
+        "eureka.server.use-read-only-response-cache=false"
 })
-@AutoConfigureMockMvc
 class SecurityConfigTest {
 
     private static final String ATTACKER_INSTANCE = """
             {"instance": {
-              "instanceId": "attacker.tld:order-service:443",
+              "instanceId": "attacker.tld:product-service:443",
               "hostName": "attacker.tld",
-              "app": "ORDER-SERVICE",
+              "app": "PRODUCT-SERVICE",
               "ipAddr": "203.0.113.10",
               "status": "UP",
               "port": {"$": 443, "@enabled": "true"},
@@ -37,59 +37,54 @@ class SecurityConfigTest {
             }}
             """;
 
-    @Autowired
-    private MockMvc mockMvc;
+    private final HttpClient client = HttpClient.newHttpClient();
+
+    @LocalServerPort
+    private int port;
 
     @Test
     void anonymousRegistrationIsRejected() throws Exception {
-        mockMvc.perform(post("/eureka/apps/ORDER-SERVICE")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(ATTACKER_INSTANCE))
-                .andExpect(status().isUnauthorized());
+        assertThat(send(register(), null).statusCode()).isEqualTo(401);
+        assertThat(send(listApps(), basic("registry-user", "registry-secret")).body())
+                .doesNotContain("attacker.tld");
     }
 
     @Test
-    void anonymousDeregistrationIsRejected() throws Exception {
-        mockMvc.perform(delete("/eureka/apps/ORDER-SERVICE/order-service:8081"))
-                .andExpect(status().isUnauthorized());
+    void anonymousStatusChangeAndDeregistrationAreRejected() throws Exception {
+        HttpRequest.Builder outOfService = request("/eureka/apps/PRODUCT-SERVICE/product-service:8080/status?value=OUT_OF_SERVICE")
+                .PUT(HttpRequest.BodyPublishers.noBody());
+        HttpRequest.Builder delete = request("/eureka/apps/PRODUCT-SERVICE/product-service:8080").DELETE();
+        assertThat(send(outOfService, null).statusCode()).isEqualTo(401);
+        assertThat(send(delete, null).statusCode()).isEqualTo(401);
     }
 
     @Test
     void anonymousRegistryReadIsRejected() throws Exception {
-        mockMvc.perform(get("/eureka/apps").accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isUnauthorized());
+        assertThat(send(listApps(), null).statusCode()).isEqualTo(401);
     }
 
     @Test
     void anonymousDashboardIsRejected() throws Exception {
-        mockMvc.perform(get("/"))
-                .andExpect(status().isUnauthorized());
+        assertThat(send(request("/").GET(), null).statusCode()).isEqualTo(401);
     }
 
     @Test
     void wrongPasswordIsRejected() throws Exception {
-        mockMvc.perform(post("/eureka/apps/ORDER-SERVICE")
-                        .with(httpBasic("registry-user", "wrong"))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(ATTACKER_INSTANCE))
-                .andExpect(status().isUnauthorized());
+        assertThat(send(register(), basic("registry-user", "wrong")).statusCode()).isEqualTo(401);
     }
 
     @Test
-    void authenticatedClientCanReadRegistry() throws Exception {
-        mockMvc.perform(get("/eureka/apps")
-                        .with(httpBasic("registry-user", "registry-secret"))
-                        .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk());
-    }
+    void authenticatedClientCanRegisterWithoutCsrfTokenAndIsListed() throws Exception {
+        String credentials = basic("registry-user", "registry-secret");
+        assertThat(send(register(), credentials).statusCode()).isEqualTo(204);
 
-    @Test
-    void authenticatedClientCanRegisterWithoutCsrfToken() throws Exception {
-        mockMvc.perform(post("/eureka/apps/ORDER-SERVICE")
-                        .with(httpBasic("registry-user", "registry-secret"))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(ATTACKER_INSTANCE))
-                .andExpect(status().is2xxSuccessful());
+        HttpResponse<String> apps = send(listApps(), credentials);
+        assertThat(apps.statusCode()).isEqualTo(200);
+        assertThat(apps.body()).contains("attacker.tld");
+        assertThat(apps.headers().firstValue("Set-Cookie")).isEmpty();
+
+        HttpResponse<String> deregister = send(request("/eureka/apps/PRODUCT-SERVICE/attacker.tld:product-service:443").DELETE(), credentials);
+        assertThat(deregister.statusCode()).isEqualTo(200);
     }
 
     @Test
@@ -99,5 +94,31 @@ class SecurityConfigTest {
                 .isInstanceOf(IllegalStateException.class);
         assertThatThrownBy(() -> config.registryUsers("registry-user", " ", config.passwordEncoder()))
                 .isInstanceOf(IllegalStateException.class);
+    }
+
+    private HttpRequest.Builder register() {
+        return request("/eureka/apps/PRODUCT-SERVICE")
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(ATTACKER_INSTANCE));
+    }
+
+    private HttpRequest.Builder listApps() {
+        return request("/eureka/apps").header("Accept", "application/json").GET();
+    }
+
+    private HttpRequest.Builder request(String path) {
+        return HttpRequest.newBuilder(URI.create("http://localhost:" + port + path));
+    }
+
+    private HttpResponse<String> send(HttpRequest.Builder builder, String authorization) throws Exception {
+        if (authorization != null) {
+            builder.header("Authorization", authorization);
+        }
+        return client.send(builder.build(), HttpResponse.BodyHandlers.ofString());
+    }
+
+    private static String basic(String user, String password) {
+        return "Basic " + Base64.getEncoder()
+                .encodeToString((user + ":" + password).getBytes(StandardCharsets.UTF_8));
     }
 }
