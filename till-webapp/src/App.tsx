@@ -262,7 +262,14 @@ export default function App() {
       setMessage(null)
       setScreen('sell')
       if (!isLocal(result.basket)) {
-        showBasket(await tillApi.basket(result.nextBasketId))
+        try {
+          showBasket(await tillApi.basket(result.nextBasketId))
+        } catch (e) {
+          if (!isUnreachable(e) || !session) throw e
+          markOffline()
+          showBasket(newOfflineBasket(session))
+          return
+        }
         await loadSession()
       } else if (session) {
         showBasket(newOfflineBasket(session))
