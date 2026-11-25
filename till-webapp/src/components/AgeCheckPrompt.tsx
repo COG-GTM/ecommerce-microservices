@@ -12,11 +12,11 @@ interface Props {
 /** Challenge 25: the operator must confirm photo ID was seen, or refuse the item, before the sale can be paid. */
 export function AgeCheckPrompt({ line, busy, onDecide, onLater }: Props) {
   const dialogRef = useRef<HTMLElement>(null)
-  // Take focus from the barcode field so scanner keystrokes cannot add items behind the prompt; hand it back on close.
+  // Take focus from the barcode field so scanner keystrokes cannot add items behind the prompt; hand it back on close
+  // (not to Pay or a quick key, where a scanner's trailing Enter would press the button).
   useEffect(() => {
-    const previous = document.activeElement as HTMLElement | null
     dialogRef.current?.focus()
-    return () => previous?.focus()
+    return () => document.getElementById('barcode')?.focus()
   }, [line.lineId])
   return (
     <div className="age-overlay">
