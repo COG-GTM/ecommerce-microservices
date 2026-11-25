@@ -1,7 +1,9 @@
 #!/bin/sh
-# Refuses to start Grafana without a strong admin password, and applies that
-# password to an existing grafana.db (GF_SECURITY_ADMIN_PASSWORD alone only
-# takes effect when the database is first created).
+# Refuses to start Grafana without a strong admin password. When
+# GRAFANA_ADMIN_PASSWORD changes, applies it once to an existing grafana.db
+# (GF_SECURITY_ADMIN_PASSWORD alone only takes effect when the database is
+# first created). Passwords later changed in the Grafana UI are kept until
+# GRAFANA_ADMIN_PASSWORD changes again.
 set -eu
 
 fail() {
@@ -14,9 +16,15 @@ password="${GF_SECURITY_ADMIN_PASSWORD:-}"
 [ "${#password}" -ge 16 ] || fail "GRAFANA_ADMIN_PASSWORD must be at least 16 characters"
 case "$password" in
   *CHANGE_ME*) fail "GRAFANA_ADMIN_PASSWORD still contains the CHANGE_ME placeholder" ;;
+  *"
+"*) fail "GRAFANA_ADMIN_PASSWORD must be a single line" ;;
 esac
 
-if [ -f "${GF_PATHS_DATA:-/var/lib/grafana}/grafana.db" ]; then
+data="${GF_PATHS_DATA:-/var/lib/grafana}"
+marker="$data/.admin-password-applied"
+fingerprint="$(printf '%s' "$password" | sha256sum | cut -d' ' -f1)"
+
+if [ -f "$data/grafana.db" ] && [ "$(cat "$marker" 2>/dev/null || true)" != "$fingerprint" ]; then
   if command -v grafana >/dev/null 2>&1; then
     set -- grafana cli
   else
@@ -28,5 +36,6 @@ if [ -f "${GF_PATHS_DATA:-/var/lib/grafana}/grafana.db" ]; then
     admin reset-admin-password --password-from-stdin >/dev/null \
     || fail "could not apply GRAFANA_ADMIN_PASSWORD to the existing grafana.db"
 fi
+(umask 077 && printf '%s\n' "$fingerprint" > "$marker")
 
 exec /run.sh
