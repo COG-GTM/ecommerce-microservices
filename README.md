@@ -249,6 +249,9 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
          ]
       }  
       ```
+    - Limits:
+      - `orderLineItemsDtoList` must contain 1 to 100 items, and each `skuCode` must be non-blank and at most 50 characters; otherwise the response is `400 Bad Request`.
+      - Request bodies larger than 100 KB are rejected with `413 Payload Too Large` by the gateway and by the order service (`order.request.max-body-size`).
     - Output:
       ![Postman](docs/images/outputs/order_api_post_postman.png)
       ![Zipkin](docs/images/outputs/order_api_post_zipkin.png)
