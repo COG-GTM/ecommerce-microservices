@@ -23,5 +23,7 @@ public class Basket {
     private int subtotalPence;
     private int savingsPence;
     private int totalPence;
+    /** VAT breakdown per rate band; grossPence across bands sums to totalPence. */
+    private List<VatBand> vatSummary = new ArrayList<>();
     private String orderNumber;
 }

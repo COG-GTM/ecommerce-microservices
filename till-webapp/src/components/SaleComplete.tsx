@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { TenderResult } from '../api/types'
 import { formatPence } from '../money'
 import { ApiChip } from './ApiChip'
+import { VatSummary } from './VatSummary'
 
 const PAID_BY: Record<string, string> = { CARD: 'card', CONTACTLESS: 'contactless', CASH: 'cash' }
 
@@ -37,7 +38,7 @@ export function SaleComplete({ result, onNewSale }: { result: TenderResult; onNe
             <span>Txn {receipt.transactionNumber}</span>
           </div>
           {receipt.lines.map((l) => (
-            <div className="receipt-row" key={l.lineId}><span>{l.quantity} × {l.name}</span><span>{formatPence(l.linePence)}</span></div>
+            <div className="receipt-row" key={l.lineId}><span>{l.quantity} × {l.name}{l.vatCode && <span className="vat-code">{l.vatCode}</span>}</span><span>{formatPence(l.linePence)}</span></div>
           ))}
           <div className="receipt-row rule"><span>Subtotal</span><span>{formatPence(receipt.subtotalPence)}</span></div>
           <div className="receipt-row"><span>Savings</span><span>{formatPence(receipt.savingsPence)}</span></div>
@@ -45,6 +46,7 @@ export function SaleComplete({ result, onNewSale }: { result: TenderResult; onNe
           <div className="receipt-row"><span className="cap">{PAID_BY[receipt.tenderType]}</span><span>{formatPence(receipt.amountTenderedPence)}</span></div>
           {receipt.changeDuePence > 0 && <div className="receipt-row"><span>Change</span><span>{formatPence(receipt.changeDuePence)}</span></div>}
           {receipt.authCode && <div className="receipt-row"><span>Auth code</span><span>{receipt.authCode}</span></div>}
+          <VatSummary bands={receipt.vatSummary ?? []} testId="receipt-vat-summary" />
           <div className="receipt-foot">{receipt.receiptNumber} · {new Date(receipt.issuedAt).toLocaleString('en-GB')}</div>
         </div>
       )}

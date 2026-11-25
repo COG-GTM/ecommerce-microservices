@@ -185,6 +185,15 @@ h1, h2, h3, p { margin: 0; }
 .receipt-row .cap { text-transform: capitalize; }
 .receipt-row.rule { border-top: 1px dashed #b9c4be; margin-top: 6px; padding-top: 8px; }
 .receipt-row.strong { font-weight: 700; }
+.vat-code {
+  display: inline-block; margin-left: 8px; padding: 0 5px; border: 1px solid var(--line); border-radius: 4px;
+  font-size: 11px; font-weight: 600; color: var(--muted); vertical-align: middle;
+}
+.vat-summary { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; color: var(--muted); }
+.vat-summary th { text-align: left; font-weight: 600; padding: 2px 0; border-bottom: 1px solid var(--line); }
+.vat-summary td { padding: 2px 0; }
+.vat-summary .num { text-align: right; font-variant-numeric: tabular-nums; }
+.receipt .vat-summary { border-top: 1px dashed #b9c4be; margin-top: 8px; padding-top: 6px; color: inherit; }
 .receipt-foot { margin-top: 10px; text-align: center; color: var(--muted); font-size: 12px; }
 
 /* Tablet landscape (e.g. 1024 x 768) */

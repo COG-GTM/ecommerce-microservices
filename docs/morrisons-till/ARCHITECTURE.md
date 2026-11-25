@@ -121,16 +121,29 @@ Error codes: `UNKNOWN_BARCODE` / `UNKNOWN_BASKET` / `UNKNOWN_LINE` (404), `OUT_O
 
 ## Seeded catalogue
 
-| Barcode | SKU | Item | Pence |
-| --- | --- | --- | --- |
-| 1001 | MOR-MILK-SS-4PT | Semi skimmed milk 4 pints | 155 |
-| 1002 | MOR-BREAD-WM-800 | Wholemeal bread 800g | 110 |
-| 1003 | MOR-EGGS-FR-6 | Free range eggs x6 | 185 |
-| 1004 | MOR-BANANA-5 | Bananas x5 | 95 |
-| 1005 | MOR-OJ-1L | Orange juice 1L | 160 |
-| 1006 | MOR-CHEDDAR-MAT-400 | Mature cheddar 400g | 350 |
-| 1007 | MOR-CHICKEN-BF-600 | Chicken breast fillets 600g | 475 |
-| 1008 | MOR-CARROT-1KG | Carrots 1kg | 65 |
+| Barcode | SKU | Item | Pence | VAT |
+| --- | --- | --- | --- | --- |
+| 1001 | MOR-MILK-SS-4PT | Semi skimmed milk 4 pints | 155 | Z |
+| 1002 | MOR-BREAD-WM-800 | Wholemeal bread 800g | 110 | Z |
+| 1003 | MOR-EGGS-FR-6 | Free range eggs x6 | 185 | Z |
+| 1004 | MOR-BANANA-5 | Bananas x5 | 95 | Z |
+| 1005 | MOR-OJ-1L | Orange juice 1L | 160 | S |
+| 1006 | MOR-CHEDDAR-MAT-400 | Mature cheddar 400g | 350 | Z |
+| 1007 | MOR-CHICKEN-BF-600 | Chicken breast fillets 600g | 475 | Z |
+| 1008 | MOR-CARROT-1KG | Carrots 1kg | 65 | Z |
+| 4001 | MOR-CHOC-BAR-100 | Milk chocolate bar 100g (barcode only) | 120 | S |
+| 4002 | MOR-WASHUP-500 | Washing up liquid 500ml (barcode only) | 135 | S |
+
+## UK VAT (MBA-3932)
+
+Each product carries `vatCode`: `Z` (zero-rated, 0%) or `S` (standard-rated, 20%); a missing or unknown code is
+treated as `S`. Shelf prices are VAT inclusive. Every basket and receipt carries `vatSummary`, one
+`{ code, ratePercent, netPence, vatPence, grossPence }` per rate present, computed by `VatAnalysis` in `BasketPricer`.
+
+Rounding: VAT is computed once per rate band, never per line: `vat = round_half_up(gross × rate / (100 + rate))`,
+`net = gross − vat`. A band's gross is its lines plus any adjustments tied to those lines; basket-level adjustments
+are apportioned across bands pro rata by gross (largest remainder), so band grosses always sum to `totalPence`.
+Example: three 1p standard-rated lines give 1p VAT on the 3p band (per-line rounding would give 0p).
 
 ## Extension points for the till tickets
 

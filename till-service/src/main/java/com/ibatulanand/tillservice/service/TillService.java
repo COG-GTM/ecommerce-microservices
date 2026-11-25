@@ -98,6 +98,7 @@ public class TillService {
         if (line == null) {
             line = new BasketLine(UUID.randomUUID().toString(), item.barcode(), item.skuCode(), item.name(),
                     0, item.pricePence(), 0);
+            line.setVatCode(item.vatCode());
             basket.getLines().add(line);
         }
         line.setQuantity(line.getQuantity() + quantity);
@@ -174,7 +175,7 @@ public class TillService {
         Receipt receipt = new Receipt("R-" + basket.getTransactionNumber(), properties.storeNumber(),
                 properties.storeName(), basket.getTillId(), properties.operatorName(), basket.getTransactionNumber(),
                 orderNumber, List.copyOf(basket.getLines()), basket.getSubtotalPence(), basket.getSavingsPence(),
-                total, tenderType, tendered, change, authCode, Instant.now());
+                total, tenderType, tendered, change, authCode, Instant.now(), basket.getVatSummary());
         log.info("Till {} completed transaction {} as order {} ({}p {})", basket.getTillId(),
                 basket.getTransactionNumber(), orderNumber, total, tenderType);
         return new TenderResult("APPROVED", tenderType, basket, orderNumber, tendered, change, authCode, null,

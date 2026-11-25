@@ -24,4 +24,6 @@ public class Product {
     private String skuCode;
     private Integer pricePence;
     private Boolean quickKey;
+    /** UK VAT code: Z (zero-rated, 0%) or S (standard-rated, 20%). */
+    private String vatCode;
 }
