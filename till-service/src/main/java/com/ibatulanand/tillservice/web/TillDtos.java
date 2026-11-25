@@ -33,7 +33,7 @@ public final class TillDtos {
     }
 
     public record TenderRequest(@NotBlank String basketId, @NotBlank String tenderType, Integer amountTenderedPence,
-                                String terminalOutcome) {
+                                String terminalOutcome, Integer expectedTotalPence) {
     }
 
     public record Receipt(String receiptNumber, String storeNumber, String storeName, String tillId,

@@ -20,6 +20,7 @@ import java.util.Optional;
 
 /** WebClient adapters over the existing services, resolved through Eureka (lb://). */
 @Component
+@lombok.extern.slf4j.Slf4j
 public class HttpServiceClients implements CatalogueClient, StockClient, OrderClient {
 
     private static final Duration TIMEOUT = Duration.ofSeconds(5);
@@ -122,7 +123,7 @@ public class HttpServiceClients implements CatalogueClient, StockClient, OrderCl
     }
 
     private static TillException unavailable(String service, RuntimeException cause) {
-        return new TillException(HttpStatus.SERVICE_UNAVAILABLE, "BACKEND_UNAVAILABLE",
-                service + " is unavailable: " + cause.getMessage());
+        log.warn("{} call failed", service, cause);
+        return new TillException(HttpStatus.SERVICE_UNAVAILABLE, "BACKEND_UNAVAILABLE", service + " is unavailable");
     }
 }

@@ -76,7 +76,8 @@ public class OrderService {
 
             // Send order to the kafka topic
             kafkaTemplate.send("notificationTopic", new OrderPlacedEvent(order.getOrderNumber(),
-                    order.getChannel(), order.getStoreNumber(), order.getTillId(), order.getTotalPence()));
+                    order.getChannel(), order.getStoreNumber(), order.getTillId(), order.getTransactionId(),
+                    order.getTenderType(), order.getTotalPence()));
 
             return order;
         } else {

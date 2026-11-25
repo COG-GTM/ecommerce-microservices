@@ -44,8 +44,11 @@ public class TillService {
     private final BasketPricer pricer;
     private final TillProperties properties;
 
+    static final int MAX_TILLS = 10_000;
+
     private final Map<String, Basket> baskets = new ConcurrentHashMap<>();
     private final Map<String, String> openBasketByTill = new ConcurrentHashMap<>();
+    private final Map<String, String> lastClosedByTill = new ConcurrentHashMap<>();
     private final Map<String, AtomicInteger> transactionCounters = new ConcurrentHashMap<>();
 
     public TillService(CatalogueClient catalogue, StockClient stock, OrderClient orders, PaymentTerminal terminal,
@@ -124,6 +127,7 @@ public class TillService {
         Basket basket = openForChange(basketId);
         basket.setStatus(Basket.Status.VOIDED);
         openBasketByTill.remove(basket.getTillId(), basketId);
+        retireClosed(basket);
         log.info("Till {} voided transaction {}", basket.getTillId(), basket.getTransactionNumber());
         return openBasket(basket.getTillId());
     }
@@ -139,6 +143,9 @@ public class TillService {
         }
         pricer.price(basket);
         int total = basket.getTotalPence();
+        if (request.expectedTotalPence() != null && request.expectedTotalPence() != total) {
+            throw new TillException(HttpStatus.CONFLICT, "TOTAL_CHANGED", "Basket total changed; review the basket before taking payment");
+        }
         int tendered = total;
         String authCode = null;
         if ("CASH".equals(tenderType)) {
@@ -161,6 +168,7 @@ public class TillService {
         basket.setOrderNumber(orderNumber);
         basket.setStatus(Basket.Status.COMPLETED);
         openBasketByTill.remove(basket.getTillId(), basket.getBasketId());
+        retireClosed(basket);
         Basket next = openBasket(basket.getTillId());
         int change = tendered - total;
         Receipt receipt = new Receipt("R-" + basket.getTransactionNumber(), properties.storeNumber(),
@@ -178,6 +186,9 @@ public class TillService {
     }
 
     private Basket openBasket(String tillId) {
+        if (!openBasketByTill.containsKey(tillId) && openBasketByTill.size() >= MAX_TILLS) {
+            throw new TillException(HttpStatus.TOO_MANY_REQUESTS, "TOO_MANY_TILLS", "Too many active tills");
+        }
         String id = openBasketByTill.computeIfAbsent(tillId, t -> {
             Basket basket = new Basket();
             basket.setBasketId(UUID.randomUUID().toString());
@@ -188,6 +199,14 @@ public class TillService {
             return basket.getBasketId();
         });
         return baskets.get(id);
+    }
+
+    /** Keeps only the most recently closed basket per till readable, so memory stays bounded per till. */
+    private void retireClosed(Basket basket) {
+        String previous = lastClosedByTill.put(basket.getTillId(), basket.getBasketId());
+        if (previous != null) {
+            baskets.remove(previous);
+        }
     }
 
     private Basket openForChange(String basketId) {

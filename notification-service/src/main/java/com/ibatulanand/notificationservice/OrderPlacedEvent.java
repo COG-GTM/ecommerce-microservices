@@ -12,5 +12,7 @@ public class OrderPlacedEvent {
     private String channel;
     private String storeNumber;
     private String tillId;
+    private String transactionId;
+    private String tenderType;
     private Integer totalPence;
 }
