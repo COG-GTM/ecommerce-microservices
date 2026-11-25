@@ -37,8 +37,12 @@ test.describe('MBA-3935 weighed and loose items', () => {
     await expect(till.total).toHaveText('£0.99')
     await till.pay()
     await till.payByCard('approved')
+    const receipt = await weight.reprintReceipt()
+    await expect(receipt).toContainText('Loose tomatoes 0.452 kg @ £2.20/kg')
+    await expect(receipt).toContainText('£0.99')
     const order = await backend.order(await till.orderNumber())
     expect(order.totalPence).toBe(99)
+    expect(order.lines).toEqual([expect.objectContaining({ skuCode: 'MOR-TOMATO-LOOSE-KG', quantity: 1, price: 0.99 })])
   })
 
   test('cancelling the weight prompt adds nothing', async ({ till, page }) => {
@@ -49,6 +53,25 @@ test.describe('MBA-3935 weighed and loose items', () => {
     await weight.cancel()
     await expect(till.lines).toHaveCount(0)
     await expect(till.total).toHaveText('£0.00')
+  })
+
+  test('weight prompt works from the keyboard: Tab stays inside, Escape adds nothing', async ({ till, page }) => {
+    await till.open()
+    await till.quickKey('1001')
+    await till.scan('2201')
+    const weight = new WeightDialog(page)
+    await expect(weight.root).toBeVisible()
+    await page.keyboard.type('0.5')
+    await expect(weight.preview).toContainText('£1.10')
+    for (let i = 0; i < 20; i++) {
+      await page.keyboard.press(i % 2 ? 'Tab' : 'Shift+Tab')
+      await expect(weight.root.locator(':focus')).toHaveCount(1)
+    }
+    await page.keyboard.press('Escape')
+    await expect(weight.root).toBeHidden()
+    await expect(weight.barcodeInput).toBeFocused()
+    await expect(till.lines).toHaveCount(1)
+    await expect(till.total).toHaveText('£1.55')
   })
 
   test('label with a bad check digit is rejected with a clear message', async ({ till }) => {

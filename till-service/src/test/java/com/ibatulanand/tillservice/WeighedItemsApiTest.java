@@ -139,6 +139,23 @@ class WeighedItemsApiTest {
     }
 
     @Test
+    void zeroPriceLabelIsRejected() throws Exception {
+        String barcode = "2002101" + "00000";
+        barcode += EmbeddedPriceBarcode.checkDigit(barcode);
+        assertThat(add(Map.of("barcode", barcode), status().isUnprocessableEntity()).get("error").asText())
+                .isEqualTo("INVALID_LABEL_PRICE");
+    }
+
+    @Test
+    void cataloguedPrefix2BarcodeIsSoldAsTheCatalogueItem() throws Exception {
+        CatalogueItem gift = new CatalogueItem("2123456789012", "MOR-GIFT-CARD", "Gift card", 1000, false);
+        when(services.findByBarcode("2123456789012")).thenReturn(Optional.of(gift));
+        JsonNode line = add(Map.of("barcode", "2123456789012"), status().isCreated()).get("lines").get(0);
+        assertThat(line.get("pricedBy").asText()).isEqualTo("EACH");
+        assertThat(line.get("linePence").asInt()).isEqualTo(1000);
+    }
+
+    @Test
     void weighedAndLabelledAddsTakeOneAtATime() throws Exception {
         assertThat(add(Map.of("barcode", "2201", "weightGrams", 500, "quantity", 2), status().isUnprocessableEntity())
                 .get("error").asText()).isEqualTo("QUANTITY_NOT_ALLOWED");

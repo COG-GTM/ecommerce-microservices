@@ -31,7 +31,7 @@ export function SellPanel(props: Props) {
   }
   const onKey = (key: string) => setBarcode((value) => (key === 'C' ? '' : value + key))
   const hasLines = (basket?.lines.length ?? 0) > 0
-  const fixedQty = !selectedLine || selectedLine.pricedBy !== 'EACH'
+  const fixedQty = !selectedLine || (selectedLine.pricedBy ?? 'EACH') !== 'EACH'
 
   return (
     <>
