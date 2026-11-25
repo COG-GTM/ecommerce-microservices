@@ -89,7 +89,8 @@ compute totals; they render `subtotalPence`, `savingsPence` and `totalPence` fro
 { "basketId": "b0c1…", "tillId": "07", "transactionNumber": "0417-07-0001", "status": "OPEN", "currency": "GBP",
   "lines": [ { "lineId": "l-1", "barcode": "393407", "skuCode": "MOR-YOGHURT-GREEK-500", "name": "Greek style yoghurt 500g",
                "quantity": 3, "unitPricePence": 150, "linePence": 450 } ],
-  "adjustments": [ { "code": "MULTIBUY", "label": "Greek yoghurt 3 for £3.50", "amountPence": -100, "lineId": "l-1" } ],
+  "adjustments": [ { "code": "MULTIBUY", "label": "Greek yoghurt 3 for £3.50", "amountPence": -100, "lineId": "l-1",
+                     "lineIds": ["l-1"] } ],
   "lastLineId": "l-1", "itemCount": 3, "subtotalPence": 450, "savingsPence": 100, "totalPence": 350, "orderNumber": null }
 
 // TenderResult

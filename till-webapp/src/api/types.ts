@@ -35,7 +35,10 @@ export interface Adjustment {
   code: string
   label: string
   amountPence: number
+  /** the line the till shows the adjustment under */
   lineId: string | null
+  /** every line the adjustment was earned on, e.g. a meal deal's main, side and drink */
+  lineIds: string[]
 }
 
 export interface Basket {
