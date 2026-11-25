@@ -188,8 +188,8 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
    export MYSQL_ROOT_PASSWORD
    docker compose exec -e MYSQL_ROOT_PASSWORD mysql-order bash -c \
      'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -uroot order_service < /docker-entrypoint-initdb.d/01-schema.sql \
-      && /docker-entrypoint-initdb.d/02-app-user.sh'
-   docker compose up -d order-service   # reconnect with the new app credentials
+      && /docker-entrypoint-initdb.d/02-app-user.sh' \
+     && docker compose up -d order-service   # only switch the service once the account is ready
    ```
    Then rotate root to the value in `.env`:
    `ALTER USER 'root'@'%' IDENTIFIED BY '<new root password>';` (repeat for `'root'@'localhost'`).
