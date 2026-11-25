@@ -23,6 +23,8 @@ public class SecurityConfig {
     public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity serverHttpSecurity) {
         serverHttpSecurity.csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .authorizeExchange(exchange -> {
+                    // Internal sale writer: only till-service (via Eureka) may call it, never through the gateway.
+                    exchange.pathMatchers("/api/order/sale").denyAll();
                     if (publicPaths.length > 0) {
                         exchange.pathMatchers(publicPaths).permitAll();
                     }

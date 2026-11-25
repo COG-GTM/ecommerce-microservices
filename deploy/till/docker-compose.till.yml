@@ -79,7 +79,7 @@ services:
       # Keycloak only imports files named <realm>-realm.json
       - ../../realms/spring-boot-microservices-realm.json:/opt/keycloak/data/import/spring-boot-microservices-realm.json:ro
     ports:
-      - "${TILL_KEYCLOAK_PORT:-8080}:8080"
+      - "${TILL_BIND_ADDRESS:-127.0.0.1}:${TILL_KEYCLOAK_PORT:-8080}:8080"
     healthcheck:
       test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080 && printf 'GET /health/ready HTTP/1.0\\r\\n\\r\\n' >&3 && grep -q UP <&3"]
       <<: *health
@@ -91,7 +91,7 @@ services:
       EUREKA_INSTANCE_HOSTNAME: discovery-server
       EUREKA_SERVER_RESPONSECACHEUPDATEINTERVALMS: "3000"
     ports:
-      - "${TILL_EUREKA_PORT:-8761}:8761"
+      - "${TILL_BIND_ADDRESS:-127.0.0.1}:${TILL_EUREKA_PORT:-8761}:8761"
     healthcheck:
       test: ["CMD", "healthcheck", "8761"]
       <<: *health
@@ -177,7 +177,7 @@ services:
       discovery-server: { condition: service_healthy }
       keycloak: { condition: service_healthy }
     ports:
-      - "${TILL_GATEWAY_PORT:-8181}:8181"
+      - "${TILL_BIND_ADDRESS:-127.0.0.1}:${TILL_GATEWAY_PORT:-8181}:8181"
     healthcheck:
       test: ["CMD", "healthcheck", "8181"]
       <<: *health
@@ -187,7 +187,7 @@ services:
     depends_on:
       api-gateway: { condition: service_healthy }
     ports:
-      - "${TILL_WEBAPP_PORT:-5174}:80"
+      - "${TILL_BIND_ADDRESS:-127.0.0.1}:${TILL_WEBAPP_PORT:-5174}:80"
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]
       <<: *health
