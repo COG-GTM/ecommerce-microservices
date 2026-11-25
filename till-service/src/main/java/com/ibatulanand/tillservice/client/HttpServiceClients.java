@@ -6,6 +6,9 @@ import com.ibatulanand.tillservice.config.TillProperties;
 import com.ibatulanand.tillservice.domain.Basket;
 import com.ibatulanand.tillservice.domain.BasketLine;
 import com.ibatulanand.tillservice.domain.CatalogueItem;
+import com.ibatulanand.tillservice.web.RefundDtos.RefundLineRequest;
+import com.ibatulanand.tillservice.web.RefundDtos.RefundOrder;
+import com.ibatulanand.tillservice.web.RefundDtos.RefundableSale;
 import com.ibatulanand.tillservice.web.TillException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
@@ -149,6 +152,72 @@ public class HttpServiceClients implements CatalogueClient, StockClient, OrderCl
             body.put("ageApprovedBy", line.getAgeApprovedBy());
         }
         return body;
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    record ErrorDto(String error, String message) {
+    }
+
+    @Override
+    public RefundableSale refundable(String reference) {
+        try {
+            RefundableSale sale = webClientBuilder.build().get()
+                    .uri(properties.orderServiceUrl() + "/api/order/refundable/{reference}", reference)
+                    .retrieve().bodyToMono(RefundableSale.class).block(TIMEOUT);
+            if (sale == null) {
+                throw new TillException(HttpStatus.BAD_GATEWAY, "ORDER_SERVICE_ERROR", "order-service returned no sale");
+            }
+            return sale;
+        } catch (WebClientResponseException e) {
+            throw refundRejected(e);
+        } catch (TillException e) {
+            throw e;
+        } catch (RuntimeException e) {
+            throw unavailable("order-service", e);
+        }
+    }
+
+    @Override
+    public RefundOrder refund(String reference, String storeNumber, String tillId, String transactionId,
+                              List<RefundLineRequest> lines) {
+        Map<String, Object> body = Map.of(
+                "storeNumber", storeNumber,
+                "tillId", tillId,
+                "transactionId", transactionId,
+                "lines", lines);
+        try {
+            RefundOrder refund = webClientBuilder.build().post()
+                    .uri(properties.orderServiceUrl() + "/api/order/{reference}/refunds", reference)
+                    .bodyValue(body)
+                    .retrieve().bodyToMono(RefundOrder.class).block(TIMEOUT);
+            if (refund == null || refund.orderNumber() == null) {
+                throw new TillException(HttpStatus.BAD_GATEWAY, "ORDER_SERVICE_ERROR", "order-service returned no refund");
+            }
+            return refund;
+        } catch (WebClientResponseException e) {
+            throw refundRejected(e);
+        } catch (TillException e) {
+            throw e;
+        } catch (RuntimeException e) {
+            throw unavailable("order-service", e);
+        }
+    }
+
+    /** Passes order-service's refund rejections (404/409/400/422) through with their error code and message. */
+    private static TillException refundRejected(WebClientResponseException e) {
+        if (e.getStatusCode().is5xxServerError()) {
+            return unavailable("order-service", e);
+        }
+        ErrorDto error = null;
+        try {
+            error = e.getResponseBodyAs(ErrorDto.class);
+        } catch (RuntimeException ignored) {
+            // fall through to a generic rejection
+        }
+        HttpStatus status = HttpStatus.resolve(e.getStatusCode().value());
+        return new TillException(status == null ? HttpStatus.BAD_REQUEST : status,
+                error != null && error.error() != null ? error.error() : "REFUND_REJECTED",
+                error != null && error.message() != null ? error.message() : "order-service rejected the refund");
     }
 
     private static TillException unavailable(String service, RuntimeException cause) {

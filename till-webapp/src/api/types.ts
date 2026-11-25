@@ -159,6 +159,52 @@ export interface TenderResult {
   idempotencyKey: string
 }
 
+export interface RefundableLine {
+  skuCode: string
+  name: string
+  unitPricePence: number
+  soldQuantity: number
+  refundedQuantity: number
+  refundableQuantity: number
+}
+
+/** A completed sale found by receipt/order number, with what is still refundable against it. */
+export interface RefundableSale {
+  orderNumber: string
+  transactionId: string
+  storeNumber: string
+  tillId: string
+  tenderType: TenderType | null
+  totalPence: number
+  refundedPence: number
+  refundablePence: number
+  lines: RefundableLine[]
+  refunds: string[]
+}
+
+export interface RefundedLine {
+  skuCode: string
+  name: string
+  quantity: number
+  unitPricePence: number
+  lineTotalPence: number
+}
+
+export interface RefundResult {
+  status: 'REFUNDED'
+  refundNumber: string
+  originalOrderNumber: string
+  transactionNumber: string
+  tillId: string
+  operatorName: string
+  tenderType: TenderType | null
+  refundPence: number
+  lines: RefundedLine[]
+  /** null if the refund committed but the refreshed sale could not be read */
+  remaining: RefundableSale | null
+  issuedAt: string
+}
+
 export interface ApiError {
   error: string
   message: string

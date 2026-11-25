@@ -15,6 +15,7 @@ interface Props {
   onVoidLine: () => void
   onVoidSale: () => void
   onPay: () => void
+  onRefund?: () => void
 }
 
 export function SellPanel(props: Props) {
@@ -37,7 +38,12 @@ export function SellPanel(props: Props) {
       <section className="panel scan" aria-label="Scan">
         <div className="panel-head compact">
           <label htmlFor="barcode" className="label">Scan or key a barcode</label>
-          <ApiChip>{'GET /api/till/products/{barcode}'}</ApiChip>
+          <div className="panel-head-right">
+            <ApiChip>{'GET /api/till/products/{barcode}'}</ApiChip>
+            {props.onRefund && (
+              <button type="button" className="btn outline small" data-testid="refund-mode" disabled={busy} onClick={props.onRefund}>Refund</button>
+            )}
+          </div>
         </div>
         <form className="scan-row" onSubmit={submit}>
           <input
