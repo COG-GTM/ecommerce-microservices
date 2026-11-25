@@ -10,7 +10,7 @@ import { SaleComplete } from './components/SaleComplete'
 import { SellPanel } from './components/SellPanel'
 import { TenderPanel } from './components/TenderPanel'
 import { WeightDialog } from './components/WeightDialog'
-import { formatKg } from './money'
+import { formatKg, formatPence } from './money'
 import {
   OfflineStore,
   addLocalLine,
@@ -289,8 +289,15 @@ export default function App() {
   const voidSale = () =>
     basket &&
     run(async () => {
-      showBasket(isLocal(basket) && session ? newOfflineBasket(session) : await tillApi.voidSale(basket.basketId))
-      setMessage({ kind: 'ok', text: 'Sale voided' })
+      if (isLocal(basket) && session) {
+        showBasket(newOfflineBasket(session))
+        setMessage({ kind: 'ok', text: 'Sale voided' })
+      } else {
+        const { paidPence } = await tillApi.basket(basket.basketId)
+        showBasket(await tillApi.voidSale(basket.basketId))
+        setMessage({ kind: 'ok', text: paidPence > 0 ? `Sale voided. Return ${formatPence(paidPence)} cash` : 'Sale voided' })
+      }
+      setScreen('sell')
     }, (text) => setMessage({ kind: 'error', text }))
 
   const applyTender = (r: TenderResult) => {
@@ -307,6 +314,11 @@ export default function App() {
     }
   }
 
+  const tenderFailed = (text: string) => {
+    setTenderError(text)
+    if (basket && !isLocal(basket)) tillApi.basket(basket.basketId).then(setBasket, () => undefined)
+  }
+
   const cardAvailable = !offline && !isLocal(basket)
 
   const payByCard = (type: TenderType, outcome: TerminalOutcome) =>
@@ -315,8 +327,8 @@ export default function App() {
       setDeclineMessage(null)
       setTenderError(null)
       const idempotencyKey = unresolvedAttemptKey ?? newAttemptKey()
-      applyTender(await tillApi.tender(basket.basketId, type, { terminalOutcome: outcome, expectedTotalPence: basket.totalPence, idempotencyKey }))
-    }, setTenderError)
+      applyTender(await tillApi.tender(basket.basketId, type, { terminalOutcome: outcome, expectedTotalPence: basket.totalPence, idempotencyKey, expectedBalanceDuePence: basket.balanceDuePence }))
+    }, tenderFailed)
 
   const payByCash = (amountTenderedPence: number, partialPayment = false) =>
     basket &&
@@ -331,8 +343,8 @@ export default function App() {
         if (!offline) void flushQueue()
         return
       }
-      applyTender(await tillApi.tender(basket.basketId, 'CASH', { amountTenderedPence, partialPayment, expectedTotalPence: basket.totalPence }))
-    }, setTenderError)
+      applyTender(await tillApi.tender(basket.basketId, 'CASH', { amountTenderedPence, partialPayment, expectedTotalPence: basket.totalPence, expectedBalanceDuePence: basket.balanceDuePence }))
+    }, tenderFailed)
 
   const newSale = () =>
     result &&
@@ -399,6 +411,7 @@ export default function App() {
                 onCard={payByCard}
                 onCash={payByCash}
                 onMethodChange={resetTenderState}
+                onVoidSale={voidSale}
               />
             )}
             {screen === 'complete' && result && <SaleComplete result={result} onNewSale={newSale} />}

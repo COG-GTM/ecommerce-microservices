@@ -69,7 +69,8 @@ compute totals; they render `subtotalPence`, `savingsPence` and `totalPence` fro
 | DELETE | `/basket/lines/{lineId}?basketId=` | - | `Basket` (void line) |
 | POST | `/basket/lines/{lineId}/age-check` | `{ basketId, decision: APPROVED\|REFUSED }` | `Basket` (Challenge 25: APPROVED records the till operator as `ageApprovedBy`; REFUSED voids the line) |
 | POST | `/basket/void` | `{ basketId }` | new empty `Basket` (void sale) |
-| POST | `/basket/tender` | `{ basketId, tenderType: CARD\|CONTACTLESS\|CASH, amountTenderedPence?, terminalOutcome?: APPROVED\|DECLINED\|TIMEOUT, idempotencyKey? }` | `TenderResult` |
+| POST | `/basket/tender` | `{ basketId, tenderType: CARD\|CONTACTLESS\|CASH, amountTenderedPence?, terminalOutcome?: APPROVED\|DECLINED\|TIMEOUT, idempotencyKey?, expectedTotalPence?, partialPayment?, expectedBalanceDuePence? }` | `TenderResult` |
+| GET | `/basket/{basketId}/cash-quote?amountTenderedPence=` | - | `CashQuote { totalPence, paidPence, balanceDuePence, amountTenderedPence, changeDuePence, remainingPence }` |
 | POST | `/basket/member` | `{ basketId, cardNumber }` (More Card, seeded test cards `9826000000000001`/`…0002`) | `Basket` with `member`; 404 `UNKNOWN_CARD` leaves the basket's membership unchanged (non-member if no card was attached); seeded cards only under the `dev`/`till-demo` profile (otherwise 503 `MORE_CARD_UNAVAILABLE`) |
 | GET | `/refund/{reference}` | - | `RefundableSale` (reference: receipt `R-...`, transaction or order number) |
 | POST | `/refund` | `{ reference, tillId?, lines: [{ skuCode, quantity }] }` | `RefundResult`; `409 REFUND_EXCEEDS_SOLD` beyond what is left |
@@ -107,6 +108,12 @@ result, so a retry never charges or orders twice; a different key, cash or a bas
   "orderNumber": "8df1…", "amountTenderedPence": 350, "changeDuePence": 0, "authCode": "419508",
   "declineReason": null, "receipt": { /* Receipt */ }, "nextBasketId": "c2d3…" }
 // Declined: status DECLINED, basket still OPEN with all lines, orderNumber/receipt null, nextBasketId = same basket.
+// Part cash (CASH with partialPayment: true and less than balanceDuePence): status PARTIAL, basket still OPEN,
+// basket.tenders/paidPence/balanceDuePence updated, TenderResult.balanceDuePence = what is left, nextBasketId = same basket.
+// The next tender pays balanceDuePence (card authorises it; cash returns tendered - balance as change). The order is
+// placed when the balance reaches 0; receipt.tenders lists every line and tenderType is SPLIT when they mix types.
+// While a basket has tenders, line edits return 409 TENDER_IN_PROGRESS (void sale still works). A stale
+// expectedBalanceDuePence returns 409 BALANCE_CHANGED, so a retried request cannot take the same payment twice.
 
 // Receipt
 { "receiptNumber": "R-0417-07-0001", "storeNumber": "0417", "storeName": "Bradford Demo", "tillId": "07",

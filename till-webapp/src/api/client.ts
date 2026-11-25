@@ -51,7 +51,7 @@ export const tillApi = {
   voidSale: (basketId: string) => request<Basket>('/basket/void', json('POST', { basketId })),
   cashQuote: (basketId: string, amountTenderedPence: number) =>
     request<CashQuote>(`/basket/${encodeURIComponent(basketId)}/cash-quote?amountTenderedPence=${amountTenderedPence}`),
-  tender: (basketId: string, tenderType: TenderType, options: { amountTenderedPence?: number; partialPayment?: boolean; terminalOutcome?: TerminalOutcome; expectedTotalPence?: number; idempotencyKey?: string } = {}) =>
+  tender: (basketId: string, tenderType: TenderType, options: { amountTenderedPence?: number; partialPayment?: boolean; expectedBalanceDuePence?: number; terminalOutcome?: TerminalOutcome; expectedTotalPence?: number; idempotencyKey?: string } = {}) =>
     request<TenderResult>('/basket/tender', json('POST', { basketId, tenderType, ...options })),
   refundLookup: (reference: string) => request<RefundableSale>('/refund/' + encodeURIComponent(reference)),
   refund: (reference: string, lines: { skuCode: string; quantity: number }[], tillId?: string) =>
