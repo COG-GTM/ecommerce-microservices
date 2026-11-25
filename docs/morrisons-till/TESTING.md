@@ -15,7 +15,7 @@ Everything runs locally. This repo has no GitHub CI.
 
 ```bash
 make till-up       # mvn package (JDK 17) + docker compose up --build --wait + gateway/till readiness poll
-make till-e2e      # Playwright: api + desktop (1920x1080) + tablet (1024x768) projects against the running stack
+make till-e2e      # Playwright: api + desktop (1920x1080) + tablet (1024x768) projects, then the outage project (stops/restarts api-gateway)
 make till-test     # till-service JUnit/MockMvc contract tests
 make till-down     # stop and remove volumes
 make till-logs     # follow container logs

@@ -12,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -52,6 +53,12 @@ public class OrderController {
             return ResponseEntity.status(HttpStatus.CONFLICT)
                     .body(Map.of("error", "OUT_OF_STOCK", "message", e.getMessage()));
         }
+    }
+
+    /** Till orders in the order they were stored, e.g. to reconcile a till's synced offline sales. */
+    @GetMapping(params = "tillId")
+    public List<OrderResponse> ordersForTill(@RequestParam String tillId) {
+        return orderService.findByTillId(tillId).stream().map(OrderResponse::from).toList();
     }
 
     @GetMapping("/{orderNumber}")

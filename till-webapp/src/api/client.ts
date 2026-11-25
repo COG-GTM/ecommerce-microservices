@@ -1,3 +1,4 @@
+import type { OfflineSale, OfflineSaleResult } from '../offline/offline'
 import type { Basket, Product, TenderResult, TenderType, TillSession } from './types'
 
 const BASE = '/api/till'
@@ -18,7 +19,12 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     headers: { 'Content-Type': 'application/json', Accept: 'application/json', ...init?.headers },
   })
   const text = await response.text()
-  const body = text ? JSON.parse(text) : null
+  let body = null
+  try {
+    body = text ? JSON.parse(text) : null
+  } catch {
+    // e.g. an HTML 502 page from the proxy when the gateway is down
+  }
   if (!response.ok) {
     throw new TillApiError(response.status, body?.error ?? 'HTTP_' + response.status, body?.message ?? response.statusText)
   }
@@ -41,4 +47,5 @@ export const tillApi = {
   voidSale: (basketId: string) => request<Basket>('/basket/void', json('POST', { basketId })),
   tender: (basketId: string, tenderType: TenderType, options: { amountTenderedPence?: number; terminalOutcome?: 'APPROVED' | 'DECLINED'; expectedTotalPence?: number } = {}) =>
     request<TenderResult>('/basket/tender', json('POST', { basketId, tenderType, ...options })),
+  syncOfflineSale: (sale: OfflineSale) => request<OfflineSaleResult>('/offline-sales', json('POST', sale)),
 }

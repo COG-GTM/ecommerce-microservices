@@ -25,6 +25,9 @@ public class Order {
     private String transactionId;
     private String tenderType;
     private Integer totalPence;
+    /** Client-supplied key (e.g. an offline till sale id) so a replayed sale is stored once. */
+    @Column(unique = true)
+    private String idempotencyKey;
     @OneToMany(cascade = CascadeType.ALL)
     private List<OrderLineItems> orderLineItemsList;
 }

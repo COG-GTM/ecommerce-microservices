@@ -69,6 +69,7 @@ compute totals; they render `subtotalPence`, `savingsPence` and `totalPence` fro
 | DELETE | `/basket/lines/{lineId}?basketId=` | - | `Basket` (void line) |
 | POST | `/basket/void` | `{ basketId }` | new empty `Basket` (void sale) |
 | POST | `/basket/tender` | `{ basketId, tenderType: CARD\|CONTACTLESS\|CASH, amountTenderedPence?, terminalOutcome?: APPROVED\|DECLINED }` | `TenderResult` |
+| POST | `/offline-sales` | `{ saleId, tillId, transactionNumber, tenderType: CASH, lines: [{ barcode, skuCode?, name?, quantity, unitPricePence? }], amountTenderedPence }` | `{ saleId, orderNumber, transactionNumber, totalPence, amountTenderedPence }`; idempotent on `saleId` |
 
 `tillId` is optional (default `07`). Each till id has its own basket, which is how parallel E2E tests stay isolated.
 `terminalOutcome` drives the simulated PIN pad. A real terminal adapter ignores it.
@@ -140,5 +141,5 @@ Error codes: `UNKNOWN_BARCODE` / `UNKNOWN_BASKET` / `UNKNOWN_LINE` (404), `OUT_O
 | Weighed items, age-restricted items | product fields plus a line attribute; a `TillService.addLine` guard returns a new error code |
 | Cash/change, card terminal declines | `TillService.tender`, `PaymentTerminal` (decline reasons in `declineReason`) |
 | Refunds | new `/api/till/refund/**` endpoints plus an order-service refund call |
-| Offline store-and-forward | decorate `OrderClient` with a durable queue |
+| Offline store-and-forward (MBA-3940) | the webapp sells cash from its cached catalogue and queues sales in `localStorage` (`src/offline/`); on reconnect it replays them to `POST /offline-sales`, which places the order with idempotency key `offline-<saleId>` (order-service stores one order per key; `GET /api/order?tillId=` lists a till's orders) |
 | Legacy price-feed bridge | alternative `CatalogueClient` or a product-service feed importer |

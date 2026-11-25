@@ -41,6 +41,8 @@ h1, h2, h3, p { margin: 0; }
 .backend { display: inline-flex; align-items: center; gap: 10px; }
 .backend .dot { width: 9px; height: 9px; border-radius: 50%; background: #7ddc9f; }
 .backend.down .dot { background: #ff6b6b; }
+.offline-queue { padding: 2px 10px; border-radius: 999px; background: #ffd166; color: #3a2c00; font-weight: 600; }
+.offline-note { margin: 0; border-color: #ffd166; background: #fff8e1; color: #5c4400; }
 .txn { font-weight: 700; }
 
 .api-chip {

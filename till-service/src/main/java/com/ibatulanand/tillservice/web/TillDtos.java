@@ -2,8 +2,10 @@ package com.ibatulanand.tillservice.web;
 
 import com.ibatulanand.tillservice.domain.Basket;
 import com.ibatulanand.tillservice.domain.BasketLine;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 
 import java.time.Instant;
 import java.util.List;
@@ -40,6 +42,21 @@ public final class TillDtos {
                           String operatorName, String transactionNumber, String orderNumber, List<BasketLine> lines,
                           int subtotalPence, int savingsPence, int totalPence, String tenderType,
                           int amountTenderedPence, int changeDuePence, String authCode, Instant issuedAt) {
+    }
+
+    /** A line of a sale the till completed while offline; name/sku/price are the till's cached catalogue values. */
+    public record OfflineSaleLine(@NotBlank String barcode, String skuCode, String name, @Min(1) int quantity,
+                                  Integer unitPricePence) {
+    }
+
+    /** A cash sale completed while the till was offline, replayed on reconnect. {@code saleId} is the idempotency key. */
+    public record OfflineSaleRequest(@NotBlank String saleId, String tillId, String transactionNumber,
+                                     @NotBlank String tenderType, @NotEmpty List<@Valid OfflineSaleLine> lines,
+                                     Integer amountTenderedPence, Integer totalPence, Instant completedAt) {
+    }
+
+    public record OfflineSaleResult(String saleId, String orderNumber, String transactionNumber, int totalPence,
+                                    int amountTenderedPence) {
     }
 
     public record TenderResult(String status, String tenderType, Basket basket, String orderNumber,
