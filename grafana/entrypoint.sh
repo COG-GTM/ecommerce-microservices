@@ -17,6 +17,7 @@ password="${GF_SECURITY_ADMIN_PASSWORD:-}"
 cr="$(printf '\r')"
 case "$password" in
   *"$cr"*) fail "GRAFANA_ADMIN_PASSWORD contains a carriage return (save .env with LF line endings)" ;;
+  *'$'*) fail "GRAFANA_ADMIN_PASSWORD must not contain \$ (Compose and Grafana expand it)" ;;
   *CHANGE_ME*) fail "GRAFANA_ADMIN_PASSWORD still contains the CHANGE_ME placeholder" ;;
   *"
 "*) fail "GRAFANA_ADMIN_PASSWORD must be a single line" ;;
