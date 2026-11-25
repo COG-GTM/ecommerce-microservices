@@ -17,6 +17,7 @@ interface Props {
   declineMessage: string | null
   /** The last card attempt timed out: only a retry of that attempt is allowed until it resolves. */
   paymentUnresolved: boolean
+  unresolvedTenderType?: TenderType
   errorMessage: string | null
   onBack: () => void
   onCard: (type: TenderType, outcome: TerminalOutcome) => void
@@ -27,7 +28,7 @@ interface Props {
 export function TenderPanel(props: Props) {
   const { totalPence, busy, paymentUnresolved } = props
   // A timed-out card attempt (also after a reload) opens straight on the PIN pad so the operator can retry it.
-  const [method, setMethod] = useState<TenderType | null>(paymentUnresolved ? 'CARD' : null)
+  const [method, setMethod] = useState<TenderType | null>(paymentUnresolved ? (props.unresolvedTenderType ?? 'CARD') : null)
   const [cashPence, setCashPence] = useState(0)
 
   const choose = (type: TenderType) => {
