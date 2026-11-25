@@ -42,6 +42,7 @@ public class NotificationServiceApplication {
             return;
         }
         // Send out an email notification
-        log.info("Received Notification for Order - {}", orderPlacedEvent.getOrderNumber());
+        log.info("Received Notification for Order - {}",
+                orderPlacedEvent.getOrderNumber().replaceAll("\\p{Cntrl}", "_"));
     }
 }
