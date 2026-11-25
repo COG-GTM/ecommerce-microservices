@@ -8,10 +8,12 @@ import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
 import lombok.RequiredArgsConstructor;
 import com.ibatulanand.orderservice.dto.OrderResponse;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -35,6 +37,11 @@ public class OrderController {
     @TimeLimiter(name = "inventory")
     @Retry(name = "inventory")
     public CompletableFuture<String> placeOrder(@RequestBody OrderRequest orderRequest) {
+        // Till identifiers belong to till sales only, so an online order can never claim a till basket's key
+        // or appear in a till transaction lookup.
+        orderRequest.setIdempotencyKey(null);
+        orderRequest.setTillId(null);
+        orderRequest.setTransactionId(null);
         return CompletableFuture.supplyAsync(() -> orderService.placeOrder(orderRequest), executor);
     }
 
@@ -48,10 +55,21 @@ public class OrderController {
         try {
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(OrderResponse.from(orderService.placeAndReturnOrder(orderRequest)));
+        } catch (DataIntegrityViolationException e) {
+            // A concurrent duplicate of this sale won the unique idempotency key: replay its order.
+            return orderService.findByIdempotencyKey(orderRequest.getIdempotencyKey())
+                    .<ResponseEntity<?>>map(order -> ResponseEntity.status(HttpStatus.CREATED).body(OrderResponse.from(order)))
+                    .orElseThrow(() -> e);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
                     .body(Map.of("error", "OUT_OF_STOCK", "message", e.getMessage()));
         }
+    }
+
+    /** Every order recorded for a till transaction; a correctly retried tender yields exactly one. */
+    @GetMapping("/transaction/{transactionId}")
+    public List<OrderResponse> getOrdersForTransaction(@PathVariable String transactionId) {
+        return orderService.findByTransactionId(transactionId).stream().map(OrderResponse::from).toList();
     }
 
     @GetMapping("/{orderNumber}")

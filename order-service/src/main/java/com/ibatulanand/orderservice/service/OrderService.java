@@ -40,7 +40,32 @@ public class OrderService {
         });
     }
 
+    @Transactional(readOnly = true)
+    public Optional<Order> findByIdempotencyKey(String idempotencyKey) {
+        if (idempotencyKey == null) {
+            return Optional.empty();
+        }
+        return orderRepository.findFirstByIdempotencyKey(idempotencyKey).map(order -> {
+            order.getOrderLineItemsList().size();
+            return order;
+        });
+    }
+
+    @Transactional(readOnly = true)
+    public List<Order> findByTransactionId(String transactionId) {
+        List<Order> orders = orderRepository.findByTransactionId(transactionId);
+        orders.forEach(order -> order.getOrderLineItemsList().size());
+        return orders;
+    }
+
     public Order placeAndReturnOrder(OrderRequest orderRequest) {
+        if (orderRequest.getIdempotencyKey() != null) {
+            Optional<Order> existing = orderRepository.findFirstByIdempotencyKey(orderRequest.getIdempotencyKey());
+            if (existing.isPresent()) {
+                existing.get().getOrderLineItemsList().size();
+                return existing.get();
+            }
+        }
         Order order = new Order();
         order.setOrderNumber(UUID.randomUUID().toString());
         order.setChannel(orderRequest.getChannel());
@@ -49,6 +74,7 @@ public class OrderService {
         order.setTransactionId(orderRequest.getTransactionId());
         order.setTenderType(orderRequest.getTenderType());
         order.setTotalPence(orderRequest.getTotalPence());
+        order.setIdempotencyKey(orderRequest.getIdempotencyKey());
 
         List<OrderLineItems> orderLineItems = orderRequest.getOrderLineItemsDtoList()
                 .stream()

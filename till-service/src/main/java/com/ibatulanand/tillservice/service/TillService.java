@@ -20,10 +20,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -45,11 +48,26 @@ public class TillService {
     private final TillProperties properties;
 
     static final int MAX_TILLS = 10_000;
+    static final int MAX_SETTLED_ATTEMPTS = 10_000;
+    private static final java.util.regex.Pattern IDEMPOTENCY_KEY = java.util.regex.Pattern.compile("[A-Za-z0-9._:-]{1,64}");
 
     private final Map<String, Basket> baskets = new ConcurrentHashMap<>();
     private final Map<String, String> openBasketByTill = new ConcurrentHashMap<>();
     private final Map<String, String> lastClosedByTill = new ConcurrentHashMap<>();
     private final Map<String, AtomicInteger> transactionCounters = new ConcurrentHashMap<>();
+    /** Basket id -> key of the card attempt waiting on the PIN pad. */
+    private final Map<String, String> tenderInFlight = new ConcurrentHashMap<>();
+    /** Basket id -> key of a card attempt that timed out; only a retry with that key may tender the basket. */
+    private final Map<String, String> unresolvedAttemptByBasket = new ConcurrentHashMap<>();
+    /** Final (approved/declined) results by idempotency key, replayed for repeated requests. */
+    private final Map<String, TenderResult> settledAttempts = Collections.synchronizedMap(
+            new LinkedHashMap<>(16, 0.75f, true) {
+                @Override
+                protected boolean removeEldestEntry(Map.Entry<String, TenderResult> eldest) {
+                    return size() > MAX_SETTLED_ATTEMPTS;
+                }
+            });
+    private final Map<String, CompletableFuture<Void>> attemptsInProgress = new ConcurrentHashMap<>();
 
     public TillService(CatalogueClient catalogue, StockClient stock, OrderClient orders, PaymentTerminal terminal,
                        BasketPricer pricer, TillProperties properties) {
@@ -132,38 +150,146 @@ public class TillService {
         return openBasket(basket.getTillId());
     }
 
-    public synchronized TenderResult tender(TenderRequest request) {
-        Basket basket = openForChange(request.basketId());
+    /**
+     * Takes payment for a basket. Each attempt carries an idempotency key: repeating a request with the same key
+     * (a retry after a timeout, a double tap) returns the first attempt's result and never charges or orders twice.
+     * A card attempt that timed out stays unresolved until it is retried with the same key.
+     */
+    public TenderResult tender(TenderRequest request) {
+        String key = request.idempotencyKey() == null || request.idempotencyKey().isBlank()
+                ? UUID.randomUUID().toString() : request.idempotencyKey();
+        if (!IDEMPOTENCY_KEY.matcher(key).matches()) {
+            throw new TillException(HttpStatus.BAD_REQUEST, "INVALID_IDEMPOTENCY_KEY",
+                    "Idempotency key must be 1-64 letters, digits, '.', '_', ':' or '-'");
+        }
+        // Duplicates of one attempt run one at a time; attempts with other keys never wait on each other.
+        while (true) {
+            TenderResult previous = settledAttempt(key, request.basketId());
+            if (previous != null) {
+                return previous;
+            }
+            CompletableFuture<Void> mine = new CompletableFuture<>();
+            CompletableFuture<Void> running = attemptsInProgress.putIfAbsent(key, mine);
+            if (running != null) {
+                running.join();
+                continue;
+            }
+            try {
+                previous = settledAttempt(key, request.basketId());
+                if (previous != null) {
+                    return previous;
+                }
+                TenderResult result = attemptTender(request, key);
+                if (!"TIMEOUT".equals(result.status())) {
+                    settledAttempts.put(key, result);
+                }
+                return result;
+            } finally {
+                attemptsInProgress.remove(key, mine);
+                mine.complete(null);
+            }
+        }
+    }
+
+    private TenderResult settledAttempt(String key, String basketId) {
+        TenderResult previous = settledAttempts.get(key);
+        if (previous == null) {
+            return null;
+        }
+        if (!previous.basket().getBasketId().equals(basketId)) {
+            throw new TillException(HttpStatus.CONFLICT, "IDEMPOTENCY_KEY_REUSED",
+                    "Idempotency key already used for another basket");
+        }
+        log.info("Till {} replayed tender attempt {} ({})", previous.basket().getTillId(), key, previous.status());
+        return previous;
+    }
+
+    private TenderResult attemptTender(TenderRequest request, String key) {
         String tenderType = request.tenderType().toUpperCase();
-        if (!TENDER_TYPES.contains(tenderType)) {
-            throw new TillException(HttpStatus.BAD_REQUEST, "UNSUPPORTED_TENDER", "Unsupported tender " + tenderType);
+        Basket basket;
+        int total;
+        synchronized (this) {
+            basket = basket(request.basketId());
+            String unresolved = unresolvedAttemptByBasket.get(basket.getBasketId());
+            if (unresolved != null && !unresolved.equals(key)) {
+                throw new TillException(HttpStatus.CONFLICT, "PAYMENT_UNRESOLVED",
+                        "The last card payment timed out; retry it before taking another payment");
+            }
+            if (unresolved == null && unresolvedAttemptByBasket.containsValue(key)) {
+                throw new TillException(HttpStatus.CONFLICT, "IDEMPOTENCY_KEY_REUSED",
+                        "Idempotency key already used for another basket");
+            }
+            openForChange(basket.getBasketId(), unresolved != null);
+            if (unresolved != null && "CASH".equals(tenderType)) {
+                throw new TillException(HttpStatus.CONFLICT, "PAYMENT_UNRESOLVED",
+                        "The last card payment timed out; retry it on the card terminal");
+            }
+            if (!TENDER_TYPES.contains(tenderType)) {
+                throw new TillException(HttpStatus.BAD_REQUEST, "UNSUPPORTED_TENDER", "Unsupported tender " + tenderType);
+            }
+            if (basket.getLines().isEmpty()) {
+                throw new TillException(HttpStatus.UNPROCESSABLE_ENTITY, "EMPTY_BASKET", "Basket has no items");
+            }
+            pricer.price(basket);
+            total = basket.getTotalPence();
+            if (request.expectedTotalPence() != null && request.expectedTotalPence() != total) {
+                throw new TillException(HttpStatus.CONFLICT, "TOTAL_CHANGED", "Basket total changed; review the basket before taking payment");
+            }
+            if ("CASH".equals(tenderType)) {
+                int tendered = request.amountTenderedPence() == null ? total : request.amountTenderedPence();
+                if (tendered < total) {
+                    throw new TillException(HttpStatus.UNPROCESSABLE_ENTITY, "INSUFFICIENT_TENDER",
+                            "Cash tendered is less than the total to pay");
+                }
+                return complete(basket, tenderType, tendered, null, key);
+            }
+            tenderInFlight.put(basket.getBasketId(), key);
         }
-        if (basket.getLines().isEmpty()) {
-            throw new TillException(HttpStatus.UNPROCESSABLE_ENTITY, "EMPTY_BASKET", "Basket has no items");
+        // The PIN pad can take seconds; other tills keep trading while this one waits.
+        PaymentTerminal.Authorisation auth;
+        try {
+            auth = terminal.authorise(key, basket.getBasketId(), tenderType, total, request.terminalOutcome());
+        } catch (RuntimeException e) {
+            synchronized (this) {
+                tenderInFlight.remove(basket.getBasketId());
+            }
+            throw e;
         }
-        pricer.price(basket);
+        // Release the in-flight lock in the same critical section that settles the basket, so no other tender
+        // can slip in between a card approval and the sale being recorded.
+        synchronized (this) {
+            tenderInFlight.remove(basket.getBasketId());
+            switch (auth.outcome()) {
+                case APPROVED -> {
+                    try {
+                        TenderResult completed = complete(basket, tenderType, total, auth.authCode(), key);
+                        unresolvedAttemptByBasket.remove(basket.getBasketId());
+                        return completed;
+                    } catch (RuntimeException e) {
+                        // The card is charged but the order was not recorded: keep the basket locked to this attempt.
+                        unresolvedAttemptByBasket.put(basket.getBasketId(), key);
+                        throw e;
+                    }
+                }
+                case DECLINED -> {
+                    unresolvedAttemptByBasket.remove(basket.getBasketId());
+                    log.info("Till {} card declined for transaction {}", basket.getTillId(), basket.getTransactionNumber());
+                    return new TenderResult("DECLINED", tenderType, basket, null, 0, 0, null, auth.declineReason(),
+                            null, basket.getBasketId(), key);
+                }
+                default -> {
+                    unresolvedAttemptByBasket.put(basket.getBasketId(), key);
+                    log.info("Till {} terminal timed out for transaction {} (attempt {})", basket.getTillId(),
+                            basket.getTransactionNumber(), key);
+                    return new TenderResult("TIMEOUT", tenderType, basket, null, 0, 0, null, auth.declineReason(),
+                            null, basket.getBasketId(), key);
+                }
+            }
+        }
+    }
+
+    private TenderResult complete(Basket basket, String tenderType, int tendered, String authCode, String key) {
         int total = basket.getTotalPence();
-        if (request.expectedTotalPence() != null && request.expectedTotalPence() != total) {
-            throw new TillException(HttpStatus.CONFLICT, "TOTAL_CHANGED", "Basket total changed; review the basket before taking payment");
-        }
-        int tendered = total;
-        String authCode = null;
-        if ("CASH".equals(tenderType)) {
-            tendered = request.amountTenderedPence() == null ? total : request.amountTenderedPence();
-            if (tendered < total) {
-                throw new TillException(HttpStatus.UNPROCESSABLE_ENTITY, "INSUFFICIENT_TENDER",
-                        "Cash tendered is less than the total to pay");
-            }
-        } else {
-            PaymentTerminal.Authorisation auth = terminal.authorise(basket.getBasketId(), tenderType, total,
-                    request.terminalOutcome());
-            if (!auth.approved()) {
-                log.info("Till {} card declined for transaction {}", basket.getTillId(), basket.getTransactionNumber());
-                return new TenderResult("DECLINED", tenderType, basket, null, 0, 0, null, auth.declineReason(),
-                        null, basket.getBasketId());
-            }
-            authCode = auth.authCode();
-        }
         String orderNumber = orders.placeSale(basket, properties.storeNumber(), tenderType);
         basket.setOrderNumber(orderNumber);
         basket.setStatus(Basket.Status.COMPLETED);
@@ -178,7 +304,7 @@ public class TillService {
         log.info("Till {} completed transaction {} as order {} ({}p {})", basket.getTillId(),
                 basket.getTransactionNumber(), orderNumber, total, tenderType);
         return new TenderResult("APPROVED", tenderType, basket, orderNumber, tendered, change, authCode, null,
-                receipt, next.getBasketId());
+                receipt, next.getBasketId(), key);
     }
 
     private String tillId(String requested) {
@@ -210,9 +336,20 @@ public class TillService {
     }
 
     private Basket openForChange(String basketId) {
+        return openForChange(basketId, false);
+    }
+
+    private Basket openForChange(String basketId, boolean retryingUnresolved) {
         Basket basket = basket(basketId);
         if (basket.getStatus() != Basket.Status.OPEN) {
             throw new TillException(HttpStatus.CONFLICT, "BASKET_CLOSED", "Basket is " + basket.getStatus());
+        }
+        if (tenderInFlight.containsKey(basketId)) {
+            throw new TillException(HttpStatus.CONFLICT, "TENDER_IN_PROGRESS", "Waiting for the PIN pad");
+        }
+        if (!retryingUnresolved && unresolvedAttemptByBasket.containsKey(basketId)) {
+            throw new TillException(HttpStatus.CONFLICT, "PAYMENT_UNRESOLVED",
+                    "The last card payment timed out; retry it before changing the basket");
         }
         return basket;
     }
