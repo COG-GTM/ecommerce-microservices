@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { TillApiError, tillApi } from './api/client'
-import type { Basket, Product, TenderResult, TenderType, TillSession } from './api/types'
+import type { AgeDecision, Basket, Product, TenderResult, TenderType, TillSession } from './api/types'
+import { AgeCheckPrompt } from './components/AgeCheckPrompt'
 import { ApiChipsContext } from './components/ApiChip'
 import { BasketPanel } from './components/BasketPanel'
 import { Header } from './components/Header'
@@ -29,6 +30,7 @@ export default function App() {
   const [declineMessage, setDeclineMessage] = useState<string | null>(null)
   const [tenderError, setTenderError] = useState<string | null>(null)
   const [result, setResult] = useState<TenderResult | null>(null)
+  const [ageCheckLineId, setAgeCheckLineId] = useState<string | null>(null)
 
   const showBasket = useCallback((next: Basket) => {
     setBasket(next)
@@ -89,6 +91,12 @@ export default function App() {
     [basket, selectedLineId],
   )
 
+  const ageCheckLine = useMemo(
+    () => basket?.lines.find((l) => l.lineId === ageCheckLineId && l.ageCheck === 'PENDING') ?? null,
+    [basket, ageCheckLineId],
+  )
+  const pendingAgeLines = basket?.lines.filter((l) => l.ageCheck === 'PENDING') ?? []
+
   const scan = (barcode: string) =>
     basket &&
     run(async () => {
@@ -96,7 +104,24 @@ export default function App() {
       showBasket(next)
       const line = next.lines.find((l) => l.lineId === next.lastLineId)
       setMessage({ kind: 'ok', text: `Added ${line?.name ?? barcode}` })
+      if (line?.ageCheck === 'PENDING') setAgeCheckLineId(line.lineId)
     }, (text) => setMessage({ kind: 'error', text }))
+
+  const decideAge = (decision: AgeDecision) =>
+    basket && ageCheckLine &&
+    run(async () => {
+      showBasket(await tillApi.ageCheck(basket.basketId, ageCheckLine.lineId, decision, session?.operator.id))
+      setAgeCheckLineId(null)
+      setMessage(decision === 'APPROVED'
+        ? { kind: 'ok', text: `ID checked for ${ageCheckLine.name}` }
+        : { kind: 'ok', text: `Refused ${ageCheckLine.name}: removed from the sale` })
+    }, (text) => setMessage({ kind: 'error', text }))
+
+  const selectLine = (lineId: string) => {
+    if (screen !== 'sell') return
+    setSelectedLineId(lineId)
+    if (basket?.lines.some((l) => l.lineId === lineId && l.ageCheck === 'PENDING')) setAgeCheckLineId(lineId)
+  }
 
   const changeQty = (delta: number) =>
     basket && selectedLine &&
@@ -163,7 +188,7 @@ export default function App() {
       <div className="till" data-screen={screen}>
         <Header session={session} connected={connected} transactionNumber={basket?.transactionNumber} />
         <main className="till-main">
-          <BasketPanel basket={basket} selectedLineId={selectedLineId} onSelect={(id) => screen === 'sell' && setSelectedLineId(id)} />
+          <BasketPanel basket={basket} selectedLineId={selectedLineId} onSelect={selectLine} />
           <div className={'work work-' + screen}>
             {screen === 'sell' && (
               <SellPanel
@@ -177,6 +202,11 @@ export default function App() {
                 onVoidLine={voidLine}
                 onVoidSale={voidSale}
                 onPay={() => {
+                  if (pendingAgeLines.length > 0) {
+                    setMessage({ kind: 'error', text: 'Approve or refuse age-restricted items before taking payment' })
+                    setAgeCheckLineId(pendingAgeLines[0].lineId)
+                    return
+                  }
                   resetTenderState()
                   setScreen('tender')
                 }}
@@ -196,6 +226,14 @@ export default function App() {
             )}
             {screen === 'complete' && result && <SaleComplete result={result} onNewSale={newSale} />}
           </div>
+          {screen === 'sell' && ageCheckLine && (
+            <AgeCheckPrompt
+              line={ageCheckLine}
+              busy={busy}
+              onDecide={decideAge}
+              onLater={() => setAgeCheckLineId(null)}
+            />
+          )}
         </main>
       </div>
     </ApiChipsContext.Provider>

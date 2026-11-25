@@ -19,6 +19,7 @@ export interface Product {
   name: string
   pricePence: number
   quickKey: boolean
+  minimumAge?: number | null
 }
 
 export interface BasketLine {
@@ -29,7 +30,14 @@ export interface BasketLine {
   quantity: number
   unitPricePence: number
   linePence: number
+  /** Set on age-restricted lines; payment is blocked while any line is PENDING. */
+  minimumAge?: number | null
+  ageCheck?: AgeCheck | null
+  ageApprovedBy?: string | null
 }
+
+export type AgeCheck = 'PENDING' | 'APPROVED'
+export type AgeDecision = 'APPROVED' | 'REFUSED'
 
 export interface Adjustment {
   code: string
@@ -52,6 +60,7 @@ export interface Basket {
   savingsPence: number
   totalPence: number
   orderNumber: string | null
+  pendingAgeChecks?: number
 }
 
 export type TenderType = 'CARD' | 'CONTACTLESS' | 'CASH'

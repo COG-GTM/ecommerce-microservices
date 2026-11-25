@@ -24,4 +24,9 @@ public class Basket {
     private int savingsPence;
     private int totalPence;
     private String orderNumber;
+
+    /** Age-restricted lines still waiting for a Challenge 25 decision; payment is blocked while this is above 0. */
+    public int getPendingAgeChecks() {
+        return (int) lines.stream().filter(l -> l.getAgeCheck() == BasketLine.AgeCheck.PENDING).count();
+    }
 }

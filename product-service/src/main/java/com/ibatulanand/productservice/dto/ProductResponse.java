@@ -20,4 +20,5 @@ public class ProductResponse {
     private String skuCode;
     private Integer pricePence;
     private Boolean quickKey;
+    private Integer minimumAge;
 }

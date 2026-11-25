@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.ibatulanand.tillservice.config.TillProperties;
 import com.ibatulanand.tillservice.domain.Basket;
+import com.ibatulanand.tillservice.domain.BasketLine;
 import com.ibatulanand.tillservice.domain.CatalogueItem;
 import com.ibatulanand.tillservice.web.TillException;
 import org.springframework.http.HttpStatus;
@@ -14,6 +15,7 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -26,10 +28,11 @@ public class HttpServiceClients implements CatalogueClient, StockClient, OrderCl
     private static final Duration TIMEOUT = Duration.ofSeconds(5);
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    record ProductDto(String barcode, String skuCode, String name, Integer pricePence, Boolean quickKey) {
+    record ProductDto(String barcode, String skuCode, String name, Integer pricePence, Boolean quickKey,
+                      Integer minimumAge) {
         CatalogueItem toItem() {
             return new CatalogueItem(barcode, skuCode, name, pricePence == null ? 0 : pricePence,
-                    Boolean.TRUE.equals(quickKey));
+                    Boolean.TRUE.equals(quickKey), minimumAge);
         }
     }
 
@@ -91,10 +94,7 @@ public class HttpServiceClients implements CatalogueClient, StockClient, OrderCl
     @Override
     public String placeSale(Basket basket, String storeNumber, String tenderType) {
         List<Map<String, Object>> lines = basket.getLines().stream()
-                .map(l -> Map.<String, Object>of(
-                        "skuCode", l.getSkuCode(),
-                        "price", BigDecimal.valueOf(l.getUnitPricePence(), 2),
-                        "quantity", l.getQuantity()))
+                .map(HttpServiceClients::saleLine)
                 .toList();
         Map<String, Object> body = Map.of(
                 "orderLineItemsDtoList", lines,
@@ -120,6 +120,18 @@ public class HttpServiceClients implements CatalogueClient, StockClient, OrderCl
         } catch (RuntimeException e) {
             throw unavailable("order-service", e);
         }
+    }
+
+    private static Map<String, Object> saleLine(BasketLine line) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("skuCode", line.getSkuCode());
+        body.put("price", BigDecimal.valueOf(line.getUnitPricePence(), 2));
+        body.put("quantity", line.getQuantity());
+        if (line.getMinimumAge() != null) {
+            body.put("minimumAge", line.getMinimumAge());
+            body.put("ageApprovedBy", line.getAgeApprovedBy());
+        }
+        return body;
     }
 
     private static TillException unavailable(String service, RuntimeException cause) {
