@@ -41,6 +41,17 @@ public class OrderService {
     }
 
     @Transactional(readOnly = true)
+    public Optional<Order> findByIdempotencyKey(String idempotencyKey) {
+        if (idempotencyKey == null) {
+            return Optional.empty();
+        }
+        return orderRepository.findFirstByIdempotencyKey(idempotencyKey).map(order -> {
+            order.getOrderLineItemsList().size();
+            return order;
+        });
+    }
+
+    @Transactional(readOnly = true)
     public List<Order> findByTransactionId(String transactionId) {
         List<Order> orders = orderRepository.findByTransactionId(transactionId);
         orders.forEach(order -> order.getOrderLineItemsList().size());
