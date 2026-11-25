@@ -39,6 +39,8 @@ import java.util.UUID;
 @Transactional
 public class OrderService {
 
+    private static final int CATALOG_RESPONSE_MAX_BYTES = 2 * 1024 * 1024;
+
     private final OrderRepository orderRepository;
     private final WebClient.Builder webClientBuilder;
     private final KafkaTemplate<String, OrderPlacedEvent> kafkaTemplate;
@@ -92,7 +94,9 @@ public class OrderService {
      * catalog entries with different prices) are left out of the result.
      */
     private Map<String, BigDecimal> fetchCatalogPrices(Set<String> skuCodes) {
-        ProductResponse[] products = webClientBuilder.build().get()
+        ProductResponse[] products = webClientBuilder.clone()
+                .codecs(codecs -> codecs.defaultCodecs().maxInMemorySize(CATALOG_RESPONSE_MAX_BYTES))
+                .build().get()
                 .uri("http://product-service/api/product",
                         uriBuilder -> uriBuilder.queryParam("skuCode", skuCodes).build())
                 .retrieve()
