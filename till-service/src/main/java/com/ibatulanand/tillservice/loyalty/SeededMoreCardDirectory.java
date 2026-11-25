@@ -27,7 +27,7 @@ public class SeededMoreCardDirectory implements MoreCardDirectory {
     @Override
     public MoreCardMember award(String cardNumber, int points) {
         Account account = accounts.computeIfPresent(cardNumber,
-                (k, a) -> new Account(a.name(), Math.addExact(a.pointsBalance(), points)));
+                (k, a) -> new Account(a.name(), (int) Math.min(Integer.MAX_VALUE, (long) a.pointsBalance() + points)));
         if (account == null) {
             throw new TillException(HttpStatus.NOT_FOUND, "UNKNOWN_CARD", "More Card not recognised");
         }
