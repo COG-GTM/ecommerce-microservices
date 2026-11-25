@@ -81,9 +81,13 @@ class ProductServicePagingTest {
     }
 
     @Test
-    void rejectsPagesAtOrPastMaxOffset() {
+    void rejectsPagesReachingPastResultWindow() {
         assertThat(productService.getAllProducts(99, 100)).hasSize(100);
         assertThatThrownBy(() -> productService.getAllProducts(100, 100))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("400");
+        assertThat(productService.getAllProducts(332, 30)).hasSize(30);
+        assertThatThrownBy(() -> productService.getAllProducts(333, 30))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("400");
         assertThatThrownBy(() -> productService.getAllProducts(Integer.MAX_VALUE, 100))
