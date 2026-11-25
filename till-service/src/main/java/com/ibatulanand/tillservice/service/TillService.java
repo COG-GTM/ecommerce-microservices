@@ -199,22 +199,23 @@ public class TillService {
         basket.setTransactionNumber(request.transactionNumber() == null || request.transactionNumber().isBlank()
                 ? "OFFLINE-" + request.saleId() : request.transactionNumber());
         for (OfflineSaleLine sold : request.lines()) {
-            CatalogueItem item = catalogue.findByBarcode(sold.barcode()).orElse(null);
-            if (item == null && (sold.skuCode() == null || sold.unitPricePence() == null)) {
-                throw new TillException(HttpStatus.UNPROCESSABLE_ENTITY, "UNKNOWN_BARCODE",
-                        "No product for barcode " + sold.barcode());
-            }
-            // The customer paid the price the till charged offline, so that price is recorded, not today's.
-            int unitPrice = sold.unitPricePence() != null ? sold.unitPricePence() : item.pricePence();
-            basket.getLines().add(new BasketLine(UUID.randomUUID().toString(), sold.barcode(),
-                    item != null ? item.skuCode() : sold.skuCode(), item != null ? item.name() : sold.name(),
-                    sold.quantity(), unitPrice, 0));
+            // The server reprices every line from the catalogue; the SKU, name and price the till sends are never trusted.
+            CatalogueItem item = catalogue.findByBarcode(sold.barcode()).orElseThrow(() -> new TillException(
+                    HttpStatus.UNPROCESSABLE_ENTITY, "UNKNOWN_BARCODE", "No product for barcode " + sold.barcode()));
+            basket.getLines().add(new BasketLine(UUID.randomUUID().toString(), sold.barcode(), item.skuCode(),
+                    item.name(), sold.quantity(), item.pricePence(), 0));
         }
         pricer.price(basket);
-        int tendered = request.amountTenderedPence() == null ? basket.getTotalPence() : request.amountTenderedPence();
-        if (tendered < basket.getTotalPence()) {
+        // The cashier collected cash against the till's offline total, so that is what the tender must cover.
+        int charged = request.totalPence() == null ? basket.getTotalPence() : request.totalPence();
+        int tendered = request.amountTenderedPence() == null ? charged : request.amountTenderedPence();
+        if (tendered < charged) {
             throw new TillException(HttpStatus.UNPROCESSABLE_ENTITY, "INSUFFICIENT_TENDER",
-                    "Cash tendered " + tendered + "p is less than the total " + basket.getTotalPence() + "p");
+                    "Cash tendered " + tendered + "p is less than the total " + charged + "p");
+        }
+        if (charged != basket.getTotalPence()) {
+            log.warn("Till {} offline sale {} charged {}p; recorded at the catalogue total {}p",
+                    loggable(basket.getTillId()), loggable(request.saleId()), charged, basket.getTotalPence());
         }
         String orderNumber = orders.placeSale(basket, properties.storeNumber(), "CASH", "offline-" + request.saleId());
         log.info("Till {} synced offline sale {} as order {} ({}p)", loggable(basket.getTillId()),
