@@ -174,7 +174,7 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
 
 2. Create a `.env` file (git-ignored) and set every password in it:
    ```shell
-   cp .env.example .env
+   install -m 600 .env.example .env   # owner-only: it will hold the root password
    ```
    The order database is initialised from `mysql-order-init/`: the schema is created by root, and the
    service connects as `ORDER_DB_APP_USER`, which only has `SELECT`/`INSERT`/`UPDATE`/`DELETE` on
