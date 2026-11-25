@@ -91,12 +91,13 @@ compute totals; they render `subtotalPence`, `savingsPence` and `totalPence` fro
   "lines": [ { "lineId": "l-1", "barcode": "1004", "skuCode": "MOR-BANANA-5", "name": "Bananas x5",
                "quantity": 2, "unitPricePence": 95, "linePence": 190 } ],
   "adjustments": [ { "code": "MULTIBUY", "label": "…", "amountPence": -50, "lineId": "l-1" } ],
-  "lastLineId": "l-1", "itemCount": 2, "subtotalPence": 190, "savingsPence": 0, "totalPence": 190, "orderNumber": null }
+  "lastLineId": "l-1", "itemCount": 2, "subtotalPence": 190, "savingsPence": 0, "totalPence": 190, "orderNumber": null,
+  "tenders": [], "paidPence": 0, "balanceDuePence": 190 }
 
 // TenderResult
 { "status": "APPROVED", "tenderType": "CARD", "basket": { /* Basket, status COMPLETED */ },
   "orderNumber": "8df1…", "amountTenderedPence": 190, "changeDuePence": 0, "authCode": "419508",
-  "declineReason": null, "receipt": { /* Receipt */ }, "nextBasketId": "c2d3…" }
+  "declineReason": null, "receipt": { /* Receipt */ }, "nextBasketId": "c2d3…", "balanceDuePence": 0 }
 // Declined: status DECLINED, basket still OPEN with all lines, orderNumber/receipt null, nextBasketId = same basket.
 // Part cash (CASH with partialPayment: true and less than balanceDuePence): status PARTIAL, basket still OPEN,
 // basket.tenders/paidPence/balanceDuePence updated, TenderResult.balanceDuePence = what is left, nextBasketId = same basket.
@@ -109,7 +110,8 @@ compute totals; they render `subtotalPence`, `savingsPence` and `totalPence` fro
 { "receiptNumber": "R-0417-07-0001", "storeNumber": "0417", "storeName": "Bradford Demo", "tillId": "07",
   "operatorName": "Demo Operator", "transactionNumber": "0417-07-0001", "orderNumber": "8df1…",
   "lines": [ /* BasketLine */ ], "subtotalPence": 190, "savingsPence": 0, "totalPence": 190,
-  "tenderType": "CARD", "amountTenderedPence": 190, "changeDuePence": 0, "authCode": "419508", "issuedAt": "2026-11-25T14:36:16Z" }
+  "tenderType": "CARD", "amountTenderedPence": 190, "changeDuePence": 0, "authCode": "419508", "issuedAt": "2026-11-25T14:36:16Z",
+  "tenders": [ { "tenderType": "CARD", "amountPence": 190, "tenderedPence": 190, "changeDuePence": 0, "authCode": "419508" } ] }
 
 // Error (any 4xx/5xx)
 { "error": "UNKNOWN_BARCODE", "message": "No product for barcode 9999" }
