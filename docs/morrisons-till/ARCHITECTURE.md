@@ -148,6 +148,19 @@ Rounding: VAT is computed once per rate band, never per line: `vat = round_half_
 are apportioned across bands pro rata by gross (largest remainder), so band grosses always sum to `totalPence`.
 Example: three 1p standard-rated lines give 1p VAT on the 3p band (per-line rounding would give 0p).
 
+Promotion products (MBA-3934; scan only, not quick keys). Offers are set in till-service `till.promotions.*`: Greek
+yoghurt 3 for £3.50, still water/cola 2 for £2.00, and a £3.50 meal deal (sandwich + crisps/fruit + water/cola).
+
+| Barcode | SKU | Item | Pence |
+| --- | --- | --- | --- |
+| 393401 | MOR-SANDWICH-CHKBAC | Chicken and bacon sandwich | 300 |
+| 393402 | MOR-SANDWICH-EGGMAYO | Egg mayo sandwich | 250 |
+| 393403 | MOR-CRISPS-SALTED-30G | Ready salted crisps 30g | 85 |
+| 393404 | MOR-FRUIT-POT | Fruit pot | 120 |
+| 393405 | MOR-WATER-STILL-500 | Still water 500ml | 90 |
+| 393406 | MOR-COLA-500 | Cola 500ml | 135 |
+| 393407 | MOR-YOGHURT-GREEK-500 | Greek style yoghurt 500g | 150 |
+
 ## Extension points for the till tickets
 
 | Ticket | Where it plugs in |
