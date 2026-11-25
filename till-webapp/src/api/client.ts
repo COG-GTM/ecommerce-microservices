@@ -31,10 +31,16 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return body as T
 }
 
+/** The health check gives up on a stalled link instead of waiting for the browser's own timeout. */
+const HEALTH_CHECK_TIMEOUT_MS = 4_000
+
 const json = (method: string, body: unknown): RequestInit => ({ method, body: JSON.stringify(body) })
 
 export const tillApi = {
-  session: (tillId?: string) => request<TillSession>('/session' + (tillId ? '?tillId=' + encodeURIComponent(tillId) : '')),
+  session: (tillId?: string) =>
+    request<TillSession>('/session' + (tillId ? '?tillId=' + encodeURIComponent(tillId) : ''), {
+      signal: AbortSignal.timeout(HEALTH_CHECK_TIMEOUT_MS),
+    }),
   quickKeys: () => request<Product[]>('/products?quickkey=true'),
   product: (barcode: string) => request<Product>('/products/' + encodeURIComponent(barcode)),
   basket: (basketId: string) => request<Basket>('/basket/' + basketId),
