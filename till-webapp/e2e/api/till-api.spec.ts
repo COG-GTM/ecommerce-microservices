@@ -53,6 +53,7 @@ test('tender: empty basket 422, short cash 422, declined keeps basket, approved 
   const order = await (await request.get(`/api/order/${approved.orderNumber}`)).json()
   expect(order).toMatchObject({ channel: 'TILL', tenderType: 'CARD', totalPence: 110 })
   await expect.poll(async () => (await request.get(`/api/notification/${approved.orderNumber}`)).status(), { timeout: 20_000 }).toBe(200)
+  expect(await (await request.get(`/api/notification/${approved.orderNumber}`)).json()).toMatchObject({ transactionId: expect.any(String), tenderType: "CARD" })
   expect((await request.post('/api/till/basket/lines', { data: { basketId, barcode: '1002' } })).status()).toBe(409)
 })
 
