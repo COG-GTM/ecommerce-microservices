@@ -23,6 +23,7 @@ till-e2e-api: $(TILL_DEPS) ## Only the backend API specs through the gateway
 
 till-test: ## Backend unit/contract tests (till-service, product/order/inventory/notification)
 	./scripts/till/mvn.sh -B test -pl till-service
+	./scripts/till/mvn.sh -B test -pl product-service -Dtest=GroceryCatalogueSeederVatTest -Dsurefire.failIfNoSpecifiedTests=false
 
 till-report: $(TILL_DEPS) ## Open the last Playwright HTML report
 	cd till-webapp && npx playwright show-report e2e-report
