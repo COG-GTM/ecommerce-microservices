@@ -116,8 +116,8 @@ Weighed and loose items (MBA-3935): a product with `soldByWeight: true` has `pri
 `linePence` = weight × price, half-up to the penny). Price-embedded labels are prefix-2 EAN-13 `2 IIIIII PPPPP C`
 (item/PLU, price in pence, check digit), e.g. `2002101003490` = PLU 2101 at £3.49. Weighed and labelled lines are
 quantity 1: an add with any other `quantity` (omitted means 1), or a `PATCH .../lines/{lineId}` that changes it,
-returns `QUANTITY_NOT_ALLOWED`.
-`weightGrams` must be 1-30000 (400 otherwise). The check digit is validated first; a prefix-2 barcode that is itself
+returns `QUANTITY_NOT_ALLOWED` (a quantity below 1 is `INVALID_REQUEST`, 400, for every line).
+`weightGrams` must be a whole number 1-30000 (400 `INVALID_REQUEST` otherwise). The check digit is validated first; a prefix-2 barcode that is itself
 catalogued sells as that product. Errors: `INVALID_CHECK_DIGIT`, `INVALID_LABEL_PRICE` (zero-price label),
 `WEIGHT_REQUIRED` (UI prompts for kg), `WEIGHT_TOO_LOW`, `QUANTITY_NOT_ALLOWED` (422); `NOT_SOLD_BY_WEIGHT` (422 for
 a label on a unit-priced item, 400 for a weight).
