@@ -6,7 +6,7 @@ import com.ibatulanand.productservice.repository.ProductRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.SliceImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -31,12 +31,12 @@ class ProductServicePagingTest {
     void setUp() {
         productRepository = mock(ProductRepository.class);
         productService = new ProductService(productRepository);
-        when(productRepository.findAll(any(Pageable.class))).thenAnswer(invocation -> {
+        when(productRepository.findAllBy(any(Pageable.class))).thenAnswer(invocation -> {
             Pageable pageable = invocation.getArgument(0);
             List<Product> products = IntStream.range(0, pageable.getPageSize())
                     .mapToObj(i -> new Product("id" + i, "name" + i, "desc", BigDecimal.ONE))
                     .toList();
-            return new PageImpl<>(products, pageable, 10_000);
+            return new SliceImpl<>(products, pageable, true);
         });
     }
 
@@ -54,6 +54,7 @@ class ProductServicePagingTest {
 
         verify(productRepository, never()).findAll();
         verify(productRepository, never()).findAll(any(org.springframework.data.domain.Sort.class));
+        verify(productRepository, never()).findAll(any(Pageable.class));
     }
 
     @Test
@@ -79,9 +80,20 @@ class ProductServicePagingTest {
                 .hasMessageContaining("400");
     }
 
+    @Test
+    void rejectsPagesAtOrPastMaxOffset() {
+        assertThat(productService.getAllProducts(99, 100)).hasSize(100);
+        assertThatThrownBy(() -> productService.getAllProducts(100, 100))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("400");
+        assertThatThrownBy(() -> productService.getAllProducts(Integer.MAX_VALUE, 100))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("400");
+    }
+
     private Pageable requestedPage() {
         ArgumentCaptor<Pageable> captor = ArgumentCaptor.forClass(Pageable.class);
-        verify(productRepository).findAll(captor.capture());
+        verify(productRepository).findAllBy(captor.capture());
         return captor.getValue();
     }
 }

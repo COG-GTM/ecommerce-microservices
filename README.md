@@ -230,7 +230,7 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
   - GET /api/product
     - Method: GET
     - Endpoint: http://localhost:8181/api/product?page=0&size=20
-    - Paging: `page` (default `0`) and `size` (default `20`, capped at `100`); products are sorted by id.
+    - Paging: `page` (default `0`) and `size` (default `20`, capped at `100`); products are sorted by id. Pages reaching past the first 10,000 products return `400`.
     - Authorization: Use the OAuth 2.0 token fetched, following the previous step.
     - Output:
         ![Postman](docs/images/outputs/product_api_get_postman.png)

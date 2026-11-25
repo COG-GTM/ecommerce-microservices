@@ -21,6 +21,7 @@ public class ProductService {
 
     public static final int DEFAULT_PAGE_SIZE = 20;
     public static final int MAX_PAGE_SIZE = 100;
+    public static final int MAX_OFFSET = 10_000;
 
     private final ProductRepository productRepository;
 
@@ -40,8 +41,11 @@ public class ProductService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "page must not be negative");
         }
         int pageSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
+        if ((long) page * pageSize >= MAX_OFFSET) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "page * size must be below " + MAX_OFFSET);
+        }
         PageRequest pageRequest = PageRequest.of(page, pageSize, Sort.by("id"));
-        return productRepository.findAll(pageRequest).stream().map(this::mapToProductResponse).toList();
+        return productRepository.findAllBy(pageRequest).stream().map(this::mapToProductResponse).toList();
     }
 
     private ProductResponse mapToProductResponse(Product product) {
