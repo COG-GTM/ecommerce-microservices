@@ -18,10 +18,12 @@ import java.util.List;
 import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -39,11 +41,16 @@ class OrderServiceTest {
         when(webClientBuilder.build().get().uri(anyString(), any(Function.class)).retrieve()
                 .bodyToMono(InventoryResponse[].class).block())
                 .thenReturn(new InventoryResponse[]{new InventoryResponse("MOR-LAGER-4X440", true)});
+        when(webClientBuilder.build().get().uri("http://product-service/api/product").retrieve()
+                .bodyToMono(OrderService.ProductView[].class).block())
+                .thenReturn(new OrderService.ProductView[]{
+                        new OrderService.ProductView("MOR-MILK-2L", null),
+                        new OrderService.ProductView("MOR-LAGER-4X440", 18)});
     }
 
-    private static OrderRequest lagerOrder() {
+    private static OrderRequest order(String skuCode) {
         OrderLineItemsDto line = new OrderLineItemsDto();
-        line.setSkuCode("MOR-LAGER-4X440");
+        line.setSkuCode(skuCode);
         line.setPrice(new BigDecimal("4.50"));
         line.setQuantity(1);
         line.setMinimumAge(18);
@@ -61,14 +68,22 @@ class OrderServiceTest {
 
     @Test
     void standardOrderDropsCallerSuppliedAgeApproval() {
-        orderService.placeOrder(lagerOrder());
+        orderService.placeOrder(order("MOR-MILK-2L"));
         assertThat(savedLine().getMinimumAge()).isNull();
         assertThat(savedLine().getAgeApprovedBy()).isNull();
     }
 
     @Test
+    void standardOrderRejectsAgeRestrictedItems() {
+        assertThatThrownBy(() -> orderService.placeOrder(order("MOR-LAGER-4X440")))
+                .isInstanceOf(AgeRestrictedItemException.class)
+                .hasMessageContaining("MOR-LAGER-4X440");
+        verify(orderRepository, never()).save(any());
+    }
+
+    @Test
     void tillSaleKeepsAgeApproval() {
-        orderService.placeAndReturnOrder(lagerOrder());
+        orderService.placeAndReturnOrder(order("MOR-LAGER-4X440"));
         assertThat(savedLine().getMinimumAge()).isEqualTo(18);
         assertThat(savedLine().getAgeApprovedBy()).isEqualTo("OP-FORGED");
     }

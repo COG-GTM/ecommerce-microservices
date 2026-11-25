@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { expect, test, type APIRequestContext } from '@playwright/test'
 
 // MBA-3936: age-restricted items through the gateway against the real services.
@@ -58,4 +59,26 @@ test('invalid age-check requests are rejected', async ({ request }) => {
   const milk = await ageCheck(request, basketId, basket.lines[0].lineId, 'APPROVED')
   expect(milk.status()).toBe(422)
   expect(await milk.json()).toMatchObject({ error: 'NOT_AGE_RESTRICTED' })
+})
+
+// The local dev realm's service client; its secret is read from the realm import file, never copied here.
+async function serviceToken(request: APIRequestContext) {
+  const realm = JSON.parse(readFileSync(new URL('../../../realms/spring-boot-microservices-realm.json', import.meta.url), 'utf8'))
+  const client = realm.clients.find((c: { clientId: string }) => c.clientId === 'spring-cloud-client')
+  const keycloak = `http://localhost:${process.env.TILL_KEYCLOAK_PORT ?? '8080'}`
+  const response = await request.post(`${keycloak}/realms/spring-boot-microservices-realm/protocol/openid-connect/token`, {
+    form: { grant_type: 'client_credentials', client_id: client.clientId, client_secret: client.secret },
+  })
+  expect(response.ok()).toBe(true)
+  return (await response.json()).access_token as string
+}
+
+test('standard /api/order rejects restricted SKUs with 422 AGE_RESTRICTED_ITEM until online age verification exists', async ({ request }) => {
+  const headers = { Authorization: `Bearer ${await serviceToken(request)}` }
+  const order = (skuCode: string) => request.post('/api/order', { headers, data: { orderLineItemsDtoList: [{ skuCode, price: 4.5, quantity: 1 }] } })
+
+  const rejected = await order('MOR-LAGER-4X440')
+  expect(rejected.status()).toBe(422)
+  expect(await rejected.json()).toMatchObject({ error: 'AGE_RESTRICTED_ITEM', skuCodes: ['MOR-LAGER-4X440'] })
+  expect((await order('MOR-MILK-2L')).status()).toBe(201)
 })

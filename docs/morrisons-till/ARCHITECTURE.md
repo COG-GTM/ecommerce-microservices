@@ -36,7 +36,7 @@ Changes to existing services are additive:
 | notification-service | records consumed events in a bounded `NotificationLog`; `GET /api/notification`, `GET /api/notification/{orderNumber}` |
 | api-gateway | routes `/api/till/**` and `/api/notification/**`; `dev` profile makes `/api/till/**` public and `GET /api/order/**`, `GET /api/notification/**` readable for tests. Everything else still requires a Keycloak JWT. |
 
-Existing endpoints (`POST /api/order`, `GET/POST /api/product`, `GET /api/inventory`) are unchanged.
+Existing endpoints (`POST /api/order`, `GET/POST /api/product`, `GET /api/inventory`) are unchanged, except that `POST /api/order` rejects age-restricted SKUs with `AGE_RESTRICTED_ITEM` (422) until online age verification exists; they can only be sold through a till sale.
 
 ## Legacy bridge to modern services
 
