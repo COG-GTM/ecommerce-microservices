@@ -8,9 +8,11 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 
 import java.util.Collections;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -35,6 +37,18 @@ class OrderControllerValidationTest {
     @Test
     void rejectsMoreThanMaxLineItems() throws Exception {
         postOrder(itemsBody(OrderRequest.MAX_LINE_ITEMS + 1)).andExpect(status().isBadRequest());
+        verifyNoInteractions(orderService);
+    }
+
+    @Test
+    void rejectsOversizedListWithoutValidatingEachItem() throws Exception {
+        String body = "{\"orderLineItemsDtoList\":[" + String.join(",", Collections.nCopies(30_000, "{}")) + "]}";
+
+        MvcResult result = postOrder(body).andExpect(status().isBadRequest()).andReturn();
+
+        MethodArgumentNotValidException error = (MethodArgumentNotValidException) result.getResolvedException();
+        assertThat(error.getErrorCount()).isEqualTo(1);
+        assertThat(error.getFieldError().getField()).isEqualTo("orderLineItemsDtoList");
         verifyNoInteractions(orderService);
     }
 
