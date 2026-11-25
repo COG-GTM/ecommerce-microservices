@@ -136,7 +136,9 @@ public class TillService {
         Basket basket = openForChange(basketId);
         String card = cardNumber.replaceAll("\\s", "");
         MoreCardMember member = moreCards.find(card).orElseThrow(() -> new TillException(HttpStatus.NOT_FOUND,
-                "UNKNOWN_CARD", "More Card not recognised. Continuing as non-member."));
+                "UNKNOWN_CARD", basket.getMember() == null
+                        ? "More Card not recognised. Continuing as non-member."
+                        : "More Card not recognised. Keeping " + basket.getMember().name() + "'s card."));
         basket.setMember(member);
         basket.setMemberCardNumber(card);
         log.info("Till {} attached More Card ending {} to transaction {}", basket.getTillId(), member.cardLast4(),
