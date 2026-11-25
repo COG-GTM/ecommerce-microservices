@@ -13,6 +13,7 @@ import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.kafka.test.EmbeddedKafkaBroker;
 import org.springframework.kafka.test.context.EmbeddedKafka;
 import org.springframework.kafka.test.utils.KafkaTestUtils;
@@ -42,6 +43,9 @@ class NotificationPoisonRecordTest {
 
     @Autowired
     private EmbeddedKafkaBroker broker;
+
+    @Autowired
+    private DefaultErrorHandler errorHandler;
 
     private DefaultKafkaProducerFactory<String, String> producerFactory;
     private KafkaTemplate<String, String> rawTemplate;
@@ -92,6 +96,11 @@ class NotificationPoisonRecordTest {
         assertThat(out)
                 .doesNotContain(payloadMarker)
                 .doesNotContain("Received Notification for Order - null");
+    }
+
+    @Test
+    void errorHandlerKeepsRemainingRecordsInsteadOfSeekingBack() {
+        assertThat(errorHandler.seeksAfterHandling()).isFalse();
     }
 
     @Test
