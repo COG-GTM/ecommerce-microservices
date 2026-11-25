@@ -16,20 +16,30 @@ interface Props {
 /** Manual weight entry for a loose item without a label: weight in kg on the keypad, priced per kg. */
 export function WeightDialog({ product, busy, error, onConfirm, onCancel }: Props) {
   const [kg, setKg] = useState('')
+  const [submittedKg, setSubmittedKg] = useState<string | null>(null)
+  // Typed input that can't be a weight (e.g. a barcode scanned into the field) blocks Add until cleared.
+  const [garbled, setGarbled] = useState(false)
   const grams = parseKgToGrams(kg)
-  const valid = grams !== null && grams <= MAX_GRAMS
+  const valid = !garbled && grams !== null && grams <= MAX_GRAMS
+  const alert = garbled
+    ? 'That is not a weight. Press C and key the weight in kg.'
+    : error && kg === submittedKg ? error : null
   const preview = valid ? Math.round((grams * product.pricePence) / 1000) : null
 
-  const onKey = (key: string) =>
+  const onKey = (key: string) => {
+    if (key === 'C') setGarbled(false)
     setKg((value) => {
       if (key === 'C') return ''
       if (key === '.' && value.includes('.')) return value
       const next = value + key
       return /^\d{0,2}(\.\d{0,3})?$/.test(next) ? next : value
     })
+  }
   const submit = (event: FormEvent) => {
     event.preventDefault()
-    if (valid) onConfirm(grams)
+    if (!valid) return
+    setSubmittedKg(kg)
+    onConfirm(grams)
   }
 
   // Modal: keep Tab inside the dialog so Pay and the rest of the till behind it can't be reached.
@@ -63,7 +73,17 @@ export function WeightDialog({ product, busy, error, onConfirm, onCancel }: Prop
             autoComplete="off"
             placeholder="0.000"
             value={kg}
-            onChange={(e) => /^\d{0,2}(\.\d{0,3})?$/.test(e.target.value) && setKg(e.target.value)}
+            onChange={(e) => {
+              const next = e.target.value
+              if (next === '') {
+                setKg('')
+                setGarbled(false)
+              } else if (/^\d{0,2}(\.\d{0,3})?$/.test(next)) {
+                setKg(next)
+              } else {
+                setGarbled(true)
+              }
+            }}
             autoFocus
           />
           <span className="weight-unit">kg</span>
@@ -71,7 +91,7 @@ export function WeightDialog({ product, busy, error, onConfirm, onCancel }: Prop
         <div className="weight-preview" data-testid="weight-preview">
           {preview !== null ? `${kg} kg × ${formatPence(product.pricePence)}/kg = ${formatPence(preview)}` : '\u00a0'}
         </div>
-        {error && <div className="weight-error" role="alert" data-testid="weight-error">{error}</div>}
+        {alert && <div className="weight-error" role="alert" data-testid="weight-error">{alert}</div>}
         <div className="keypad">
           {KEYS.map((key) => (
             <button key={key} type="button" className="key" data-testid={`weight-key-${key}`} onClick={() => onKey(key)}>
