@@ -132,6 +132,19 @@ Error codes: `UNKNOWN_BARCODE` / `UNKNOWN_BASKET` / `UNKNOWN_LINE` (404), `OUT_O
 | 1007 | MOR-CHICKEN-BF-600 | Chicken breast fillets 600g | 475 |
 | 1008 | MOR-CARROT-1KG | Carrots 1kg | 65 |
 
+Promotion products (MBA-3934; scan only, not quick keys). Offers are set in till-service `till.promotions.*`: Greek
+yoghurt 3 for £3.50, still water/cola 2 for £2.00, and a £3.50 meal deal (sandwich + crisps/fruit + water/cola).
+
+| Barcode | SKU | Item | Pence |
+| --- | --- | --- | --- |
+| 393401 | MOR-SANDWICH-CHKBAC | Chicken and bacon sandwich | 300 |
+| 393402 | MOR-SANDWICH-EGGMAYO | Egg mayo sandwich | 250 |
+| 393403 | MOR-CRISPS-SALTED-30G | Ready salted crisps 30g | 85 |
+| 393404 | MOR-FRUIT-POT | Fruit pot | 120 |
+| 393405 | MOR-WATER-STILL-500 | Still water 500ml | 90 |
+| 393406 | MOR-COLA-500 | Cola 500ml | 135 |
+| 393407 | MOR-YOGHURT-GREEK-500 | Greek style yoghurt 500g | 150 |
+
 ## Extension points for the till tickets
 
 | Ticket | Where it plugs in |
