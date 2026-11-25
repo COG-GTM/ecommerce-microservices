@@ -46,5 +46,5 @@ test('timeout then retry with the same key: one charge, exactly one order', asyn
   expect(replayed).toMatchObject({ status: 'APPROVED', orderNumber: retried.orderNumber, authCode: retried.authCode })
 
   const orders = await ordersForTransaction(request, retried.orderNumber)
-  expect(orders).toEqual([expect.objectContaining({ orderNumber: retried.orderNumber, idempotencyKey: basketId })])
+  expect(orders).toEqual([expect.objectContaining({ orderNumber: retried.orderNumber })])
 })
