@@ -5,6 +5,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.util.StringUtils;
 
 @SpringBootApplication
 @Slf4j
@@ -15,8 +16,8 @@ public class NotificationServiceApplication {
 
     @KafkaListener(topics = "notificationTopic")
     public void handleNotification(@Payload(required = false) OrderPlacedEvent orderPlacedEvent) {
-        if (orderPlacedEvent == null) {
-            log.warn("Skipping notification record with no order event");
+        if (orderPlacedEvent == null || !StringUtils.hasText(orderPlacedEvent.getOrderNumber())) {
+            log.warn("Skipping notification record without an order number");
             return;
         }
         // Send out an email notification
