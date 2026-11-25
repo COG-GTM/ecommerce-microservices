@@ -96,6 +96,15 @@ class SecurityConfigTest {
                 .isInstanceOf(IllegalStateException.class);
     }
 
+    @Test
+    void credentialsThatBreakTheDefaultZoneUrlFailStartup() {
+        SecurityConfig config = new SecurityConfig();
+        assertThatThrownBy(() -> config.registryUsers("ops@example.com", "registry-secret", config.passwordEncoder()))
+                .isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> config.registryUsers("registry-user", "p@ss:word/1", config.passwordEncoder()))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
     private HttpRequest.Builder register() {
         return request("/eureka/apps/PRODUCT-SERVICE")
                 .header("Content-Type", "application/json")

@@ -15,9 +15,13 @@ import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.util.StringUtils;
 
+import java.util.regex.Pattern;
+
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+
+    private static final Pattern URL_SAFE = Pattern.compile("[A-Za-z0-9._~-]+");
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
@@ -40,6 +44,11 @@ public class SecurityConfig {
                                             PasswordEncoder passwordEncoder) {
         if (!StringUtils.hasText(username) || !StringUtils.hasText(password)) {
             throw new IllegalStateException("EUREKA_USERNAME and EUREKA_PASSWORD must be set");
+        }
+        if (!URL_SAFE.matcher(username).matches() || !URL_SAFE.matcher(password).matches()) {
+            throw new IllegalStateException(
+                    "EUREKA_USERNAME and EUREKA_PASSWORD may only contain A-Z, a-z, 0-9, '.', '_', '~' and '-' "
+                            + "because clients embed them in the Eureka defaultZone URL");
         }
         return new InMemoryUserDetailsManager(User.withUsername(username)
                 .password(passwordEncoder.encode(password))
