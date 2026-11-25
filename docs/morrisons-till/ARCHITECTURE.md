@@ -95,15 +95,15 @@ compute totals; they render `subtotalPence`, `savingsPence` and `totalPence` fro
 
 // TenderResult
 { "status": "APPROVED", "tenderType": "CARD", "basket": { /* Basket, status COMPLETED */ },
-  "orderNumber": "8df1…", "amountTenderedPence": 190, "changeDuePence": 0, "authCode": "419508",
+  "orderNumber": "8df1…", "amountTenderedPence": 140, "changeDuePence": 0, "authCode": "419508",
   "declineReason": null, "receipt": { /* Receipt */ }, "nextBasketId": "c2d3…" }
 // Declined: status DECLINED, basket still OPEN with all lines, orderNumber/receipt null, nextBasketId = same basket.
 
 // Receipt
 { "receiptNumber": "R-0417-07-0001", "storeNumber": "0417", "storeName": "Bradford Demo", "tillId": "07",
   "operatorName": "Demo Operator", "transactionNumber": "0417-07-0001", "orderNumber": "8df1…",
-  "lines": [ /* BasketLine */ ], "subtotalPence": 190, "savingsPence": 0, "totalPence": 190,
-  "tenderType": "CARD", "amountTenderedPence": 190, "changeDuePence": 0, "authCode": "419508", "issuedAt": "2026-11-25T14:36:16Z",
+  "lines": [ /* BasketLine */ ], "subtotalPence": 190, "savingsPence": 50, "totalPence": 140,
+  "tenderType": "CARD", "amountTenderedPence": 140, "changeDuePence": 0, "authCode": "419508", "issuedAt": "2026-11-25T14:36:16Z",
   "vatSummary": [ /* VatBand, same as the basket */ ] }
 
 // Error (any 4xx/5xx)
