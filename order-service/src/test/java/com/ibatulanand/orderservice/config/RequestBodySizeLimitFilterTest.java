@@ -87,9 +87,11 @@ class RequestBodySizeLimitFilterTest {
     }
 
     @Test
-    void runsBeforeFormContentParsing() {
-        assertThat(OrderUtils.getOrder(RequestBodySizeLimitFilter.class)).isEqualTo(Ordered.HIGHEST_PRECEDENCE);
-        assertThat(Ordered.HIGHEST_PRECEDENCE).isLessThan(new OrderedFormContentFilter().getOrder());
+    void runsAfterObservationAndBeforeFormContentParsing() {
+        int order = OrderUtils.getOrder(RequestBodySizeLimitFilter.class);
+        // Boot registers ServerHttpObservationFilter at HIGHEST_PRECEDENCE + 1
+        assertThat(order).isGreaterThan(Ordered.HIGHEST_PRECEDENCE + 1);
+        assertThat(order).isLessThan(new OrderedFormContentFilter().getOrder());
     }
 
     @Test

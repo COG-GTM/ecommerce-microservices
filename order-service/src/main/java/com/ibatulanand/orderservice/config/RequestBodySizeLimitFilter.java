@@ -8,7 +8,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletRequestWrapper;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.Ordered;
+import org.springframework.boot.web.servlet.filter.OrderedFormContentFilter;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -29,7 +29,8 @@ import java.util.Set;
  * chunked bodies that carry no Content-Length, before they reach JSON or form binding.
  */
 @Component
-@Order(Ordered.HIGHEST_PRECEDENCE)
+// After the HTTP observation filter (so 413s are counted) and before form parsing
+@Order(OrderedFormContentFilter.DEFAULT_ORDER - 1)
 public class RequestBodySizeLimitFilter extends OncePerRequestFilter {
 
     private static final Set<String> BODY_METHODS = Set.of(
