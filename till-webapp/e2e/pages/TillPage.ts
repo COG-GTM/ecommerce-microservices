@@ -31,15 +31,27 @@ export class TillPage {
   async scan(barcode: string) {
     await this.page.getByTestId('barcode-input').fill(barcode)
     await this.page.getByTestId('enter').click()
+    await this.settled()
   }
 
   async keyBarcode(barcode: string) {
     for (const digit of barcode) await this.page.getByTestId(`key-${digit}`).click()
     await this.page.getByTestId('enter').click()
+    await this.settled()
   }
 
   async quickKey(barcode: string) {
     await this.page.getByTestId(`quickkey-${barcode}`).click()
+    await this.settled()
+  }
+
+  /**
+   * Waits for the till to finish the last scan. The till keeps its buttons disabled while a request is in flight
+   * and selects the scanned line when the response lands, so acting before then (e.g. selecting another line)
+   * races that response.
+   */
+  async settled() {
+    await expect(this.page.getByTestId('enter')).toBeEnabled()
   }
 
   async expectLine(name: string, qty: number, each: string, total: string) {
