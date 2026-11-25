@@ -189,9 +189,10 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
      'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -uroot order_service < /docker-entrypoint-initdb.d/01-schema.sql \
       && /docker-entrypoint-initdb.d/02-app-user.sh'
    ```
-   Then rotate root to the value in `.env` and remove the old shared login (keep it if `ORDER_DB_APP_USER=ibatulanand`):
-   `DROP USER IF EXISTS 'ibatulanand'@'%'; ALTER USER 'root'@'%' IDENTIFIED BY '<new root password>';`
-   (repeat for `'root'@'localhost'`).
+   Then rotate root to the value in `.env`:
+   `ALTER USER 'root'@'%' IDENTIFIED BY '<new root password>';` (repeat for `'root'@'localhost'`).
+   Unless `ORDER_DB_APP_USER` is `ibatulanand`, also remove the old shared login:
+   `DROP USER IF EXISTS 'ibatulanand'@'%';`
    To run `order-service` on the host against this database, set `SPRING_DATASOURCE_USERNAME`,
    `SPRING_DATASOURCE_PASSWORD` and `SPRING_DATASOURCE_URL=jdbc:mysql://localhost:3307/order_service`.
 
