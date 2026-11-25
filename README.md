@@ -162,7 +162,7 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
 ## Getting Started
 
 ### Prerequisites
-1. Docker and Docker Compose should be installed.
+1. Docker Engine 28.0.0 or newer and Docker Compose should be installed. Older engines let hosts on the same LAN reach ports published on `127.0.0.1`, which would expose the unauthenticated Kafka broker.
 2. Docker should be running.
 
 ### Deployment
@@ -182,6 +182,8 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
    ```shell
    docker ps
    ```
+
+> Kafka and ZooKeeper have no authentication, so compose publishes the broker on `127.0.0.1:9092` only and does not publish ZooKeeper at all. Containers reach the broker at `broker:29092`. Do not change these bindings to expose them on other interfaces; a shared environment needs SASL, TLS and topic ACLs first.
 
 
 ## Usage

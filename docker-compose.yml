@@ -81,8 +81,7 @@ services:
   zookeeper:
     image: confluentinc/cp-zookeeper:latest
     container_name: zookeeper
-    ports:
-      - "2181:2181"
+    # No host port: only the broker talks to ZooKeeper, over the compose network.
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
@@ -91,8 +90,10 @@ services:
   broker:
     image: confluentinc/cp-kafka:latest
     container_name: broker
+    # Loopback only: the PLAINTEXT listeners have no authentication, so the
+    # broker must not be reachable from other machines. Containers use broker:29092.
     ports:
-      - "9092:9092"
+      - "127.0.0.1:9092:9092"
     depends_on:
       - zookeeper
     environment:
