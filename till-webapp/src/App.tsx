@@ -76,7 +76,8 @@ export default function App() {
     try {
       for (const sale of offlineStore.queue()) {
         try {
-          await tillApi.syncOfflineSale(sale)
+          const ack = await tillApi.syncOfflineSale(sale)
+          if (!ack?.orderNumber) throw new Error('no order number in the sync response')
           offlineStore.remove(sale.saleId)
           synced++
         } catch (e) {
