@@ -9,6 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.regex.Matcher;
@@ -58,21 +59,44 @@ class GatewaySensitiveLoggingTest {
 
     @Test
     void composeDoesNotRaiseGatewayOrSecurityLoggingToDebugOrTrace() throws IOException {
+        List<String> verboseLoggingOverrides = composeLoggingEntries().stream()
+                .filter(entry -> VERBOSE_LEVELS.contains(entry.level()))
+                .map(ComposeLoggingEntry::line)
+                .toList();
+
+        assertThat(verboseLoggingOverrides).isEmpty();
+    }
+
+    @Test
+    void composePinsHeaderObservationLoggingForPrebuiltGatewayImages() throws IOException {
+        assertThat(composeLoggingEntries())
+                .filteredOn(entry -> entry.key().equals("LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_CLOUD_GATEWAY_FILTER_HEADERS_OBSERVATION"))
+                .extracting(ComposeLoggingEntry::level)
+                .as("compose must override the TRACE gateway logging baked into older api-gateway images")
+                .isNotEmpty()
+                .allMatch(level -> !level.isEmpty() && !VERBOSE_LEVELS.contains(level));
+    }
+
+    private static List<ComposeLoggingEntry> composeLoggingEntries() throws IOException {
         Optional<Path> compose = Stream.of(Path.of("docker-compose.yml"), Path.of("..", "docker-compose.yml"))
                 .filter(path -> Files.isDirectory(path.toAbsolutePath().getParent().resolve("api-gateway")))
                 .filter(Files::exists)
                 .findFirst();
         assumeTrue(compose.isPresent(), "repository docker-compose.yml not found next to api-gateway/");
 
-        List<String> verboseLoggingOverrides = Files.readAllLines(compose.get()).stream()
+        return Files.readAllLines(compose.get()).stream()
                 .map(String::trim)
-                .filter(line -> {
+                .map(line -> {
                     Matcher matcher = COMPOSE_LOGGING_ENTRY.matcher(line);
-                    return matcher.find() && VERBOSE_LEVELS.contains(matcher.group(2).toUpperCase(Locale.ROOT));
+                    return matcher.find()
+                            ? new ComposeLoggingEntry(line, matcher.group(1), matcher.group(2).toUpperCase(Locale.ROOT))
+                            : null;
                 })
+                .filter(Objects::nonNull)
                 .toList();
+    }
 
-        assertThat(verboseLoggingOverrides).isEmpty();
+    private record ComposeLoggingEntry(String line, String key, String level) {
     }
 
     private static Properties applicationProperties() throws IOException {
