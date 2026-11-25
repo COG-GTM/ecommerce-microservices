@@ -25,12 +25,10 @@ marker="$data/.admin-password-applied"
 fingerprint="$(printf '%s' "$password" | sha256sum | cut -d' ' -f1)"
 
 if [ -f "$data/grafana.db" ] && [ "$(cat "$marker" 2>/dev/null || true)" != "$fingerprint" ]; then
-  if command -v grafana >/dev/null 2>&1; then
-    set -- grafana cli
-  else
-    set -- grafana-cli
-  fi
-  output="$(printf '%s\n' "$password" | "$@" \
+  cli="grafana-cli"
+  command -v grafana >/dev/null 2>&1 && cli="grafana cli"
+  # shellcheck disable=SC2086
+  output="$(printf '%s\n' "$password" | $cli \
     --homepath "${GF_PATHS_HOME:-/usr/share/grafana}" \
     --config "${GF_PATHS_CONFIG:-/etc/grafana/grafana.ini}" \
     admin reset-admin-password --password-from-stdin 2>&1)" \
@@ -39,4 +37,4 @@ if [ -f "$data/grafana.db" ] && [ "$(cat "$marker" 2>/dev/null || true)" != "$fi
 fi
 (umask 077 && printf '%s\n' "$fingerprint" > "$marker")
 
-exec /run.sh
+exec /run.sh "$@"
