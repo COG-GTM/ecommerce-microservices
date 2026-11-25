@@ -30,6 +30,7 @@ export function SellPanel(props: Props) {
   }
   const onKey = (key: string) => setBarcode((value) => (key === 'C' ? '' : value + key))
   const hasLines = (basket?.lines.length ?? 0) > 0
+  const fixedQty = !selectedLine || selectedLine.pricedBy !== 'EACH'
 
   return (
     <>
@@ -84,8 +85,8 @@ export function SellPanel(props: Props) {
           <Keypad id="key" onKey={onKey} />
         </section>
         <div className="line-actions">
-          <button type="button" className="btn outline" data-testid="qty-plus" disabled={!selectedLine || busy} onClick={() => props.onQty(1)}>Qty +1</button>
-          <button type="button" className="btn outline" data-testid="qty-minus" disabled={!selectedLine || selectedLine.quantity <= 1 || busy} onClick={() => props.onQty(-1)}>Qty −1</button>
+          <button type="button" className="btn outline" data-testid="qty-plus" disabled={fixedQty || busy} onClick={() => props.onQty(1)}>Qty +1</button>
+          <button type="button" className="btn outline" data-testid="qty-minus" disabled={fixedQty || selectedLine.quantity <= 1 || busy} onClick={() => props.onQty(-1)}>Qty −1</button>
           <button type="button" className="btn danger" data-testid="void-line" disabled={!selectedLine || busy} onClick={props.onVoidLine}>Void line</button>
           <button type="button" className="btn danger" data-testid="void-sale" disabled={(!hasLines && !basket?.member) || busy} onClick={props.onVoidSale}>Void sale</button>
         </div>

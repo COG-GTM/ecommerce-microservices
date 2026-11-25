@@ -26,4 +26,6 @@ public class Product {
     private Boolean quickKey;
     /** UK VAT code: Z (zero-rated, 0%) or S (standard-rated, 20%). */
     private String vatCode;
+    /** Sold loose by weight; pricePence is then the price per kg. */
+    private Boolean soldByWeight;
 }

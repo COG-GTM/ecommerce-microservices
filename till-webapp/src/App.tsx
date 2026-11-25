@@ -7,6 +7,8 @@ import { Header } from './components/Header'
 import { SaleComplete } from './components/SaleComplete'
 import { SellPanel } from './components/SellPanel'
 import { TenderPanel } from './components/TenderPanel'
+import { WeightDialog } from './components/WeightDialog'
+import { formatKg } from './money'
 
 type Screen = 'sell' | 'tender' | 'complete'
 
@@ -32,6 +34,7 @@ export default function App() {
   const [declineMessage, setDeclineMessage] = useState<string | null>(null)
   const [tenderError, setTenderError] = useState<string | null>(null)
   const [result, setResult] = useState<TenderResult | null>(null)
+  const [weighing, setWeighing] = useState<Product | null>(null)
 
   const showBasket = useCallback((next: Basket) => {
     setBasket(next)
@@ -101,10 +104,33 @@ export default function App() {
         setMessage({ kind: 'ok', text: `More Card: ${next.member?.name ?? 'member'} added` })
         return
       }
-      const next = await tillApi.addLine(basket.basketId, barcode)
+      try {
+        const next = await tillApi.addLine(basket.basketId, barcode)
+        showBasket(next)
+        const line = next.lines.find((l) => l.lineId === next.lastLineId)
+        setMessage({ kind: 'ok', text: `Added ${line?.name ?? barcode}` })
+      } catch (e) {
+        if (!(e instanceof TillApiError && e.code === 'WEIGHT_REQUIRED')) throw e
+        setWeighing(await tillApi.product(barcode))
+        setMessage({ kind: 'ok', text: e.message })
+      }
+    }, (text) => setMessage({ kind: 'error', text }))
+
+  const closeWeighing = () => {
+    setWeighing(null)
+    requestAnimationFrame(() => document.querySelector<HTMLInputElement>('[data-testid="barcode-input"]')?.focus())
+  }
+
+  // A pending weight belongs to the sale it was keyed for; drop it if the basket is replaced (void elsewhere, restart).
+  useEffect(() => setWeighing(null), [basket?.basketId])
+
+  const addWeighed = (weightGrams: number) =>
+    basket && weighing &&
+    run(async () => {
+      const next = await tillApi.addLine(basket.basketId, weighing.barcode, 1, weightGrams)
       showBasket(next)
-      const line = next.lines.find((l) => l.lineId === next.lastLineId)
-      setMessage({ kind: 'ok', text: `Added ${line?.name ?? barcode}` })
+      closeWeighing()
+      setMessage({ kind: 'ok', text: `Added ${weighing.name} ${formatKg(weightGrams)}` })
     }, (text) => setMessage({ kind: 'error', text }))
 
   const changeQty = (delta: number) =>
@@ -204,6 +230,12 @@ export default function App() {
               />
             )}
             {screen === 'complete' && result && <SaleComplete result={result} onNewSale={newSale} />}
+            {screen === 'sell' && weighing && (
+              <WeightDialog product={weighing} busy={busy} onConfirm={addWeighed} onCancel={() => {
+                closeWeighing()
+                setMessage(null)
+              }} />
+            )}
           </div>
         </main>
       </div>

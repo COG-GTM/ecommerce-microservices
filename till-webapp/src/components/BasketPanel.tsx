@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useRef } from 'react'
 import type { Adjustment, Basket } from '../api/types'
-import { formatPence } from '../money'
+import { formatKg, formatPence } from '../money'
 import { ApiChip } from './ApiChip'
 import { VatSummary } from './VatSummary'
 
@@ -49,9 +49,17 @@ export function BasketPanel({ basket, selectedLineId, onSelect }: Props) {
                 <td className="item">
                   <span data-testid="line-name">{line.name}</span>
                   {line.vatCode && <span className="vat-code" data-testid="line-vat-code" title={`VAT code ${line.vatCode}`}>{line.vatCode}</span>}
+                  {line.pricedBy === 'WEIGHT' && line.weightGrams != null && (
+                    <span className="line-detail" data-testid="line-weight">
+                      {formatKg(line.weightGrams)} × {formatPence(line.unitPricePence)}/kg
+                    </span>
+                  )}
+                  {line.pricedBy === 'LABEL' && <span className="line-detail" data-testid="line-label">Price-embedded label</span>}
                 </td>
                 <td className="num qty" data-testid="line-qty">{line.quantity}</td>
-                <td className="num each" data-testid="line-each">{formatPence(line.unitPricePence)}</td>
+                <td className="num each" data-testid="line-each">
+                  {formatPence(line.unitPricePence)}{line.pricedBy === 'WEIGHT' ? '/kg' : ''}
+                </td>
                 <td className="num total" data-testid="line-total">{formatPence(line.linePence)}</td>
               </tr>
               {savingsByLine.get(line.lineId)?.map((saving) => (

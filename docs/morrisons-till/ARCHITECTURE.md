@@ -64,7 +64,7 @@ compute totals; they render `subtotalPence`, `savingsPence` and `totalPence` fro
 | GET | `/products?quickkey=true` | - | `Product[]` (quick keys, barcode order) |
 | GET | `/products/{barcode}` | - | `Product` |
 | GET | `/basket/{basketId}` | - | `Basket` |
-| POST | `/basket/lines` | `{ basketId, barcode, quantity? }` | `Basket` (same barcode again increments the line) |
+| POST | `/basket/lines` | `{ basketId, barcode, quantity?, weightGrams? }` | `Basket` (same barcode again increments the line; weighed items and price-embedded labels always add a new line) |
 | PATCH | `/basket/lines/{lineId}` | `{ basketId, quantity }` | `Basket` |
 | DELETE | `/basket/lines/{lineId}?basketId=` | - | `Basket` (void line) |
 | POST | `/basket/void` | `{ basketId }` | new empty `Basket` (void sale) |
@@ -89,7 +89,7 @@ compute totals; they render `subtotalPence`, `savingsPence` and `totalPence` fro
 // Basket
 { "basketId": "b0c1…", "tillId": "07", "transactionNumber": "0417-07-0001", "status": "OPEN", "currency": "GBP",
   "lines": [ { "lineId": "l-1", "barcode": "1004", "skuCode": "MOR-BANANA-5", "name": "Bananas x5",
-               "quantity": 2, "unitPricePence": 95, "linePence": 190 } ],
+               "quantity": 2, "unitPricePence": 95, "linePence": 190, "pricedBy": "EACH", "weightGrams": null } ],
   "adjustments": [ { "code": "MULTIBUY", "label": "…", "amountPence": -50, "lineId": "l-1" } ],
   "lastLineId": "l-1", "itemCount": 2, "subtotalPence": 190, "savingsPence": 0, "totalPence": 190, "orderNumber": null,
   "member": null }  // More Card attached: { "cardLast4": "0001", "name": "Test Member One", "pointsBalance": 1200 }
@@ -113,6 +113,13 @@ compute totals; they render `subtotalPence`, `savingsPence` and `totalPence` fro
 
 Error codes: `UNKNOWN_BARCODE` / `UNKNOWN_BASKET` / `UNKNOWN_LINE` (404), `OUT_OF_STOCK` / `BASKET_CLOSED` (409),
 `EMPTY_BASKET` / `INSUFFICIENT_TENDER` (422), `UNSUPPORTED_TENDER` / validation (400).
+
+Weighed and loose items (MBA-3935): a product with `soldByWeight: true` has `pricePence` per kg. Lines carry
+`pricedBy` (`EACH` | `WEIGHT` | `LABEL`) and `weightGrams` (WEIGHT only; `unitPricePence` is then per kg and
+`linePence` = weight × price, half-up to the penny). Price-embedded labels are prefix-2 EAN-13 `2 IIIIII PPPPP C`
+(item/PLU, price in pence, check digit), e.g. `2002101003490` = PLU 2101 at £3.49. Weighed and labelled lines are
+quantity 1. Errors: `INVALID_CHECK_DIGIT`, `WEIGHT_REQUIRED` (UI prompts for kg), `WEIGHT_TOO_LOW`,
+`QUANTITY_NOT_ALLOWED` (422); `NOT_SOLD_BY_WEIGHT` (422 for a label on a unit-priced item, 400 for a weight).
 
 ### Downstream calls made by till-service
 

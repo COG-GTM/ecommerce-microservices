@@ -262,3 +262,14 @@ h1, h2, h3, p { margin: 0; }
   .pinpad { min-height: 320px; }
   .cash { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Weighed and loose items (MBA-3935) */
+.basket-table .line-detail { display: block; font-size: 15px; font-weight: 500; color: var(--muted); margin-top: 2px; }
+.weight-backdrop { position: fixed; inset: 0; background: rgba(20, 32, 27, 0.45); display: grid; place-items: center; z-index: 20; }
+.weight-dialog { width: min(440px, 92vw); padding: 24px; display: grid; gap: 12px; }
+.weight-dialog h3 { font-size: 24px; }
+.weight-row { display: flex; align-items: center; gap: 10px; }
+.weight-row .barcode { flex: 1; }
+.weight-unit { font-size: 22px; font-weight: 700; }
+.weight-preview { min-height: 24px; font-weight: 600; color: var(--green); }
+.weight-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }

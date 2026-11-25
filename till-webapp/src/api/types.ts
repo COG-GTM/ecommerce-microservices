@@ -17,9 +17,11 @@ export interface Product {
   barcode: string
   skuCode: string
   name: string
+  /** Price per kg when soldByWeight. */
   pricePence: number
   quickKey: boolean
   vatCode: VatCode
+  soldByWeight?: boolean
 }
 
 /** UK VAT code: Z = zero-rated (0%), S = standard-rated (20%). */
@@ -40,9 +42,12 @@ export interface BasketLine {
   skuCode: string
   name: string
   quantity: number
+  /** Per kg for WEIGHT lines; the label price for LABEL lines. */
   unitPricePence: number
   linePence: number
   vatCode: VatCode | null
+  pricedBy: 'EACH' | 'WEIGHT' | 'LABEL'
+  weightGrams: number | null
 }
 
 export interface Adjustment {

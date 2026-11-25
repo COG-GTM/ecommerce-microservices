@@ -14,7 +14,7 @@ import java.util.List;
 
 /**
  * Seeds the Morrisons till demo grocery catalogue (quick keys 1001-1008, plus standard-rated VAT items 4001-4002
- * that are scanned, not quick keys). Idempotent: upserts by barcode.
+ * that are scanned, not quick keys; weighed PLUs 2101-2299). Idempotent: upserts by barcode.
  * Enabled with catalogue.seed.grocery=true (set by scripts/till/up.sh).
  */
 @Component
@@ -42,6 +42,15 @@ public class GroceryCatalogueSeeder implements ApplicationRunner {
             new SeedItem("4001", "MOR-CHOC-BAR-100", "Milk chocolate bar 100g", 120, "S", false),
             new SeedItem("4002", "MOR-WASHUP-500", "Washing up liquid 500ml", 135, "S", false));
 
+    /**
+     * Loose and counter items sold by weight (PLUs 2101-2299, price per kg, not quick keys). Keyed by PLU they prompt
+     * for a weight; counter labels carry the PLU and price in a prefix-2 EAN-13 (e.g. 2002101003490 = PLU 2101, £3.49).
+     */
+    static final List<SeedItem> WEIGHED_ITEMS = List.of(
+            new SeedItem("2101", "MOR-DELI-HAM-KG", "Deli honey roast ham", 1290),
+            new SeedItem("2201", "MOR-TOMATO-LOOSE-KG", "Loose tomatoes", 220),
+            new SeedItem("2202", "MOR-ONION-LOOSE-KG", "Loose brown onions", 99));
+
     private final ProductRepository productRepository;
 
     @Override
@@ -58,6 +67,18 @@ public class GroceryCatalogueSeeder implements ApplicationRunner {
             product.setVatCode(item.vatCode());
             productRepository.save(product);
         }
-        log.info("Seeded {} grocery products for the till", ITEMS.size());
+        for (SeedItem item : WEIGHED_ITEMS) {
+            Product product = productRepository.findFirstByBarcode(item.barcode()).orElseGet(Product::new);
+            product.setBarcode(item.barcode());
+            product.setSkuCode(item.skuCode());
+            product.setName(item.name());
+            product.setDescription(item.name() + " (per kg)");
+            product.setPricePence(item.pricePence());
+            product.setPrice(BigDecimal.valueOf(item.pricePence(), 2));
+            product.setQuickKey(false);
+            product.setSoldByWeight(true);
+            productRepository.save(product);
+        }
+        log.info("Seeded {} grocery and {} weighed products for the till", ITEMS.size(), WEIGHED_ITEMS.size());
     }
 }

@@ -1,5 +1,6 @@
 package com.ibatulanand.tillservice.service;
 
+import com.ibatulanand.tillservice.barcode.EmbeddedPriceBarcode;
 import com.ibatulanand.tillservice.client.CatalogueClient;
 import com.ibatulanand.tillservice.client.OrderClient;
 import com.ibatulanand.tillservice.client.StockClient;
@@ -26,6 +27,7 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -97,20 +99,62 @@ public class TillService {
     }
 
     public synchronized Basket addLine(String basketId, String barcode, int quantity) {
+        return addLine(basketId, barcode, quantity, null);
+    }
+
+    /**
+     * Adds a scanned or keyed item. A price-embedded label (prefix-2 EAN-13) adds one line at the label price;
+     * an item sold by weight needs {@code weightGrams} and is priced at its per-kg price.
+     */
+    public synchronized Basket addLine(String basketId, String barcode, int quantity, Integer weightGrams) {
         Basket basket = openForChange(basketId);
-        CatalogueItem item = product(barcode);
+        Optional<EmbeddedPriceBarcode> label = EmbeddedPriceBarcode.parse(barcode);
+        CatalogueItem item = product(label.map(EmbeddedPriceBarcode::plu).orElse(barcode));
+        if (label.isEmpty() && item.soldByWeight() && weightGrams == null) {
+            throw new TillException(HttpStatus.UNPROCESSABLE_ENTITY, "WEIGHT_REQUIRED",
+                    "Enter the weight in kg for " + item.name());
+        }
+        if (label.isPresent() && !item.soldByWeight()) {
+            throw new TillException(HttpStatus.UNPROCESSABLE_ENTITY, "NOT_SOLD_BY_WEIGHT",
+                    "Barcode " + barcode + " is a price label but " + item.name() + " is not sold by weight");
+        }
+        if (weightGrams != null && (label.isPresent() || !item.soldByWeight())) {
+            throw new TillException(HttpStatus.BAD_REQUEST, "NOT_SOLD_BY_WEIGHT", item.name() + " is not sold by weight");
+        }
+        if ((label.isPresent() || weightGrams != null) && quantity != 1) {
+            throw new TillException(HttpStatus.UNPROCESSABLE_ENTITY, "QUANTITY_NOT_ALLOWED",
+                    "Weighed and labelled items are sold one per line; scan or weigh another");
+        }
+        if (weightGrams != null && BasketLine.weighedPence(weightGrams, item.pricePence()) < 1) {
+            throw new TillException(HttpStatus.UNPROCESSABLE_ENTITY, "WEIGHT_TOO_LOW",
+                    "Weight is too low to charge for " + item.name() + "; weigh again");
+        }
         if (!stock.isInStock(item.skuCode())) {
             throw new TillException(HttpStatus.CONFLICT, "OUT_OF_STOCK", item.name() + " is out of stock");
         }
-        BasketLine line = basket.getLines().stream().filter(l -> l.getBarcode().equals(barcode)).findFirst()
-                .orElse(null);
-        if (line == null) {
-            line = new BasketLine(UUID.randomUUID().toString(), item.barcode(), item.skuCode(), item.name(),
-                    0, item.pricePence(), 0);
+        BasketLine line;
+        if (label.isPresent()) {
+            line = new BasketLine(UUID.randomUUID().toString(), barcode, item.skuCode(), item.name(), 1,
+                    label.get().pricePence(), 0, BasketLine.PricedBy.LABEL, null);
             line.setVatCode(item.vatCode());
             basket.getLines().add(line);
+        } else if (weightGrams != null) {
+            line = new BasketLine(UUID.randomUUID().toString(), item.barcode(), item.skuCode(), item.name(), 1,
+                    item.pricePence(), 0, BasketLine.PricedBy.WEIGHT, weightGrams);
+            line.setVatCode(item.vatCode());
+            basket.getLines().add(line);
+        } else {
+            line = basket.getLines().stream()
+                    .filter(l -> l.getPricedBy() == BasketLine.PricedBy.EACH && l.getBarcode().equals(barcode))
+                    .findFirst().orElse(null);
+            if (line == null) {
+                line = new BasketLine(UUID.randomUUID().toString(), item.barcode(), item.skuCode(), item.name(),
+                        0, item.pricePence(), 0);
+                line.setVatCode(item.vatCode());
+                basket.getLines().add(line);
+            }
+            line.setQuantity(line.getQuantity() + quantity);
         }
-        line.setQuantity(line.getQuantity() + quantity);
         basket.setLastLineId(line.getLineId());
         return pricer.price(basket);
     }
@@ -118,6 +162,10 @@ public class TillService {
     public synchronized Basket updateLine(String basketId, String lineId, int quantity) {
         Basket basket = openForChange(basketId);
         BasketLine line = line(basket, lineId);
+        if (line.getPricedBy() != BasketLine.PricedBy.EACH && quantity != line.getQuantity()) {
+            throw new TillException(HttpStatus.UNPROCESSABLE_ENTITY, "QUANTITY_NOT_ALLOWED",
+                    "Weighed and labelled items are sold one per line; scan or weigh another");
+        }
         line.setQuantity(quantity);
         basket.setLastLineId(lineId);
         return pricer.price(basket);

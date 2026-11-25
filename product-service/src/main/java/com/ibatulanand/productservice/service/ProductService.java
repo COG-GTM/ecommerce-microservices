@@ -53,6 +53,7 @@ public class ProductService {
                 .pricePence(product.getPricePence())
                 .quickKey(product.getQuickKey())
                 .vatCode(product.getVatCode())
+                .soldByWeight(product.getSoldByWeight())
                 .build();
     }
 }
