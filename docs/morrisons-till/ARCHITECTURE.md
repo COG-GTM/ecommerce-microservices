@@ -90,8 +90,8 @@ compute totals; they render `subtotalPence`, `savingsPence` and `totalPence` fro
   "lines": [ { "lineId": "l-1", "barcode": "1004", "skuCode": "MOR-BANANA-5", "name": "Bananas x5",
                "quantity": 2, "unitPricePence": 95, "linePence": 190, "vatCode": "Z" } ],
   "adjustments": [ { "code": "MULTIBUY", "label": "…", "amountPence": -50, "lineId": "l-1" } ],
-  "lastLineId": "l-1", "itemCount": 2, "subtotalPence": 190, "savingsPence": 0, "totalPence": 190,
-  "vatSummary": [ { "code": "Z", "ratePercent": 0, "netPence": 190, "vatPence": 0, "grossPence": 190 } ], "orderNumber": null }
+  "lastLineId": "l-1", "itemCount": 2, "subtotalPence": 190, "savingsPence": 50, "totalPence": 140,
+  "vatSummary": [ { "code": "Z", "ratePercent": 0, "netPence": 140, "vatPence": 0, "grossPence": 140 } ], "orderNumber": null }
 
 // TenderResult
 { "status": "APPROVED", "tenderType": "CARD", "basket": { /* Basket, status COMPLETED */ },
