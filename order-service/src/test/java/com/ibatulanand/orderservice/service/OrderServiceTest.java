@@ -55,6 +55,14 @@ class OrderServiceTest {
     }
 
     @Test
+    void capsQuantityAcrossSkuCaseVariants() {
+        assertThatThrownBy(() -> orderService.placeOrder(order(line("iphone_15", 600), line("IPHONE_15", 600))))
+                .isInstanceOfSatisfying(ResponseStatusException.class,
+                        e -> assertThat(e.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST));
+        assertThat(inventoryRequests).isEmpty();
+    }
+
+    @Test
     void keepsCommittedOrderWhenKafkaSendFails() {
         when(kafkaTemplate.send(eq("notificationTopic"), any(OrderPlacedEvent.class)))
                 .thenThrow(new IllegalStateException("broker unavailable"));

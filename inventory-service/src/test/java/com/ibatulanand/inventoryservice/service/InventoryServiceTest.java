@@ -110,6 +110,9 @@ class InventoryServiceTest {
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> inventoryService.reserve(List.of(new StockReservationItem(" ", 1))))
                 .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> inventoryService.reserve(List.of(
+                new StockReservationItem("iphone_15", 600), new StockReservationItem("IPHONE_15", 600))))
+                .isInstanceOf(IllegalArgumentException.class);
 
         assertThat(quantityOf("iphone_15")).isEqualTo(100);
     }

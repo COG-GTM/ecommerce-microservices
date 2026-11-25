@@ -97,6 +97,7 @@ public class InventoryService {
             throw new IllegalArgumentException("At most " + MAX_ITEMS_PER_RESERVATION + " items are allowed");
         }
         Map<String, Integer> requested = new LinkedHashMap<>();
+        Map<String, Integer> requestedByFoldedSku = new LinkedHashMap<>();
         for (StockReservationItem item : items) {
             if (item == null || item.getSkuCode() == null || item.getSkuCode().isBlank()) {
                 throw new IllegalArgumentException("skuCode is required");
@@ -107,7 +108,8 @@ public class InventoryService {
             if (item.getQuantity() > MAX_QUANTITY_PER_SKU) {
                 throw new IllegalArgumentException("quantity must be at most " + MAX_QUANTITY_PER_SKU);
             }
-            int total = requested.merge(item.getSkuCode(), item.getQuantity(), Integer::sum);
+            requested.merge(item.getSkuCode(), item.getQuantity(), Integer::sum);
+            int total = requestedByFoldedSku.merge(item.getSkuCode().toLowerCase(Locale.ROOT), item.getQuantity(), Integer::sum);
             if (total > MAX_QUANTITY_PER_SKU) {
                 throw new IllegalArgumentException("quantity must be at most " + MAX_QUANTITY_PER_SKU);
             }

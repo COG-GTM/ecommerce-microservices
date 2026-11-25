@@ -19,6 +19,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
@@ -75,6 +76,7 @@ public class OrderService {
             throw badRequest("Order must contain at most " + MAX_LINE_ITEMS + " items");
         }
         Map<String, Integer> quantityBySku = new LinkedHashMap<>();
+        Map<String, Integer> quantityByFoldedSku = new LinkedHashMap<>();
         for (OrderLineItemsDto line : lines) {
             if (line == null || line.getSkuCode() == null || line.getSkuCode().isBlank()) {
                 throw badRequest("Every item needs a skuCode");
@@ -83,7 +85,8 @@ public class OrderService {
             if (quantity == null || quantity < 1 || quantity > MAX_QUANTITY_PER_SKU) {
                 throw badRequest("Quantity must be between 1 and " + MAX_QUANTITY_PER_SKU);
             }
-            int total = quantityBySku.merge(line.getSkuCode(), quantity, Integer::sum);
+            quantityBySku.merge(line.getSkuCode(), quantity, Integer::sum);
+            int total = quantityByFoldedSku.merge(line.getSkuCode().toLowerCase(Locale.ROOT), quantity, Integer::sum);
             if (total > MAX_QUANTITY_PER_SKU) {
                 throw badRequest("Quantity must be between 1 and " + MAX_QUANTITY_PER_SKU);
             }
