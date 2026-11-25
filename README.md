@@ -174,9 +174,14 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
 
 2. Create a `.env` file with your own secrets (it is git-ignored; compose refuses to start without it):
    ```shell
-   cp .env.example .env
+   cp .env.example .env && chmod 600 .env
    # fill in every value, e.g. with: openssl rand -base64 32
    ```
+   The Keycloak admin user is only created on first start (empty `./keycloak_db_data`); later changes to
+   `KEYCLOAK_ADMIN_*` in `.env` do not change it, so change the password in the admin console instead.
+
+   Keycloak's issuer is fixed to `http://keycloak:8080`, so add `127.0.0.1 keycloak` to `/etc/hosts`
+   (Windows: `C:\Windows\System32\drivers\etc\hosts`).
 
 3. Start the containers:
    ```shell
