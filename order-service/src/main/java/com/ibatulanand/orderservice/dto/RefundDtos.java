@@ -11,7 +11,7 @@ public final class RefundDtos {
     public record RefundLineRequest(String skuCode, Integer quantity) {
     }
 
-    public record RefundRequest(String storeNumber, String tillId, String transactionId, String tenderType,
+    public record RefundRequest(String storeNumber, String tillId, String transactionId,
                                 List<RefundLineRequest> lines) {
     }
 
