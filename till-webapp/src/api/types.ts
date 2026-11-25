@@ -171,9 +171,10 @@ export interface RefundableLine {
 /** A completed sale found by receipt/order number, with what is still refundable against it. */
 export interface RefundableSale {
   orderNumber: string
-  transactionId: string
-  storeNumber: string
-  tillId: string
+  /** null on orders written without till metadata */
+  transactionId: string | null
+  storeNumber: string | null
+  tillId: string | null
   tenderType: TenderType | null
   totalPence: number
   refundedPence: number

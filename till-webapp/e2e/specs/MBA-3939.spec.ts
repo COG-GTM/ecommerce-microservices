@@ -69,6 +69,9 @@ test.describe('refunds against a receipt (MBA-3939)', () => {
     await refund.submit()
     await expect(refund.error).toContainText('already refunded')
     await expect(page.getByTestId('refund-complete')).toBeHidden()
+    await refund.expectLine(MILK, 1, 1, 0)
+    await expect(refund.plus(MILK)).toBeDisabled()
+    await expect(page.getByTestId('refund-submit')).toBeDisabled()
   })
 
   test('unknown receipt shows an error and Back to sale returns to the open basket', async ({ till, page }) => {

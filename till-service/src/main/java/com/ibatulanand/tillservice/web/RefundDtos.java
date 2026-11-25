@@ -36,7 +36,7 @@ public final class RefundDtos {
     }
 
     public record RefundRequest(String tillId, @NotBlank String reference,
-                                @NotEmpty List<@Valid RefundLineRequest> lines) {
+                                @NotEmpty List<@NotNull @Valid RefundLineRequest> lines) {
     }
 
     /** What order-service persisted for the refund: a negative order linked to the sale. */

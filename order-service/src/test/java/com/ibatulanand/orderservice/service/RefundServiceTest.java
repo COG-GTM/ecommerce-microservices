@@ -139,7 +139,7 @@ class RefundServiceTest {
     }
 
     private static RefundRequest request(RefundLineRequest... lines) {
-        return new RefundRequest("0123", "T2", "0123-T2-R0001", null, List.of(lines));
+        return new RefundRequest("0123", "T2", "0123-T2-R0001", List.of(lines));
     }
 
     private static OrderLineItems line(String sku, int pence, int quantity) {

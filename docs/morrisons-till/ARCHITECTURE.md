@@ -73,7 +73,7 @@ compute totals; they render `subtotalPence`, `savingsPence` and `totalPence` fro
 | GET | `/basket/{basketId}/cash-quote?amountTenderedPence=` | - | `CashQuote { totalPence, paidPence, balanceDuePence, amountTenderedPence, changeDuePence, remainingPence }` |
 | POST | `/basket/member` | `{ basketId, cardNumber }` (More Card, seeded test cards `9826000000000001`/`…0002`) | `Basket` with `member`; 404 `UNKNOWN_CARD` leaves the basket's membership unchanged (non-member if no card was attached); seeded cards only under the `dev`/`till-demo` profile (otherwise 503 `MORE_CARD_UNAVAILABLE`) |
 | GET | `/refund/{reference}` | - | `RefundableSale` (reference: receipt `R-...`, transaction or order number) |
-| POST | `/refund` | `{ reference, tillId?, lines: [{ skuCode, quantity }] }` | `RefundResult`; `409 REFUND_EXCEEDS_SOLD` beyond what is left |
+| POST | `/refund` | `{ reference, tillId?, lines: [{ skuCode, quantity }] }` | `RefundResult` (`remaining` is null if the refund committed but the refreshed sale could not be read); `409 REFUND_EXCEEDS_SOLD` beyond what is left |
 | POST | `/offline-sales` | `{ saleId, tillId, transactionNumber, tenderType: CASH, lines: [{ barcode, skuCode?, name?, quantity, unitPricePence? }], amountTenderedPence }` | `{ saleId, orderNumber, transactionNumber, totalPence, amountTenderedPence }`; idempotent on `saleId` |
 
 `tillId` is optional (default `07`). Each till id has its own basket, which is how parallel E2E tests stay isolated.
