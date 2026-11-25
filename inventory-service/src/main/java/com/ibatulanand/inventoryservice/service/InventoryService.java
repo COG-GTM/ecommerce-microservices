@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 @Service
@@ -60,7 +61,8 @@ public class InventoryService {
      */
     @Transactional
     public void reserve(List<StockReservationItem> items) {
-        Map<String, Integer> requested = aggregate(items);
+        // Fixed SKU order so concurrent multi-item reservations lock rows in the same order
+        Map<String, Integer> requested = new TreeMap<>(aggregate(items));
         List<String> unavailable = new ArrayList<>();
         requested.forEach((skuCode, quantity) -> {
             boolean reserved = inventoryRepository.findBySkuCodeOrderByIdAsc(skuCode).stream()
@@ -79,7 +81,7 @@ public class InventoryService {
      */
     @Transactional
     public void release(List<StockReservationItem> items) {
-        Map<String, Integer> requested = aggregate(items);
+        Map<String, Integer> requested = new TreeMap<>(aggregate(items));
         requested.forEach((skuCode, quantity) -> {
             List<Inventory> rows = inventoryRepository.findBySkuCodeOrderByIdAsc(skuCode);
             if (rows.isEmpty()) {
