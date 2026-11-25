@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -40,14 +41,14 @@ public class InventoryService {
 
         Set<String> inStock = inventoryRepository.findBySkuCodeIn(skuCode).stream()
                 .filter(inventory -> inventory.getQuantity() != null && inventory.getQuantity() > 0)
-                .map(Inventory::getSkuCode)
+                .map(inventory -> inventory.getSkuCode().toLowerCase(Locale.ROOT))
                 .collect(Collectors.toSet());
 
         return skuCode.stream()
                 .distinct()
                 .map(code -> InventoryResponse.builder()
                         .skuCode(code)
-                        .isInStock(inStock.contains(code))
+                        .isInStock(inStock.contains(code.toLowerCase(Locale.ROOT)))
                         .build()
                 ).toList();
     }
