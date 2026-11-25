@@ -29,6 +29,19 @@ test.describe('UK VAT by item', () => {
     await vat.expectBand('receipt', 'S', 'S 20%', '£2.12', '£0.43', '£2.55')
   })
 
+  test('portrait tablet keeps basket lines and both VAT bands visible', async ({ till, page }) => {
+    const vat = new VatSummaryPanel(page)
+    await page.setViewportSize({ width: 768, height: 1024 })
+    await till.open()
+    await till.quickKey('1001')
+    await till.scan('4001')
+    await till.scan('4002')
+    await expect(vat.lineVatCode('Semi skimmed milk 4 pints')).toBeInViewport()
+    await expect(vat.lineVatCode('Washing up liquid 500ml')).toBeInViewport()
+    await expect(vat.band('basket', 'Z')).toBeInViewport()
+    await expect(vat.band('basket', 'S')).toBeInViewport()
+  })
+
   test('zero-rated only basket has a single 0% band', async ({ till, page }) => {
     const vat = new VatSummaryPanel(page)
     await till.open()
