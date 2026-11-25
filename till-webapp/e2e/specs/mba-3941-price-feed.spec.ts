@@ -26,12 +26,14 @@ test.describe('MBA-3941 price feed', () => {
     const barcodes = new Set(legacyPrices().map((p) => p.barcode))
     const snapshot = await (await request.get(FEED)).json()
     before = snapshot.prices
-      .filter((p: { barcode: string }) => barcodes.has(p.barcode))
+      .filter((p: { barcode: string; pricePence: number }) => barcodes.has(p.barcode) && p.pricePence > 0)
       .map(({ barcode, pricePence }: { barcode: string; pricePence: number }) => ({ barcode, pricePence }))
   })
 
   test.afterAll(async ({ request }) => {
-    if (before.length) await request.put(FEED, { data: { prices: before } })
+    if (!before.length) return
+    const restored = await request.put(FEED, { data: { prices: before } })
+    expect(restored.status(), 'restore pre-test prices').toBe(200)
   })
 
   test('legacy price file and price feed give the till identical prices for every seeded item', async ({ request }) => {
