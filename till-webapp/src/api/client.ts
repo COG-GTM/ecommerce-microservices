@@ -62,7 +62,7 @@ export const tillApi = {
   tender: (basketId: string, tenderType: TenderType, options: { amountTenderedPence?: number; partialPayment?: boolean; expectedBalanceDuePence?: number; terminalOutcome?: TerminalOutcome; expectedTotalPence?: number; idempotencyKey?: string } = {}) =>
     request<TenderResult>('/basket/tender', json('POST', { basketId, tenderType, ...options })),
   refundLookup: (reference: string) => request<RefundableSale>('/refund/' + encodeURIComponent(reference)),
-  refund: (reference: string, lines: { skuCode: string; quantity: number }[], tillId?: string) =>
+  refund: (reference: string, lines: { lineId: number; skuCode: string; quantity: number }[], tillId?: string) =>
     request<RefundResult>('/refund', json('POST', { reference, lines, tillId })),
   syncOfflineSale: (sale: OfflineSale) => request<OfflineSaleResult>('/offline-sales', { ...json('POST', sale), signal: AbortSignal.timeout(SYNC_TIMEOUT_MS) }),
 }

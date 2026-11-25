@@ -10,7 +10,7 @@ const errorText = (e: unknown) => (e instanceof TillApiError ? e.message : 'Back
 export function RefundPanel({ tillId, onExit }: { tillId?: string; onExit: () => void }) {
   const [reference, setReference] = useState('')
   const [sale, setSale] = useState<RefundableSale | null>(null)
-  const [quantities, setQuantities] = useState<Record<string, number>>({})
+  const [quantities, setQuantities] = useState<Record<number, number>>({})
   const [result, setResult] = useState<RefundResult | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -43,17 +43,17 @@ export function RefundPanel({ tillId, onExit }: { tillId?: string; onExit: () =>
     })
   }
 
-  const setQty = (skuCode: string, quantity: number) => setQuantities((q) => ({ ...q, [skuCode]: quantity }))
+  const setQty = (lineId: number, quantity: number) => setQuantities((q) => ({ ...q, [lineId]: quantity }))
 
-  const selected = sale ? sale.lines.filter((l) => (quantities[l.skuCode] ?? 0) > 0) : []
+  const selected = sale ? sale.lines.filter((l) => (quantities[l.lineId] ?? 0) > 0) : []
   // order-service never pays out more than the sale took, so the preview is capped the same way.
-  const refundPence = Math.min(sale?.refundablePence ?? 0, selected.reduce((sum, l) => sum + refundPenceFor(l, quantities[l.skuCode]), 0))
+  const refundPence = Math.min(sale?.refundablePence ?? 0, selected.reduce((sum, l) => sum + refundPenceFor(l, quantities[l.lineId]), 0))
 
   const submit = () =>
     sale &&
     run(async () => {
       const r = await tillApi
-        .refund(sale.orderNumber, selected.map((l) => ({ skuCode: l.skuCode, quantity: quantities[l.skuCode] })), tillId)
+        .refund(sale.orderNumber, selected.map((l) => ({ lineId: l.lineId, skuCode: l.skuCode, quantity: quantities[l.lineId] })), tillId)
         .catch(async (e) => {
           // Another till may have refunded these lines: show what is actually left alongside the error.
           await tillApi.refundLookup(sale.orderNumber).then(showSale).catch(() => undefined)
@@ -114,23 +114,23 @@ export function RefundPanel({ tillId, onExit }: { tillId?: string; onExit: () =>
           </div>
           <table className="refund-table">
             <thead>
-              <tr><th>Item</th><th className="num">Each</th><th className="num">Sold</th><th className="num">Refunded</th><th className="num">Left</th><th className="num">Return</th></tr>
+              <tr><th>Item</th><th className="num">Paid</th><th className="num">Sold</th><th className="num">Refunded</th><th className="num">Left</th><th className="num">Return</th></tr>
             </thead>
             <tbody>
               {sale.lines.map((l) => {
-                const qty = quantities[l.skuCode] ?? 0
+                const qty = quantities[l.lineId] ?? 0
                 return (
-                  <tr key={l.skuCode} data-testid="refund-line">
+                  <tr key={l.lineId} data-testid="refund-line">
                     <td data-testid="refund-line-name">{l.name}</td>
-                    <td className="num">{formatPence(l.unitPricePence)}</td>
+                    <td className="num" data-testid="refund-line-paid">{formatPence(l.paidPence)}</td>
                     <td className="num" data-testid="refund-line-sold">{l.soldQuantity}</td>
                     <td className="num" data-testid="refund-line-refunded">{l.refundedQuantity}</td>
                     <td className="num" data-testid="refund-line-left">{l.refundableQuantity}</td>
                     <td className="num">
                       <span className="refund-qty">
-                        <button type="button" className="btn outline" data-testid="refund-qty-minus" aria-label={`Return one fewer ${l.name}`} disabled={busy || qty <= 0} onClick={() => setQty(l.skuCode, qty - 1)}>−</button>
+                        <button type="button" className="btn outline" data-testid="refund-qty-minus" aria-label={`Return one fewer ${l.name}`} disabled={busy || qty <= 0} onClick={() => setQty(l.lineId, qty - 1)}>−</button>
                         <span className="refund-qty-value" data-testid="refund-qty">{qty}</span>
-                        <button type="button" className="btn outline" data-testid="refund-qty-plus" aria-label={`Return one more ${l.name}`} disabled={busy || qty >= l.refundableQuantity} onClick={() => setQty(l.skuCode, qty + 1)}>+</button>
+                        <button type="button" className="btn outline" data-testid="refund-qty-plus" aria-label={`Return one more ${l.name}`} disabled={busy || qty >= l.refundableQuantity} onClick={() => setQty(l.lineId, qty + 1)}>+</button>
                       </span>
                     </td>
                   </tr>

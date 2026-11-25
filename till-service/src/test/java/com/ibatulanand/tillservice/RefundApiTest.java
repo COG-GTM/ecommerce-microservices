@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ibatulanand.tillservice.client.HttpServiceClients;
 import com.ibatulanand.tillservice.domain.CatalogueItem;
+import com.ibatulanand.tillservice.web.RefundDtos.RefundLineRequest;
 import com.ibatulanand.tillservice.web.RefundDtos.RefundOrder;
 import com.ibatulanand.tillservice.web.RefundDtos.RefundableLine;
 import com.ibatulanand.tillservice.web.RefundDtos.RefundableSale;
@@ -93,7 +94,7 @@ class RefundApiTest {
     @Test
     void refundTotalIsTheSaleNotTheShelfPriceAndTheReceiptNameWins() throws Exception {
         doReturn(new RefundableSale("ORDER-2", "0001-T1-0002", "0001", "T1", "CARD", 250, 0, 250,
-                List.of(new RefundableLine("MOR-MILK-SS-4PT", "Milk as printed", 83, 250, 3, 0, 3)), List.of()))
+                List.of(new RefundableLine(1L, "MOR-MILK-SS-4PT", "Milk as printed", null, 250, 3, 0, 3)), List.of()))
                 .when(services).refundable("ORDER-2");
         when(services.refund(eq("ORDER-2"), anyString(), anyString(), anyString(), anyList()))
                 .thenReturn(new RefundOrder("REFUND-2", "ORDER-2", "0001-T1-R0001", null));
@@ -102,6 +103,44 @@ class RefundApiTest {
 
         assertThat(result.get("refundPence").asInt()).isEqualTo(166);
         assertThat(result.get("lines").get(0).get("name").asText()).isEqualTo("Milk as printed");
+    }
+
+    @Test
+    void weighedPacksRefundTheirOwnPaidPriceAndOrderServiceIsToldWhichPack() throws Exception {
+        doReturn(new RefundableSale("ORDER-3", "0001-T1-0003", "0001", "T1", "CARD", 801, 0, 801, List.of(
+                new RefundableLine(11L, "MOR-SALMON", "Salmon fillets", 412, 412, 1, 0, 1),
+                new RefundableLine(12L, "MOR-SALMON", "Salmon fillets", 389, 389, 1, 0, 1)), List.of()))
+                .when(services).refundable("ORDER-3");
+        when(services.refund(eq("ORDER-3"), anyString(), anyString(), anyString(), anyList()))
+                .thenReturn(new RefundOrder("REFUND-3", "ORDER-3", "0001-T1-R0001", -389));
+        JsonNode result = call(post("/api/till/refund"), Map.of("reference", "ORDER-3",
+                "lines", List.of(Map.of("lineId", 12, "skuCode", "MOR-SALMON", "quantity", 1))), status().isCreated());
+
+        assertThat(result.get("refundPence").asInt()).isEqualTo(389);
+        assertThat(result.get("lines").get(0).get("unitPricePence").asInt()).isEqualTo(389);
+        verify(services).refund(eq("ORDER-3"), anyString(), anyString(), anyString(),
+                eq(List.of(new RefundLineRequest("MOR-SALMON", 1, 12L))));
+    }
+
+    @Test
+    void refundLinesCarryExactUnitPricesNotARoundedAverage() throws Exception {
+        doReturn(new RefundableSale("ORDER-4", "0001-T1-0004", "0001", "T1", "CARD", 250, 0, 250,
+                List.of(new RefundableLine(21L, "MOR-YOGHURT", "Greek yoghurt", null, 250, 3, 0, 3)), List.of()))
+                .when(services).refundable("ORDER-4");
+        when(services.refund(eq("ORDER-4"), anyString(), anyString(), anyString(), anyList()))
+                .thenReturn(new RefundOrder("REFUND-4", "ORDER-4", "0001-T1-R0001", -250));
+        JsonNode result = call(post("/api/till/refund"), Map.of("reference", "ORDER-4",
+                "lines", List.of(Map.of("skuCode", "MOR-YOGHURT", "quantity", 3))), status().isCreated());
+
+        JsonNode lines = result.get("lines");
+        assertThat(lines).hasSize(2);
+        int total = 0;
+        for (JsonNode line : lines) {
+            assertThat(line.get("unitPricePence").asInt() * line.get("quantity").asInt())
+                    .isEqualTo(line.get("lineTotalPence").asInt());
+            total += line.get("lineTotalPence").asInt();
+        }
+        assertThat(total).isEqualTo(250).isEqualTo(result.get("refundPence").asInt());
     }
 
     @Test
@@ -137,7 +176,7 @@ class RefundApiTest {
     private static RefundableSale sale(int alreadyRefunded) {
         return new RefundableSale("ORDER-1", "0001-T1-0001", "0001", "T1", "CARD", 465, 155 * alreadyRefunded,
                 465 - 155 * alreadyRefunded,
-                List.of(new RefundableLine("MOR-MILK-SS-4PT", null, 155, 465, 3, alreadyRefunded, 3 - alreadyRefunded)),
+                List.of(new RefundableLine(1L, "MOR-MILK-SS-4PT", null, 155, 465, 3, alreadyRefunded, 3 - alreadyRefunded)),
                 List.of());
     }
 
