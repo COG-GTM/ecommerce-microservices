@@ -249,6 +249,7 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
          ]
       }  
       ```
+    - Validation: invalid bodies get `400 {"error": "Invalid order request", "fields": [...]}`. Limits: 1-100 line items; `skuCode` non-blank, max 255 chars; `price` 0 to 9999999999.99 with at most 2 decimals (trailing zeros such as `1200.000` are accepted and stored as `1200.00`); `quantity` 1-10000.
     - Output:
       ![Postman](docs/images/outputs/order_api_post_postman.png)
       ![Zipkin](docs/images/outputs/order_api_post_zipkin.png)
