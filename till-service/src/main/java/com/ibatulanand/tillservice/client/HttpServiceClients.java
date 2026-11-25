@@ -26,10 +26,11 @@ public class HttpServiceClients implements CatalogueClient, StockClient, OrderCl
     private static final Duration TIMEOUT = Duration.ofSeconds(5);
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    record ProductDto(String barcode, String skuCode, String name, Integer pricePence, Boolean quickKey) {
+    record ProductDto(String barcode, String skuCode, String name, Integer pricePence, Boolean quickKey,
+                      String vatCode) {
         CatalogueItem toItem() {
             return new CatalogueItem(barcode, skuCode, name, pricePence == null ? 0 : pricePence,
-                    Boolean.TRUE.equals(quickKey));
+                    Boolean.TRUE.equals(quickKey), vatCode);
         }
     }
 
