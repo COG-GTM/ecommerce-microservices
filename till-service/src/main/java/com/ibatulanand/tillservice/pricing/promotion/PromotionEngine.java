@@ -50,7 +50,9 @@ public final class PromotionEngine {
             Search search = new Search(group, prices, relevant);
             int[] state = group.stream().mapToInt(counts::get).toArray();
             try {
-                applications.addAll(search.best(state, 0).applications);
+                for (Result r = search.best(state, 0); r.option != null; r = r.rest) {
+                    applications.add(search.application(r.option, 1));
+                }
             } catch (StateBudgetExceeded e) {
                 applications.addAll(search.greedy(state));
             }
@@ -95,8 +97,9 @@ public final class PromotionEngine {
     private record Option(Promotion promotion, int[] take, int savingsPence) {
     }
 
-    private record Result(int savingsPence, List<Application> applications) {
-        static final Result NONE = new Result(0, List.of());
+    /** Best saving for a state as a chain (first option, then the best result for what it leaves), so no lists are copied. */
+    private record Result(int savingsPence, Option option, Result rest) {
+        static final Result NONE = new Result(0, null, null);
     }
 
     private static final class StateBudgetExceeded extends RuntimeException {
@@ -131,10 +134,7 @@ public final class PromotionEngine {
                 Result rest = best(minus(state, option.take), depth + 1);
                 int total = option.savingsPence + rest.savingsPence;
                 if (total > best.savingsPence) {
-                    List<Application> applications = new ArrayList<>();
-                    applications.add(application(option, 1));
-                    applications.addAll(rest.applications);
-                    best = new Result(total, List.copyOf(applications));
+                    best = new Result(total, option, rest);
                 }
             }
             memo.put(key, best);
@@ -206,7 +206,7 @@ public final class PromotionEngine {
             }
         }
 
-        private Application application(Option option, int times) {
+        Application application(Option option, int times) {
             Map<String, Integer> consumed = new LinkedHashMap<>();
             for (int i = 0; i < option.take.length; i++) {
                 if (option.take[i] > 0) {
