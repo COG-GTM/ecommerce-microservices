@@ -5,7 +5,7 @@ const MILK = 'Semi skimmed milk 4 pints'
 const BANANAS = 'Bananas x5'
 
 test.describe('refunds against a receipt (MBA-3939)', () => {
-  test('partial refund, second refund to the limit, then over-refund is rejected', async ({ till, backend, page }) => {
+  test('partial refund, second refund to the limit, then over-refund is rejected @tablet', async ({ till, backend, page }) => {
     await till.open()
     for (let i = 0; i < 3; i++) await till.quickKey('1001')
     await till.quickKey('1004')
