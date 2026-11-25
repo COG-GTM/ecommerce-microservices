@@ -29,5 +29,6 @@ public class Order {
     @OneToMany(cascade = CascadeType.ALL)
     private List<OrderLineItems> orderLineItemsList;
     @OneToMany(cascade = CascadeType.ALL)
+    @OrderBy("id ASC")
     private List<OrderTender> tenders = new ArrayList<>();
 }
