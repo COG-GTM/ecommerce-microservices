@@ -114,8 +114,9 @@ export default function App() {
   const voidSale = () =>
     basket &&
     run(async () => {
+      const { paidPence } = await tillApi.basket(basket.basketId)
       showBasket(await tillApi.voidSale(basket.basketId))
-      setMessage({ kind: 'ok', text: basket.paidPence > 0 ? `Sale voided. Return ${formatPence(basket.paidPence)} cash` : 'Sale voided' })
+      setMessage({ kind: 'ok', text: paidPence > 0 ? `Sale voided. Return ${formatPence(paidPence)} cash` : 'Sale voided' })
       setScreen('sell')
     }, (text) => setMessage({ kind: 'error', text }))
 
@@ -132,13 +133,18 @@ export default function App() {
     }
   }
 
+  const tenderFailed = (text: string) => {
+    setTenderError(text)
+    if (basket) tillApi.basket(basket.basketId).then(setBasket, () => undefined)
+  }
+
   const payByCard = (type: TenderType, outcome: 'APPROVED' | 'DECLINED') =>
     basket &&
     run(async () => {
       setDeclineMessage(null)
       setTenderError(null)
       applyTender(await tillApi.tender(basket.basketId, type, { terminalOutcome: outcome, expectedTotalPence: basket.totalPence, expectedBalanceDuePence: basket.balanceDuePence }))
-    }, setTenderError)
+    }, tenderFailed)
 
   const payByCash = (amountTenderedPence: number, partialPayment = false) =>
     basket &&
@@ -146,7 +152,7 @@ export default function App() {
       setDeclineMessage(null)
       setTenderError(null)
       applyTender(await tillApi.tender(basket.basketId, 'CASH', { amountTenderedPence, partialPayment, expectedTotalPence: basket.totalPence, expectedBalanceDuePence: basket.balanceDuePence }))
-    }, setTenderError)
+    }, tenderFailed)
 
   const newSale = () =>
     result &&
