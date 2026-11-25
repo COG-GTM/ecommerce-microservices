@@ -1,6 +1,8 @@
 package com.ibatulanand.apigateway.config;
 
-import com.nimbusds.jose.proc.JWSKeySelector;
+import com.nimbusds.jose.JWSHeader;
+import com.nimbusds.jose.KeySourceException;
+import com.nimbusds.jose.proc.JWSVerificationKeySelector;
 import com.nimbusds.jose.proc.SecurityContext;
 import com.nimbusds.jwt.proc.ConfigurableJWTProcessor;
 import org.slf4j.Logger;
@@ -39,17 +41,33 @@ public final class CompromisedSigningKeys {
         return encoded != null && fingerprints.contains(fingerprint(encoded));
     }
 
+    /**
+     * Wraps the processor's key selector so compromised keys are never used for verification. The wrapper stays a
+     * {@link JWSVerificationKeySelector}, which Spring Security's {@code NimbusReactiveJwtDecoder} requires.
+     */
     public <C extends SecurityContext> void apply(ConfigurableJWTProcessor<C> processor) {
-        JWSKeySelector<C> delegate = processor.getJWSKeySelector();
-        processor.setJWSKeySelector((header, context) -> {
-            List<? extends Key> keys = delegate.selectJWSKeys(header, context);
-            List<Key> trusted = keys.stream().filter(key -> !isCompromised(key)).map(Key.class::cast).toList();
+        if (!(processor.getJWSKeySelector() instanceof JWSVerificationKeySelector<C> selector)) {
+            throw new IllegalStateException("Unsupported JWS key selector " + processor.getJWSKeySelector());
+        }
+        processor.setJWSKeySelector(new TrustedKeySelector<>(selector));
+    }
+
+    private final class TrustedKeySelector<C extends SecurityContext> extends JWSVerificationKeySelector<C> {
+
+        private TrustedKeySelector(JWSVerificationKeySelector<C> delegate) {
+            super(delegate.getExpectedJWSAlgorithms(), delegate.getJWKSource());
+        }
+
+        @Override
+        public List<Key> selectJWSKeys(JWSHeader header, C context) throws KeySourceException {
+            List<Key> keys = super.selectJWSKeys(header, context);
+            List<Key> trusted = keys.stream().filter(key -> !isCompromised(key)).toList();
             if (trusted.size() < keys.size()) {
                 log.error("Rejected a token signed for kid={} with a compromised realm signing key; "
                         + "rotate the Keycloak realm keys", header.getKeyID());
             }
             return trusted;
-        });
+        }
     }
 
     static String fingerprint(byte[] encodedKey) {

@@ -18,6 +18,7 @@ import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
+import java.util.List;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -40,6 +41,26 @@ class CompromisedSigningKeysTests {
         DefaultJWTProcessor<SecurityContext> processor = processor(new CompromisedSigningKeys(Set.of(leaked)));
 
         assertThatThrownBy(() -> processor.process(sign(realmKey), null)).isInstanceOf(BadJOSEException.class);
+    }
+
+    @Test
+    void keepsAVerificationKeySelectorWithTheSameAlgorithms() {
+        DefaultJWTProcessor<SecurityContext> processor = processor(new CompromisedSigningKeys(CompromisedSigningKeys.KNOWN));
+
+        assertThat(processor.getJWSKeySelector()).isInstanceOf(JWSVerificationKeySelector.class);
+        JWSVerificationKeySelector<SecurityContext> selector =
+                (JWSVerificationKeySelector<SecurityContext>) processor.getJWSKeySelector();
+        assertThat(selector.isAllowed(JWSAlgorithm.RS256)).isTrue();
+        assertThat(selector.isAllowed(JWSAlgorithm.HS256)).isFalse();
+    }
+
+    @Test
+    void refusesKeySelectorsItCannotWrap() {
+        DefaultJWTProcessor<SecurityContext> processor = new DefaultJWTProcessor<>();
+        processor.setJWSKeySelector((header, context) -> List.of());
+
+        assertThatThrownBy(() -> new CompromisedSigningKeys(CompromisedSigningKeys.KNOWN).apply(processor))
+                .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
