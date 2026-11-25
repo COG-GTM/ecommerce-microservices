@@ -135,6 +135,8 @@ reports `pendingAgeChecks`. `tender` returns `AGE_CHECK_REQUIRED` (409) until ea
 | 1006 | MOR-CHEDDAR-MAT-400 | Mature cheddar 400g | 350 |
 | 1007 | MOR-CHICKEN-BF-600 | Chicken breast fillets 600g | 475 |
 | 1008 | MOR-CARROT-1KG | Carrots 1kg | 65 |
+| 3001 | MOR-LAGER-4X440 | Lager 4 x 440ml (18+, scan only) | 450 |
+| 3002 | MOR-WINE-RED-75CL | Red wine 75cl (18+, scan only) | 700 |
 
 ## Extension points for the till tickets
 
