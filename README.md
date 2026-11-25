@@ -162,7 +162,7 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
 ## Getting Started
 
 ### Prerequisites
-1. Docker and Docker Compose should be installed.
+1. Docker Engine 28.0 or newer and Docker Compose should be installed (older Engines let hosts on the same network reach ports published on `127.0.0.1`, such as Zipkin and Prometheus).
 2. Docker should be running.
 
 ### Deployment
@@ -271,11 +271,13 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
 
 - Zipkin UI
    - Traces for the API calls can be accessed on http://localhost:9411/zipkin/
+   - Zipkin is published on localhost only (bound to `127.0.0.1` because it has no login); from another machine use an SSH tunnel, e.g. `ssh -L 9411:localhost:9411 <docker-host>`
     ![Zipkin UI](docs/images/outputs/zipkin_ui.png)
 
 
 - Prometheus UI
     - Prometheus UI can be accessed on http://localhost:9090/
+    - Prometheus is published on localhost only (bound to `127.0.0.1` because it has no login); from another machine use an SSH tunnel, e.g. `ssh -L 9090:localhost:9090 <docker-host>`
     - Prometheus Graph Query
       ![Graph Query](docs/images/outputs/prometheus_graph.png)
     - Prometheus Targets Health

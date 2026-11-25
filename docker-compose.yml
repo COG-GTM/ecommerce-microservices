@@ -110,7 +110,7 @@ services:
     image: openzipkin/zipkin
     container_name: zipkin
     ports:
-      - "9411:9411"
+      - "127.0.0.1:9411:9411"
 
 
   # Discovery Server (Eureka Server) Config
@@ -222,7 +222,7 @@ services:
     image: prom/prometheus:latest
     restart: always
     ports:
-      - "9090:9090"
+      - "127.0.0.1:9090:9090"
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
     depends_on:
