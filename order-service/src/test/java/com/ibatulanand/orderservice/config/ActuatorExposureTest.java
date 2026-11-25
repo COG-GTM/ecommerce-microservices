@@ -9,6 +9,8 @@ import org.springframework.boot.actuate.autoconfigure.health.HealthEndpointAutoC
 import org.springframework.boot.actuate.autoconfigure.logging.LoggersEndpointAutoConfiguration;
 import org.springframework.boot.actuate.autoconfigure.management.HeapDumpWebEndpointAutoConfiguration;
 import org.springframework.boot.actuate.autoconfigure.management.ThreadDumpEndpointAutoConfiguration;
+import org.springframework.boot.actuate.autoconfigure.metrics.MetricsAutoConfiguration;
+import org.springframework.boot.actuate.autoconfigure.metrics.export.prometheus.PrometheusMetricsExportAutoConfiguration;
 import org.springframework.boot.actuate.endpoint.ApiVersion;
 import org.springframework.boot.actuate.endpoint.SecurityContext;
 import org.springframework.boot.actuate.endpoint.web.ExposableWebEndpoint;
@@ -48,16 +50,32 @@ class ActuatorExposureTest {
                     HeapDumpWebEndpointAutoConfiguration.class,
                     EnvironmentEndpointAutoConfiguration.class,
                     LoggersEndpointAutoConfiguration.class,
-                    ThreadDumpEndpointAutoConfiguration.class));
+                    ThreadDumpEndpointAutoConfiguration.class,
+                    MetricsAutoConfiguration.class,
+                    PrometheusMetricsExportAutoConfiguration.class));
+
+    private static Set<String> exposedEndpointIds(org.springframework.context.ApplicationContext context) {
+        return context.getBean(WebEndpointsSupplier.class).getEndpoints().stream()
+                .map(ExposableWebEndpoint::getEndpointId)
+                .map(Object::toString)
+                .collect(Collectors.toSet());
+    }
 
     @Test
-    void onlyHealthIsExposedOverHttpAmongConfiguredEndpoints() {
+    void onlyHealthAndPrometheusAreExposedOverHttp() {
         contextRunner.run(context -> {
-            Set<String> exposed = context.getBean(WebEndpointsSupplier.class).getEndpoints().stream()
-                    .map(ExposableWebEndpoint::getEndpointId)
-                    .map(Object::toString)
-                    .collect(Collectors.toSet());
-            assertThat(exposed).containsExactly("health");
+            assertThat(exposedEndpointIds(context)).containsExactlyInAnyOrder("health", "prometheus");
+            assertThat(context).doesNotHaveBean(HeapDumpWebEndpoint.class);
+            assertThat(context).doesNotHaveBean(EnvironmentEndpoint.class);
+            assertThat(context).doesNotHaveBean(LoggersEndpoint.class);
+            assertThat(context).doesNotHaveBean(ThreadDumpEndpoint.class);
+        });
+    }
+
+    @Test
+    void sensitiveEndpointsStayDisabledEvenIfExposureIsWidened() {
+        contextRunner.withPropertyValues("management.endpoints.web.exposure.include=*").run(context -> {
+            assertThat(exposedEndpointIds(context)).containsExactlyInAnyOrder("health", "prometheus");
             assertThat(context).doesNotHaveBean(HeapDumpWebEndpoint.class);
             assertThat(context).doesNotHaveBean(EnvironmentEndpoint.class);
             assertThat(context).doesNotHaveBean(LoggersEndpoint.class);
