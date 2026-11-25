@@ -99,8 +99,11 @@ public class TillService {
      */
     public synchronized Basket addLine(String basketId, String barcode, int quantity, Integer weightGrams) {
         Basket basket = openForChange(basketId);
-        Optional<EmbeddedPriceBarcode> label = EmbeddedPriceBarcode.parse(barcode);
-        CatalogueItem item = product(label.map(EmbeddedPriceBarcode::plu).orElse(barcode));
+        // A catalogued barcode wins over the price-label reading of the same digits.
+        Optional<CatalogueItem> exact = EmbeddedPriceBarcode.isCandidate(barcode)
+                ? catalogue.findByBarcode(barcode) : Optional.empty();
+        Optional<EmbeddedPriceBarcode> label = exact.isPresent() ? Optional.empty() : EmbeddedPriceBarcode.parse(barcode);
+        CatalogueItem item = exact.orElseGet(() -> product(label.map(EmbeddedPriceBarcode::plu).orElse(barcode)));
         if (label.isEmpty() && item.soldByWeight() && weightGrams == null) {
             throw new TillException(HttpStatus.UNPROCESSABLE_ENTITY, "WEIGHT_REQUIRED",
                     "Enter the weight in kg for " + item.name());
@@ -108,6 +111,10 @@ public class TillService {
         if (label.isPresent() && !item.soldByWeight()) {
             throw new TillException(HttpStatus.UNPROCESSABLE_ENTITY, "NOT_SOLD_BY_WEIGHT",
                     "Barcode " + barcode + " is a price label but " + item.name() + " is not sold by weight");
+        }
+        if (label.isPresent() && label.get().pricePence() < 1) {
+            throw new TillException(HttpStatus.UNPROCESSABLE_ENTITY, "INVALID_LABEL_PRICE",
+                    "Barcode " + barcode + " has no price. Reprint the label or weigh the item.");
         }
         if (weightGrams != null && (label.isPresent() || !item.soldByWeight())) {
             throw new TillException(HttpStatus.BAD_REQUEST, "NOT_SOLD_BY_WEIGHT", item.name() + " is not sold by weight");
