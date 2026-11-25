@@ -28,6 +28,8 @@ public class OrderService {
     private final KafkaTemplate<String, OrderPlacedEvent> kafkaTemplate;
 
     public String placeOrder(OrderRequest orderRequest) {
+        // Replay keys belong to till sales only, so a web order can never claim one.
+        orderRequest.setIdempotencyKey(null);
         placeAndReturnOrder(orderRequest);
         return "Order Placed Successfully!";
     }
