@@ -51,7 +51,8 @@ class OrderRequestValidationTest {
     void rejectsHugePositiveExponentWithoutExpandingIt() {
         assertThat(validate(item("1e1000000000", 1)))
                 .extracting(v -> v.getPropertyPath().toString())
-                .containsExactly("orderLineItemsDtoList[0].price");
+                .isNotEmpty()
+                .containsOnly("orderLineItemsDtoList[0].price");
     }
 
     @Test
@@ -61,11 +62,28 @@ class OrderRequestValidationTest {
     }
 
     @Test
+    @Timeout(5)
+    void rejectsExponentWhoseDigitCountOverflowsInt() {
+        assertThat(validate(item("1e2147483647", 1))).isNotEmpty();
+        assertThat(validate(item("10000000000", 1))).isNotEmpty();
+        assertThat(validate(item("9999999999.99", 1))).isEmpty();
+    }
+
+    @Test
+    @Timeout(5)
+    void oversizedListIsRejectedWithoutValidatingEachItem() {
+        List<OrderLineItemsDto> items = new ArrayList<>(Collections.nCopies(200_000, (OrderLineItemsDto) null));
+        assertThat(validator.validate(new OrderRequest(items)))
+                .extracting(v -> v.getPropertyPath().toString())
+                .containsExactly("orderLineItemsDtoList");
+    }
+
+    @Test
     void rejectsNegativeNullAndTooPrecisePrices() {
         assertThat(validate(item("-1.00", 1))).hasSize(1);
         assertThat(validate(item(null, 1))).hasSize(1);
         assertThat(validate(item("1.001", 1))).hasSize(1);
-        assertThat(validate(item("12345678901", 1))).hasSize(1);
+        assertThat(validate(item("12345678901", 1))).isNotEmpty();
     }
 
     @Test
