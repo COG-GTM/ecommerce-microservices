@@ -44,12 +44,14 @@ public class PriceFeedCatalogueSeeder implements ApplicationRunner {
     public void run(ApplicationArguments args) {
         for (GroceryCatalogueSeeder.SeedItem item : ITEMS) {
             Product product = productRepository.findFirstByBarcode(item.barcode()).orElseGet(Product::new);
+            if (product.getPricePence() == null) {
+                product.setPricePence(item.pricePence());
+                product.setPrice(BigDecimal.valueOf(item.pricePence(), 2));
+            }
             product.setBarcode(item.barcode());
             product.setSkuCode(item.skuCode());
             product.setName(item.name());
             product.setDescription(item.name());
-            product.setPricePence(item.pricePence());
-            product.setPrice(BigDecimal.valueOf(item.pricePence(), 2));
             product.setQuickKey(false);
             productRepository.save(product);
         }
