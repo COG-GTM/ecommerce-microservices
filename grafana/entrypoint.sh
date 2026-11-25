@@ -30,11 +30,12 @@ if [ -f "$data/grafana.db" ] && [ "$(cat "$marker" 2>/dev/null || true)" != "$fi
   else
     set -- grafana-cli
   fi
-  printf '%s\n' "$password" | "$@" \
+  output="$(printf '%s\n' "$password" | "$@" \
     --homepath "${GF_PATHS_HOME:-/usr/share/grafana}" \
     --config "${GF_PATHS_CONFIG:-/etc/grafana/grafana.ini}" \
-    admin reset-admin-password --password-from-stdin >/dev/null \
-    || fail "could not apply GRAFANA_ADMIN_PASSWORD to the existing grafana.db"
+    admin reset-admin-password --password-from-stdin 2>&1)" \
+    && printf '%s' "$output" | grep -q "password changed successfully" \
+    || { printf '%s\n' "$output" >&2; fail "could not apply GRAFANA_ADMIN_PASSWORD to the existing grafana.db"; }
 fi
 (umask 077 && printf '%s\n' "$fingerprint" > "$marker")
 
