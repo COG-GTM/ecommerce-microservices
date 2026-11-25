@@ -315,3 +315,8 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
    ```shell
    docker compose down -v
    ```
+- Keycloak's database lives in `./keycloak_db_data` on the host, which `down -v` keeps. To reset Keycloak (realm,
+  admin user and DB user are recreated from `.env` on next start), also run:
+   ```shell
+   rm -rf ./keycloak_db_data
+   ```
