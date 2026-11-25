@@ -172,7 +172,7 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
    cd ecommerce-microservices
    ```
 
-2. Create a private `.env` with a random Grafana admin password (it is gitignored; Grafana will not start without it). The command needs a POSIX shell with `openssl` and `awk` (on Windows use Git Bash or WSL, or copy `.env.example` to `.env` and replace `CHANGE_ME` with a random value of at least 16 characters by hand). It refuses to overwrite an existing `.env`:
+2. Create a private `.env` with a random Grafana admin password (it is gitignored; Grafana will not start without it). The command needs a POSIX shell with `openssl` and `awk` (on Windows use Git Bash or WSL, or copy `.env.example` to `.env`, run `chmod 600 .env` before editing it, and replace `CHANGE_ME` with a random value of at least 16 letters and digits by hand; `$` is rejected). It refuses to overwrite an existing `.env`:
    ```shell
    (set -C && umask 077 && GRAFANA_PW=$(openssl rand -hex 24) && export GRAFANA_PW && awk '{gsub(/CHANGE_ME/, ENVIRON["GRAFANA_PW"])} 1' .env.example > .env)
    ```
@@ -290,7 +290,7 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
 
 - Grafana Dashboard
   - Grafana Dashboard can be accessed on http://localhost:3000/
-  - The admin password comes from `.env` (see Deployment step 2). Grafana refuses to start without it. When it changes, Grafana applies it once to an existing `grafana_data` volume, so that volume stops accepting the old password. To re-apply it (for example after restoring `grafana.db` from a backup), delete `grafana_data/.admin-password-applied` and recreate Grafana with `docker compose up -d grafana` (`docker compose restart` does not reload `.env`). The password is applied to Grafana's original admin account (user ID 1); if that account was deleted or demoted, startup stops with an error and you must reset the replacement admin yourself with `grafana cli admin reset-admin-password --user-id <id>`.
+  - The admin password comes from `.env` (see Deployment step 2). Grafana refuses to start without it. When it changes, Grafana applies it once to an existing `grafana_data` volume, so that volume stops accepting the old password. To re-apply it (for example after restoring `grafana.db` from a backup), delete `grafana_data/.admin-password-applied` and recreate Grafana with `docker compose up -d --force-recreate grafana` (`docker compose restart` does not reload `.env`). The password is applied to Grafana's original admin account (user ID 1); if that account was deleted or demoted, startup stops with an error and you must reset the replacement admin yourself with `grafana cli admin reset-admin-password --user-id <id>`.
   - Sign in as `GRAFANA_ADMIN_USER` (default `grafana-admin`; existing `grafana_data` volumes keep their original `admin` login) with `GRAFANA_ADMIN_PASSWORD`. Grafana listens on `127.0.0.1` only and can reach Prometheus (`http://prometheus:9090`) but not the databases.
   - To visualize the application, create a 'Data Source' and import the dashboard using `grafana-dashboard.json` file.
   - Data Source
