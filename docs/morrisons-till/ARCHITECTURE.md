@@ -30,8 +30,8 @@ Changes to existing services are additive:
 
 | Service | Change |
 | --- | --- |
-| product-service | `barcode`, `skuCode`, `pricePence`, `quickKey` on `Product`; `GET /api/product/barcode/{barcode}`, `GET /api/product?quickkey=true`; `GroceryCatalogueSeeder` (8 items, `catalogue.seed.grocery=true`) |
-| inventory-service | seeds the 8 grocery SKUs (500 each) when absent |
+| product-service | `barcode`, `skuCode`, `pricePence`, `quickKey` on `Product`; `GET /api/product/barcode/{barcode}`, `GET /api/product?quickkey=true`; `GroceryCatalogueSeeder` (8 unit-priced items plus 3 weighed, `catalogue.seed.grocery=true`); `soldByWeight` on `Product` |
+| inventory-service | seeds the 11 grocery SKUs (500 each) when absent |
 | order-service | `POST /api/order/sale` (synchronous, returns the order), `GET /api/order/{orderNumber}`; till metadata (`channel`, `storeNumber`, `tillId`, `transactionId`, `tenderType`, `totalPence`) on order and on the Kafka `OrderPlacedEvent` |
 | notification-service | records consumed events in a bounded `NotificationLog`; `GET /api/notification`, `GET /api/notification/{orderNumber}` |
 | api-gateway | routes `/api/till/**` and `/api/notification/**`; `dev` profile makes `/api/till/**` public and `GET /api/order/**`, `GET /api/notification/**` readable for tests. Everything else still requires a Keycloak JWT. |
@@ -64,7 +64,7 @@ compute totals; they render `subtotalPence`, `savingsPence` and `totalPence` fro
 | GET | `/products?quickkey=true` | - | `Product[]` (quick keys, barcode order) |
 | GET | `/products/{barcode}` | - | `Product` |
 | GET | `/basket/{basketId}` | - | `Basket` |
-| POST | `/basket/lines` | `{ basketId, barcode, quantity? }` | `Basket` (same barcode again increments the line) |
+| POST | `/basket/lines` | `{ basketId, barcode, quantity?, weightGrams? }` | `Basket` (same barcode again increments the line; weighed items and price-embedded labels always add a new line) |
 | PATCH | `/basket/lines/{lineId}` | `{ basketId, quantity }` | `Basket` |
 | DELETE | `/basket/lines/{lineId}?basketId=` | - | `Basket` (void line) |
 | POST | `/basket/void` | `{ basketId }` | new empty `Basket` (void sale) |
@@ -88,7 +88,7 @@ compute totals; they render `subtotalPence`, `savingsPence` and `totalPence` fro
 // Basket
 { "basketId": "b0c1…", "tillId": "07", "transactionNumber": "0417-07-0001", "status": "OPEN", "currency": "GBP",
   "lines": [ { "lineId": "l-1", "barcode": "1004", "skuCode": "MOR-BANANA-5", "name": "Bananas x5",
-               "quantity": 2, "unitPricePence": 95, "linePence": 190 } ],
+               "quantity": 2, "unitPricePence": 95, "linePence": 190, "pricedBy": "EACH", "weightGrams": null } ],
   "adjustments": [ { "code": "MULTIBUY", "label": "…", "amountPence": -50, "lineId": "l-1" } ],
   "lastLineId": "l-1", "itemCount": 2, "subtotalPence": 190, "savingsPence": 0, "totalPence": 190, "orderNumber": null }
 
@@ -111,6 +111,17 @@ compute totals; they render `subtotalPence`, `savingsPence` and `totalPence` fro
 Error codes: `UNKNOWN_BARCODE` / `UNKNOWN_BASKET` / `UNKNOWN_LINE` (404), `OUT_OF_STOCK` / `BASKET_CLOSED` (409),
 `EMPTY_BASKET` / `INSUFFICIENT_TENDER` (422), `UNSUPPORTED_TENDER` / validation (400).
 
+Weighed and loose items (MBA-3935): a product with `soldByWeight: true` has `pricePence` per kg. Lines carry
+`pricedBy` (`EACH` | `WEIGHT` | `LABEL`) and `weightGrams` (WEIGHT only; `unitPricePence` is then per kg and
+`linePence` = weight × price, half-up to the penny). Price-embedded labels are prefix-2 EAN-13 `2 IIIIII PPPPP C`
+(item/PLU, price in pence, check digit), e.g. `2002101003490` = PLU 2101 at £3.49. Weighed and labelled lines are
+quantity 1: an add with any other `quantity` (omitted means 1), or a `PATCH .../lines/{lineId}` that changes it,
+returns `QUANTITY_NOT_ALLOWED` (a quantity below 1 is `INVALID_REQUEST`, 400, for every line).
+`weightGrams` must be a whole number 1-30000 (400 `INVALID_REQUEST` otherwise). The check digit is validated first; a prefix-2 barcode that is itself
+catalogued sells as that product. Errors: `INVALID_CHECK_DIGIT`, `INVALID_LABEL_PRICE` (zero-price label),
+`WEIGHT_REQUIRED` (UI prompts for kg), `WEIGHT_TOO_LOW`, `QUANTITY_NOT_ALLOWED` (422); `NOT_SOLD_BY_WEIGHT` (422 for
+a label on a unit-priced item, 400 for a weight).
+
 ### Downstream calls made by till-service
 
 | Purpose | Call |
@@ -131,6 +142,9 @@ Error codes: `UNKNOWN_BARCODE` / `UNKNOWN_BASKET` / `UNKNOWN_LINE` (404), `OUT_O
 | 1006 | MOR-CHEDDAR-MAT-400 | Mature cheddar 400g | 350 |
 | 1007 | MOR-CHICKEN-BF-600 | Chicken breast fillets 600g | 475 |
 | 1008 | MOR-CARROT-1KG | Carrots 1kg | 65 |
+| 2101 | MOR-DELI-HAM-KG | Deli honey roast ham (labelled) | 1290 per kg |
+| 2201 | MOR-TOMATO-LOOSE-KG | Loose tomatoes | 220 per kg |
+| 2202 | MOR-ONION-LOOSE-KG | Loose brown onions | 99 per kg |
 
 ## Extension points for the till tickets
 

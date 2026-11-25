@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.ibatulanand.tillservice.config.TillProperties;
 import com.ibatulanand.tillservice.domain.Basket;
+import com.ibatulanand.tillservice.domain.BasketLine;
 import com.ibatulanand.tillservice.domain.CatalogueItem;
 import com.ibatulanand.tillservice.web.TillException;
 import org.springframework.http.HttpStatus;
@@ -26,10 +27,11 @@ public class HttpServiceClients implements CatalogueClient, StockClient, OrderCl
     private static final Duration TIMEOUT = Duration.ofSeconds(5);
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    record ProductDto(String barcode, String skuCode, String name, Integer pricePence, Boolean quickKey) {
+    record ProductDto(String barcode, String skuCode, String name, Integer pricePence, Boolean quickKey,
+                      Boolean soldByWeight) {
         CatalogueItem toItem() {
             return new CatalogueItem(barcode, skuCode, name, pricePence == null ? 0 : pricePence,
-                    Boolean.TRUE.equals(quickKey));
+                    Boolean.TRUE.equals(quickKey), Boolean.TRUE.equals(soldByWeight));
         }
     }
 
@@ -93,7 +95,8 @@ public class HttpServiceClients implements CatalogueClient, StockClient, OrderCl
         List<Map<String, Object>> lines = basket.getLines().stream()
                 .map(l -> Map.<String, Object>of(
                         "skuCode", l.getSkuCode(),
-                        "price", BigDecimal.valueOf(l.getUnitPricePence(), 2),
+                        "price", BigDecimal.valueOf(l.getPricedBy() == BasketLine.PricedBy.EACH
+                                ? l.getUnitPricePence() : l.getLinePence() / Math.max(1, l.getQuantity()), 2),
                         "quantity", l.getQuantity()))
                 .toList();
         Map<String, Object> body = Map.of(
