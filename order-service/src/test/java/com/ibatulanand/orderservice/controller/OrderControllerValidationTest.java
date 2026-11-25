@@ -9,12 +9,15 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.Collections;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -48,6 +51,17 @@ class OrderControllerValidationTest {
                 .andExpect(jsonPath("$.error").value("Invalid order request"))
                 .andExpect(jsonPath("$.fields[0]").value(containsString("orderLineItemsDtoList[0].price")))
                 .andExpect(content().string(not(containsString("secret_sku_value"))));
+        verify(orderService, never()).placeOrder(any());
+    }
+
+    @Test
+    void oversizedListOfInvalidItemsReportsOnlyTheListSize() throws Exception {
+        String item = "{\"skuCode\":\"\",\"price\":-1.001,\"quantity\":0}";
+        String body = "{\"orderLineItemsDtoList\":[" + String.join(",", Collections.nCopies(101, item)) + "]}";
+        mockMvc.perform(post("/api/order").contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fields.length()").value(1))
+                .andExpect(jsonPath("$.fields[0]").value(startsWith("orderLineItemsDtoList: ")));
         verify(orderService, never()).placeOrder(any());
     }
 

@@ -14,6 +14,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -38,7 +40,7 @@ class OrderRequestValidationTest {
     }
 
     private static Set<ConstraintViolation<OrderRequest>> validate(OrderLineItemsDto... items) {
-        return validator.validate(new OrderRequest(new ArrayList<>(List.of(items))));
+        return validator.validate(new OrderRequest(new ArrayList<>(List.of(items))), OrderRequest.ListFirst.class);
     }
 
     @Test
@@ -73,7 +75,16 @@ class OrderRequestValidationTest {
     @Timeout(5)
     void oversizedListIsRejectedWithoutValidatingEachItem() {
         List<OrderLineItemsDto> items = new ArrayList<>(Collections.nCopies(200_000, (OrderLineItemsDto) null));
-        assertThat(validator.validate(new OrderRequest(items)))
+        assertThat(validator.validate(new OrderRequest(items), OrderRequest.ListFirst.class))
+                .extracting(v -> v.getPropertyPath().toString())
+                .containsExactly("orderLineItemsDtoList");
+    }
+
+    @Test
+    @Timeout(5)
+    void oversizedListOfInvalidItemsIsRejectedWithoutValidatingEachItem() {
+        List<OrderLineItemsDto> items = IntStream.range(0, 200_000).mapToObj(i -> item("-1.001", 0)).collect(Collectors.toList());
+        assertThat(validator.validate(new OrderRequest(items), OrderRequest.ListFirst.class))
                 .extracting(v -> v.getPropertyPath().toString())
                 .containsExactly("orderLineItemsDtoList");
     }
@@ -95,9 +106,9 @@ class OrderRequestValidationTest {
 
     @Test
     void rejectsEmptyNullOrOversizedItemList() {
-        assertThat(validator.validate(new OrderRequest(null))).hasSize(1);
-        assertThat(validator.validate(new OrderRequest(List.of()))).hasSize(1);
-        assertThat(validator.validate(new OrderRequest(Collections.singletonList(null)))).hasSize(1);
-        assertThat(validator.validate(new OrderRequest(Collections.nCopies(101, item("1.00", 1))))).hasSize(1);
+        assertThat(validator.validate(new OrderRequest(null), OrderRequest.ListFirst.class)).hasSize(1);
+        assertThat(validator.validate(new OrderRequest(List.of()), OrderRequest.ListFirst.class)).hasSize(1);
+        assertThat(validator.validate(new OrderRequest(Collections.singletonList(null)), OrderRequest.ListFirst.class)).hasSize(1);
+        assertThat(validator.validate(new OrderRequest(Collections.nCopies(101, item("1.00", 1))), OrderRequest.ListFirst.class)).hasSize(1);
     }
 }
