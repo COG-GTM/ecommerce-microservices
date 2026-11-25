@@ -2,6 +2,7 @@ package com.ibatulanand.tillservice;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ibatulanand.tillservice.barcode.EmbeddedPriceBarcode;
 import com.ibatulanand.tillservice.client.HttpServiceClients;
 import com.ibatulanand.tillservice.domain.Basket;
 import com.ibatulanand.tillservice.domain.CatalogueItem;
@@ -129,6 +130,31 @@ class WeighedItemsApiTest {
     }
 
     @Test
+    void labelForAnItemSoldByTheUnitIsRejected() throws Exception {
+        String barcode = "2001001" + "00010";
+        barcode += EmbeddedPriceBarcode.checkDigit(barcode);
+        assertThat(add(Map.of("barcode", barcode), status().isUnprocessableEntity()).get("error").asText())
+                .isEqualTo("NOT_SOLD_BY_WEIGHT");
+        assertThat(basket().get("lines")).isEmpty();
+    }
+
+    @Test
+    void weighedAndLabelledAddsTakeOneAtATime() throws Exception {
+        assertThat(add(Map.of("barcode", "2201", "weightGrams", 500, "quantity", 2), status().isUnprocessableEntity())
+                .get("error").asText()).isEqualTo("QUANTITY_NOT_ALLOWED");
+        assertThat(add(Map.of("barcode", "2002101003490", "quantity", 3), status().isUnprocessableEntity())
+                .get("error").asText()).isEqualTo("QUANTITY_NOT_ALLOWED");
+        assertThat(basket().get("lines")).isEmpty();
+    }
+
+    @Test
+    void weightThatPricesToZeroIsRejected() throws Exception {
+        assertThat(add(Map.of("barcode", "2201", "weightGrams", 2), status().isUnprocessableEntity())
+                .get("error").asText()).isEqualTo("WEIGHT_TOO_LOW");
+        add(Map.of("barcode", "2201", "weightGrams", 3), status().isCreated());
+    }
+
+    @Test
     void weighedLineQuantityCannotBeChanged() throws Exception {
         String lineId = add(Map.of("barcode", "2201", "weightGrams", 500), status().isCreated())
                 .get("lines").get(0).get("lineId").asText();
@@ -149,6 +175,10 @@ class WeighedItemsApiTest {
         ArgumentCaptor<Basket> sold = ArgumentCaptor.forClass(Basket.class);
         verify(services).placeSale(sold.capture(), anyString(), anyString());
         assertThat(sold.getValue().getTotalPence()).isEqualTo(448);
+    }
+
+    private JsonNode basket() throws Exception {
+        return call(get("/api/till/basket/" + basketId), status().isOk());
     }
 
     private JsonNode add(Map<String, Object> fields, ResultMatcher expected) throws Exception {

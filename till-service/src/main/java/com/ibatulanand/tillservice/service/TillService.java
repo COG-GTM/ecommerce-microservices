@@ -105,8 +105,20 @@ public class TillService {
             throw new TillException(HttpStatus.UNPROCESSABLE_ENTITY, "WEIGHT_REQUIRED",
                     "Enter the weight in kg for " + item.name());
         }
+        if (label.isPresent() && !item.soldByWeight()) {
+            throw new TillException(HttpStatus.UNPROCESSABLE_ENTITY, "NOT_SOLD_BY_WEIGHT",
+                    "Barcode " + barcode + " is a price label but " + item.name() + " is not sold by weight");
+        }
         if (weightGrams != null && (label.isPresent() || !item.soldByWeight())) {
             throw new TillException(HttpStatus.BAD_REQUEST, "NOT_SOLD_BY_WEIGHT", item.name() + " is not sold by weight");
+        }
+        if ((label.isPresent() || weightGrams != null) && quantity != 1) {
+            throw new TillException(HttpStatus.UNPROCESSABLE_ENTITY, "QUANTITY_NOT_ALLOWED",
+                    "Weighed and labelled items are sold one per line; scan or weigh another");
+        }
+        if (weightGrams != null && BasketLine.weighedPence(weightGrams, item.pricePence()) < 1) {
+            throw new TillException(HttpStatus.UNPROCESSABLE_ENTITY, "WEIGHT_TOO_LOW",
+                    "Weight is too low to charge for " + item.name() + "; weigh again");
         }
         if (!stock.isInStock(item.skuCode())) {
             throw new TillException(HttpStatus.CONFLICT, "OUT_OF_STOCK", item.name() + " is out of stock");

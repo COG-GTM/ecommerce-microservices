@@ -32,8 +32,13 @@ public class BasketLine {
     /** quantity x the price of one unit, where one unit of a WEIGHT line is its weight at the per-kg price (half up). */
     public int calculateLinePence() {
         int unit = pricedBy == PricedBy.WEIGHT && weightGrams != null
-                ? (int) ((Math.multiplyExact((long) weightGrams, unitPricePence) + 500) / 1000)
+                ? weighedPence(weightGrams, unitPricePence)
                 : unitPricePence;
         return Math.multiplyExact(quantity, unit);
+    }
+
+    /** Price of a weight at a per-kg price, rounded half-up to the penny. */
+    public static int weighedPence(int weightGrams, int pricePencePerKg) {
+        return Math.toIntExact((Math.multiplyExact((long) weightGrams, pricePencePerKg) + 500) / 1000);
     }
 }
