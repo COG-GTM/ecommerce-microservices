@@ -88,6 +88,7 @@ class NotificationPoisonRecordTest {
         int missingOrderNumber = countOccurrences(out, "without an order number");
         assertThat(missingOrderNumber).as("tombstone and {} skipped by the listener").isEqualTo(2);
         assertThat(skipped - missingOrderNumber).as("decode failures skipped by the error handler").isEqualTo(2);
+        assertThat(countOccurrences(out, "(cause: Undecodable OrderPlacedEvent value (")).isEqualTo(2);
         assertThat(out)
                 .doesNotContain(payloadMarker)
                 .doesNotContain("Received Notification for Order - null");
