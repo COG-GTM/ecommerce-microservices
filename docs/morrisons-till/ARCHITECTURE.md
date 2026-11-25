@@ -34,7 +34,7 @@ Changes to existing services are additive:
 | inventory-service | seeds the 11 grocery SKUs and 2 VAT demo SKUs (500 each) when absent |
 | order-service | `POST /api/order/sale` (synchronous, returns the order; idempotent on `idempotencyKey`), `GET /api/order/{orderNumber}`, `GET /api/order/transaction/{transactionId}`; till metadata (`channel`, `storeNumber`, `tillId`, `transactionId`, `tenderType`, `totalPence`) on order and on the Kafka `OrderPlacedEvent` |
 | notification-service | records consumed events in a bounded `NotificationLog`; `GET /api/notification`, `GET /api/notification/{orderNumber}` |
-| api-gateway | routes `/api/till/**` and `/api/notification/**`; `dev` profile makes `/api/till/**` public and `GET /api/order/**`, `GET /api/notification/**` readable for tests. Everything else still requires a Keycloak JWT. |
+| api-gateway | routes `/api/till/**` and `/api/notification/**`; `dev` profile makes `/api/till/**` and the product price feed (`/api/product/price-feed/**`) public and `GET /api/order/**`, `GET /api/notification/**` readable for tests. Everything else still requires a Keycloak JWT. |
 
 Existing endpoints (`POST /api/order`, `GET/POST /api/product`, `GET /api/inventory`) are unchanged.
 

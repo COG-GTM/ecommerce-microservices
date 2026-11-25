@@ -18,8 +18,10 @@ import java.util.Objects;
 public class PriceFeedService {
 
     static final int MAX_PRICE_PENCE = 9_999_999;
+    static final int MAX_BATCH_SIZE = 10_000;
 
-    public record PriceUpdate(String barcode, Integer pricePence) {
+    /** {@code pricePence} is a {@link BigDecimal} so fractional values (399.9) are rejected rather than truncated or rounded. */
+    public record PriceUpdate(String barcode, BigDecimal pricePence) {
     }
 
     public record PriceSnapshot(PriceSource source, List<PriceRecord> prices) {
@@ -62,12 +64,16 @@ public class PriceFeedService {
         if (updates == null || updates.isEmpty()) {
             throw new PricingException(HttpStatus.BAD_REQUEST, "INVALID_PRICE", "No prices in the feed");
         }
+        if (updates.size() > MAX_BATCH_SIZE) {
+            throw new PricingException(HttpStatus.BAD_REQUEST, "BATCH_TOO_LARGE",
+                    "A feed batch holds at most " + MAX_BATCH_SIZE + " prices");
+        }
         List<Product> products = new ArrayList<>();
         for (PriceUpdate update : updates) {
             if (update == null || update.barcode() == null || update.barcode().isBlank()) {
                 throw new PricingException(HttpStatus.BAD_REQUEST, "INVALID_PRICE", "Every price needs a barcode");
             }
-            Integer pence = update.pricePence();
+            Integer pence = wholePence(update.pricePence());
             if (pence == null || pence <= 0 || pence > MAX_PRICE_PENCE) {
                 throw new PricingException(HttpStatus.BAD_REQUEST, "INVALID_PRICE",
                         "Price for " + update.barcode() + " must be 1-" + MAX_PRICE_PENCE + " pence");
@@ -100,6 +106,18 @@ public class PriceFeedService {
             log.warn("Legacy price file listed {} barcodes not in the catalogue: {}", unknown.size(), unknown);
         }
         return new ImportResult(applied, List.copyOf(unknown));
+    }
+
+    /** The value as whole pence (425 or 425.0), or null when missing, fractional or out of int range. */
+    private static Integer wholePence(BigDecimal raw) {
+        if (raw == null) {
+            return null;
+        }
+        try {
+            return raw.intValueExact();
+        } catch (ArithmeticException e) {
+            return null;
+        }
     }
 
     private static Product withPrice(Product product, int pricePence) {

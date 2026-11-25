@@ -20,8 +20,20 @@ function legacyPrices() {
 }
 
 test.describe('MBA-3941 price feed', () => {
+  let before: { barcode: string; pricePence: number }[] = []
+
+  test.beforeAll(async ({ request }) => {
+    const barcodes = new Set(legacyPrices().map((p) => p.barcode))
+    const snapshot = await (await request.get(FEED)).json()
+    before = snapshot.prices
+      .filter((p: { barcode: string; pricePence: number }) => barcodes.has(p.barcode) && p.pricePence > 0)
+      .map(({ barcode, pricePence }: { barcode: string; pricePence: number }) => ({ barcode, pricePence }))
+  })
+
   test.afterAll(async ({ request }) => {
-    await request.put(FEED, { data: { prices: legacyPrices().map(({ barcode, pricePence }) => ({ barcode, pricePence })) } })
+    if (!before.length) return
+    const restored = await request.put(FEED, { data: { prices: before } })
+    expect(restored.status(), 'restore pre-test prices').toBe(200)
   })
 
   test('legacy price file and price feed give the till identical prices for every seeded item', async ({ request }) => {
@@ -35,11 +47,11 @@ test.describe('MBA-3941 price feed', () => {
     }
   })
 
-  test('price changed through the feed shows on the next scan without a restart', async ({ till, page, request, backend }) => {
+  test('price changed through the feed shows on the next scan without a restart', async ({ till, request, backend }) => {
     await till.open()
     await till.scan('394102')
     await till.expectLine('Instant coffee 200g', 1, '£4.25', '£4.25')
-    await page.getByTestId('void-line').click()
+    await till.voidLine()
     await expect(till.lines).toHaveCount(0)
 
     const published = await request.put(FEED, { data: { prices: [{ barcode: '394102', pricePence: 399 }] } })

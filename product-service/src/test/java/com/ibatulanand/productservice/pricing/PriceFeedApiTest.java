@@ -57,6 +57,8 @@ class PriceFeedApiTest {
         mockMvc.perform(get("/api/product/price-feed"))
                 .andExpect(jsonPath("$.prices.length()").value((int) productRepository.count()))
                 .andExpect(jsonPath("$.prices[?(@.barcode=='394102')].pricePence").value(399));
+        publish("{\"prices\":[{\"barcode\":\"394102\",\"pricePence\":425.0}]}", 200);
+        mockMvc.perform(get("/api/product/barcode/394102")).andExpect(jsonPath("$.pricePence").value(425));
     }
 
     @Test
@@ -64,6 +66,8 @@ class PriceFeedApiTest {
         publish("{\"prices\":[{\"barcode\":\"394103\",\"pricePence\":120},{\"barcode\":\"0000\",\"pricePence\":1}]}", 404);
         publish("{\"prices\":[{\"barcode\":\"394103\",\"pricePence\":0}]}", 400);
         publish("{\"prices\":[]}", 400);
+        publish("{\"prices\":[{\"barcode\":\"394103\",\"pricePence\":119.9}]}", 400);
+        publish("{\"prices\":[{\"barcode\":\"394103\",\"pricePence\":120.0000000000000001}]}", 400);
         mockMvc.perform(get("/api/product/barcode/394103")).andExpect(jsonPath("$.pricePence").value(99));
     }
 

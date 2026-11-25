@@ -15,6 +15,7 @@ import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.math.BigDecimal;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -61,7 +62,7 @@ class PriceSourceParityTest {
         PriceFeedService feed = new PriceFeedService(productRepository,
                 new PricingProperties(PriceSource.PRICE_FEED, null));
         feed.applyFeed(seeded.entrySet().stream()
-                .map(e -> new PriceFeedService.PriceUpdate(e.getKey(), e.getValue())).toList());
+                .map(e -> new PriceFeedService.PriceUpdate(e.getKey(), BigDecimal.valueOf(e.getValue()))).toList());
         Map<String, Integer> fromPriceFeed = catalogueprices();
 
         assertThat(fromLegacyFile.keySet()).containsExactlyInAnyOrderElementsOf(seeded.keySet());
