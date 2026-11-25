@@ -97,6 +97,17 @@ export class OfflineStore {
     this.write(this.queueKey, this.queue().filter((s) => s.saleId !== saleId))
   }
 
+  /** Server basket left open when the till went offline mid-sale; its lines were sold offline, so it is voided on reconnect. */
+  abandonedBasket(): string | null {
+    return this.read(`morrisons-till.abandoned-basket.${this.tillKey}`, null)
+  }
+
+  setAbandonedBasket(basketId: string | null) {
+    const key = `morrisons-till.abandoned-basket.${this.tillKey}`
+    if (basketId) this.write(key, basketId)
+    else this.storage.removeItem(key)
+  }
+
   nextOfflineTransaction(session: TillSession) {
     const key = `morrisons-till.offline-seq.${this.tillKey}`
     const seq = this.read(key, 0) + 1

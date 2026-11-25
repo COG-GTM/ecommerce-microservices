@@ -57,6 +57,20 @@ export class OfflineTill {
     await expect(this.page.getByTestId('order-number')).toHaveCount(0)
   }
 
+  /** Chooses card so the PIN pad waits, then expects it to close once the till goes offline. */
+  async chooseCard() {
+    await this.page.getByTestId('tender-card').click()
+    await expect(this.page.getByTestId('pinpad-wait')).toBeVisible()
+  }
+
+  async expectPinpadClosed() {
+    await expect(this.page.getByTestId('pinpad-wait')).toBeHidden()
+  }
+
+  async expectNoOfflineReceipt() {
+    await expect(this.page.getByTestId('queued-offline')).toHaveCount(0)
+  }
+
   async expectChange(amount: string) {
     await expect(this.page.getByTestId('give-change')).toContainText(amount)
   }

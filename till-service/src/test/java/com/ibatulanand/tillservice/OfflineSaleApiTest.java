@@ -58,8 +58,8 @@ class OfflineSaleApiTest {
     }
 
     @Test
-    void replaysCashSaleWithIdempotencyKeyAndCataloguePricing() throws Exception {
-        JsonNode result = sync(sale("CASH", List.of(line("1001", 2, 999))), status().isOk());
+    void replaysCashSaleWithIdempotencyKeyAtThePriceCharged() throws Exception {
+        JsonNode result = sync(sale("CASH", List.of(line("1001", 2, 140))), status().isOk());
 
         ArgumentCaptor<Basket> basket = ArgumentCaptor.forClass(Basket.class);
         verify(services).placeSale(basket.capture(), eq("0417"), eq("CASH"), eq("offline-" + saleId));
@@ -67,11 +67,11 @@ class OfflineSaleApiTest {
         assertThat(basket.getValue().getTransactionNumber()).isEqualTo("0417-till-off-OFF1");
         assertThat(basket.getValue().getLines()).singleElement().satisfies(l -> {
             assertThat(l.getSkuCode()).isEqualTo("MOR-MILK-SS-4PT");
-            assertThat(l.getUnitPricePence()).isEqualTo(155);
+            assertThat(l.getUnitPricePence()).isEqualTo(140);
         });
         assertThat(result.get("orderNumber").asText()).isEqualTo("ORDER-OFF-1");
         assertThat(result.get("saleId").asText()).isEqualTo(saleId);
-        assertThat(result.get("totalPence").asInt()).isEqualTo(310);
+        assertThat(result.get("totalPence").asInt()).isEqualTo(280);
         assertThat(result.get("amountTenderedPence").asInt()).isEqualTo(500);
     }
 

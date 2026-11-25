@@ -3,7 +3,7 @@ import { expect, test } from '../fixtures/offline'
 // MBA-3940: the till keeps selling cash from its cached catalogue while it cannot reach the backend, queues the
 // sales locally and replays them once on reconnect. The network cut is the browser's own (no responses are mocked).
 test.describe('MBA-3940 offline resilience', () => {
-  test('offline cash sale from the cached catalogue syncs exactly once on reconnect @tablet', async ({ till, offlineTill: offline, offlineBackend, backend, page }) => {
+  test('offline cash sale from the cached catalogue syncs exactly once on reconnect @tablet', async ({ till, offlineTill: offline, offlineBackend, backend }) => {
     await till.open()
     await till.quickKey('1001')
     await till.expectLine('Semi skimmed milk 4 pints', 1, '£1.55', '£1.55')
@@ -44,7 +44,7 @@ test.describe('MBA-3940 offline resilience', () => {
     const cardOrder = await till.orderNumber()
     expect(await backend.order(cardOrder)).toMatchObject({ tenderType: 'CARD', totalPence: 95 })
     await offlineBackend.expectOrdersForTill(till.tillId, 2)
-    await expect(page.getByTestId('queued-offline')).toHaveCount(0)
+    await offline.expectNoOfflineReceipt()
   })
 
   test('several offline sales queue in order and each syncs once', async ({ till, offlineTill: offline, offlineBackend }) => {
@@ -76,11 +76,10 @@ test.describe('MBA-3940 offline resilience', () => {
     await till.open()
     await till.quickKey('1001')
     await till.pay()
-    await till.page.getByTestId('tender-card').click()
-    await expect(till.page.getByTestId('pinpad-wait')).toBeVisible()
+    await offline.chooseCard()
     await offline.cutNetwork()
     await offline.expectOffline()
-    await expect(till.page.getByTestId('pinpad-wait')).toBeHidden()
+    await offline.expectPinpadClosed()
     await offline.expectCardUnavailable()
 
     // The basket scanned online is finished offline in cash and syncs once.

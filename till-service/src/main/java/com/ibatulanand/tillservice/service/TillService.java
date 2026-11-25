@@ -499,17 +499,23 @@ public class TillService {
                 throw new TillException(HttpStatus.UNPROCESSABLE_ENTITY, "UNKNOWN_BARCODE",
                         "No product for barcode " + sold.barcode());
             }
+            // The customer paid the price the till charged offline, so that price is recorded, not today's.
+            int unitPrice = sold.unitPricePence() != null ? sold.unitPricePence() : item.pricePence();
             basket.getLines().add(new BasketLine(UUID.randomUUID().toString(), sold.barcode(),
                     item != null ? item.skuCode() : sold.skuCode(), item != null ? item.name() : sold.name(),
-                    sold.quantity(), item != null ? item.pricePence() : sold.unitPricePence(), 0));
+                    sold.quantity(), unitPrice, 0));
         }
         pricer.price(basket);
         int tendered = request.amountTenderedPence() == null ? basket.getTotalPence() : request.amountTenderedPence();
         String orderNumber = orders.placeSale(basket, properties.storeNumber(), "CASH", "offline-" + request.saleId());
-        log.info("Till {} synced offline sale {} as order {} ({}p)", basket.getTillId(), request.saleId(), orderNumber,
-                basket.getTotalPence());
+        log.info("Till {} synced offline sale {} as order {} ({}p)", loggable(basket.getTillId()),
+                loggable(request.saleId()), orderNumber, basket.getTotalPence());
         return new OfflineSaleResult(request.saleId(), orderNumber, basket.getTransactionNumber(),
                 basket.getTotalPence(), tendered);
+    }
+
+    private static String loggable(String value) {
+        return value.replaceAll("[\\r\\n\\t]", "_");
     }
 
     private String tillId(String requested) {

@@ -1,8 +1,10 @@
 import { GATEWAY_URL } from '../fixtures/backend'
-import { expect, test } from '../fixtures/offline'
+import { expect, LOCAL_STACK, test } from '../fixtures/offline'
 
 // MBA-3940 acceptance: stop the real API gateway mid-shift, complete a cash sale, restart the gateway and verify
 // exactly one synced order. Runs in the `outage` project after every other project, because it takes the gateway down.
+test.skip(!LOCAL_STACK, 'stops the local docker compose gateway; TILL_URL points at another stack')
+
 test('gateway outage mid-shift: cash sale is queued and synced exactly once @outage', async ({ till, offlineTill: offline, offlineBackend, backend, stack, request }) => {
   test.setTimeout(300_000)
   await till.open()

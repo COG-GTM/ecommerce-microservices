@@ -90,8 +90,6 @@ export default function App() {
   const offline = healthKnown && !connected
   const basketRef = useRef<Basket | null>(null)
   basketRef.current = basket
-  /** Server basket left behind when the till went offline mid-sale; voided on reconnect (its lines were sold offline). */
-  const abandonedBasketRef = useRef<string | null>(null)
   const syncingRef = useRef(false)
   const reconnectingRef = useRef(false)
 
@@ -138,12 +136,11 @@ export default function App() {
     if (reconnectingRef.current) return
     reconnectingRef.current = true
     try {
-      if (abandonedBasketRef.current === s.basketId) {
-        showBasket(await tillApi.voidSale(s.basketId))
-        abandonedBasketRef.current = null
-      } else {
-        showBasket(await tillApi.basket(s.basketId))
-      }
+      const next = offlineStore.abandonedBasket() === s.basketId ? await tillApi.voidSale(s.basketId) : await tillApi.basket(s.basketId)
+      offlineStore.setAbandonedBasket(null)
+      // Keep anything scanned into the local basket while the request was in flight; it is sold offline instead.
+      const current = basketRef.current
+      if (!isLocal(current) || current?.lines.length === 0) showBasket(next)
       showQuickKeys(await tillApi.quickKeys())
     } catch (e) {
       if (isUnreachable(e)) markOffline()
@@ -198,7 +195,7 @@ export default function App() {
     if (!offline || !session) return
     setQuickKeys((keys) => (keys.length ? keys : offlineStore.quickKeys()))
     if (basket?.status === 'COMPLETED' || isLocal(basket)) return
-    if (basket) abandonedBasketRef.current = basket.basketId
+    if (basket) offlineStore.setAbandonedBasket(basket.basketId)
     showBasket(newOfflineBasket(session, basket?.lines ?? []))
   }, [offline, session, basket, newOfflineBasket, showBasket])
 
@@ -390,7 +387,14 @@ export default function App() {
       setMessage(null)
       setScreen('sell')
       if (!isLocal(result.basket)) {
-        showBasket(await tillApi.basket(result.nextBasketId))
+        try {
+          showBasket(await tillApi.basket(result.nextBasketId))
+        } catch (e) {
+          if (!isUnreachable(e) || !session) throw e
+          markOffline()
+          showBasket(newOfflineBasket(session))
+          return
+        }
         await loadSession()
       } else if (session) {
         showBasket(newOfflineBasket(session))

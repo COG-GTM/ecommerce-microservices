@@ -82,7 +82,7 @@ public final class TillDtos {
 
     /** A cash sale completed while the till was offline, replayed on reconnect. {@code saleId} is the idempotency key. */
     public record OfflineSaleRequest(@NotBlank String saleId, String tillId, String transactionNumber,
-                                     @NotBlank String tenderType, @NotEmpty List<@Valid OfflineSaleLine> lines,
+                                     @NotBlank String tenderType, @NotEmpty @Size(max = 200) List<@Valid OfflineSaleLine> lines,
                                      Integer amountTenderedPence, Integer totalPence, Instant completedAt) {
     }
 
