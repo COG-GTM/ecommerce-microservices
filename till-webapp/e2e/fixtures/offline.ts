@@ -30,6 +30,9 @@ export class OfflineBackend {
   }
 }
 
+/** Outage tests stop the local compose gateway, so they only run against the local stack. */
+export const LOCAL_STACK = !process.env.TILL_URL && !process.env.TILL_GATEWAY_URL
+
 const COMPOSE_FILE = path.resolve(import.meta.dirname, '../../../deploy/till/docker-compose.till.yml')
 
 /** Controls the real docker compose stack (`make till-up`) for outage tests. */

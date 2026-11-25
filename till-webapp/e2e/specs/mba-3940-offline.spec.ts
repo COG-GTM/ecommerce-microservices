@@ -44,7 +44,7 @@ test.describe('MBA-3940 offline resilience', () => {
     const cardOrder = await till.orderNumber()
     expect(await backend.order(cardOrder)).toMatchObject({ tenderType: 'CARD', totalPence: 95 })
     await offlineBackend.expectOrdersForTill(till.tillId, 2)
-    await expect(page.getByTestId('queued-offline')).toHaveCount(0)
+    await offline.expectNoOfflineReceipt()
   })
 
   test('several offline sales queue in order and each syncs once', async ({ till, offlineTill: offline, offlineBackend }) => {
@@ -76,11 +76,10 @@ test.describe('MBA-3940 offline resilience', () => {
     await till.open()
     await till.quickKey('1001')
     await till.pay()
-    await till.page.getByTestId('tender-card').click()
-    await expect(till.page.getByTestId('pinpad-wait')).toBeVisible()
+    await offline.chooseCard()
     await offline.cutNetwork()
     await offline.expectOffline()
-    await expect(till.page.getByTestId('pinpad-wait')).toBeHidden()
+    await offline.expectPinpadClosed()
     await offline.expectCardUnavailable()
 
     // The basket scanned online is finished offline in cash and syncs once.
