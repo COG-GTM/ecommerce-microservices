@@ -22,6 +22,7 @@ export class WeightDialog {
   async confirm() {
     await this.page.getByTestId('weight-confirm').click()
     await expect(this.root).toBeHidden()
+    await expect(this.barcodeInput, 'ready for the next scan').toBeFocused()
   }
 
   /** The basket line's "0.452 kg × £2.20/kg" detail. */
@@ -33,6 +34,10 @@ export class WeightDialog {
     return line.getByTestId('line-label')
   }
 
+  get barcodeInput() {
+    return this.page.getByTestId('barcode-input')
+  }
+
   get qtyPlus() {
     return this.page.getByTestId('qty-plus')
   }
@@ -40,5 +45,6 @@ export class WeightDialog {
   async cancel() {
     await this.page.getByTestId('weight-cancel').click()
     await expect(this.root).toBeHidden()
+    await expect(this.barcodeInput, 'ready for the next scan').toBeFocused()
   }
 }

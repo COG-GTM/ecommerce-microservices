@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useState, type FormEvent, type KeyboardEvent } from 'react'
 import type { Product } from '../api/types'
 import { formatPence, parseKgToGrams } from '../money'
 
@@ -31,9 +31,25 @@ export function WeightDialog({ product, busy, onConfirm, onCancel }: Props) {
     if (valid) onConfirm(grams)
   }
 
+  // Modal: keep Tab inside the dialog so Pay and the rest of the till behind it can't be reached.
+  const trapTab = (event: KeyboardEvent<HTMLFormElement>) => {
+    if (event.key === 'Escape' && !busy) onCancel()
+    if (event.key !== 'Tab') return
+    const focusable = [...event.currentTarget.querySelectorAll<HTMLElement>('input, button:not(:disabled)')]
+    const first = focusable[0]
+    const last = focusable[focusable.length - 1]
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault()
+      last.focus()
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault()
+      first.focus()
+    }
+  }
+
   return (
     <div className="weight-backdrop">
-      <form className="panel weight-dialog" role="dialog" aria-modal="true" aria-labelledby="weight-title" data-testid="weight-dialog" onSubmit={submit}>
+      <form className="panel weight-dialog" role="dialog" aria-modal="true" aria-labelledby="weight-title" data-testid="weight-dialog" onSubmit={submit} onKeyDown={trapTab}>
         <h3 id="weight-title" data-testid="weight-item">{product.name}</h3>
         <div className="muted" data-testid="weight-price">{formatPence(product.pricePence)}/kg</div>
         <label htmlFor="weight-kg" className="label">Weight (kg)</label>

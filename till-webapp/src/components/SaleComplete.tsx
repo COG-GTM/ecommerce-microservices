@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { TenderResult } from '../api/types'
-import { formatPence } from '../money'
+import { formatKg, formatPence } from '../money'
 import { ApiChip } from './ApiChip'
 
 const PAID_BY: Record<string, string> = { CARD: 'card', CONTACTLESS: 'contactless', CASH: 'cash' }
@@ -37,7 +37,13 @@ export function SaleComplete({ result, onNewSale }: { result: TenderResult; onNe
             <span>Txn {receipt.transactionNumber}</span>
           </div>
           {receipt.lines.map((l) => (
-            <div className="receipt-row" key={l.lineId}><span>{l.quantity} × {l.name}</span><span>{formatPence(l.linePence)}</span></div>
+            <div className="receipt-row" key={l.lineId}>
+              <span>
+                {l.quantity} × {l.name}
+                {l.pricedBy === 'WEIGHT' && l.weightGrams != null && ` ${formatKg(l.weightGrams)} @ ${formatPence(l.unitPricePence)}/kg`}
+              </span>
+              <span>{formatPence(l.linePence)}</span>
+            </div>
           ))}
           <div className="receipt-row rule"><span>Subtotal</span><span>{formatPence(receipt.subtotalPence)}</span></div>
           <div className="receipt-row"><span>Savings</span><span>{formatPence(receipt.savingsPence)}</span></div>

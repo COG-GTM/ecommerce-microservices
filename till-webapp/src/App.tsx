@@ -107,12 +107,20 @@ export default function App() {
       }
     }, (text) => setMessage({ kind: 'error', text }))
 
+  const closeWeighing = () => {
+    setWeighing(null)
+    requestAnimationFrame(() => document.querySelector<HTMLInputElement>('[data-testid="barcode-input"]')?.focus())
+  }
+
+  // A pending weight belongs to the sale it was keyed for; drop it if the basket is replaced (void elsewhere, restart).
+  useEffect(() => setWeighing(null), [basket?.basketId])
+
   const addWeighed = (weightGrams: number) =>
     basket && weighing &&
     run(async () => {
       const next = await tillApi.addLine(basket.basketId, weighing.barcode, 1, weightGrams)
       showBasket(next)
-      setWeighing(null)
+      closeWeighing()
       setMessage({ kind: 'ok', text: `Added ${weighing.name} ${formatKg(weightGrams)}` })
     }, (text) => setMessage({ kind: 'error', text }))
 
@@ -215,7 +223,7 @@ export default function App() {
             {screen === 'complete' && result && <SaleComplete result={result} onNewSale={newSale} />}
             {screen === 'sell' && weighing && (
               <WeightDialog product={weighing} busy={busy} onConfirm={addWeighed} onCancel={() => {
-                setWeighing(null)
+                closeWeighing()
                 setMessage(null)
               }} />
             )}
