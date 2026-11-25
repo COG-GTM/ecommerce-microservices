@@ -290,7 +290,7 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
 
 - Grafana Dashboard
   - Grafana Dashboard can be accessed on http://localhost:3000/
-  - The admin password comes from `.env` (see Deployment step 2). Grafana refuses to start without it. When it changes, Grafana applies it once to an existing `grafana_data` volume, so that volume stops accepting the old password. To re-apply it (for example after restoring `grafana.db` from a backup), delete `grafana_data/.admin-password-applied` and restart Grafana.
+  - The admin password comes from `.env` (see Deployment step 2). Grafana refuses to start without it. When it changes, Grafana applies it once to an existing `grafana_data` volume, so that volume stops accepting the old password. To re-apply it (for example after restoring `grafana.db` from a backup), delete `grafana_data/.admin-password-applied` and restart Grafana. The password is applied to Grafana's original admin account (user ID 1); if that account was deleted or demoted, startup stops with an error and you must reset the replacement admin yourself with `grafana cli admin reset-admin-password --user-id <id>`.
   - Sign in as `GRAFANA_ADMIN_USER` (default `grafana-admin`; existing `grafana_data` volumes keep their original `admin` login) with `GRAFANA_ADMIN_PASSWORD`. Grafana listens on `127.0.0.1` only and can reach Prometheus (`http://prometheus:9090`) but not the databases.
   - To visualize the application, create a 'Data Source' and import the dashboard using `grafana-dashboard.json` file.
   - Data Source
