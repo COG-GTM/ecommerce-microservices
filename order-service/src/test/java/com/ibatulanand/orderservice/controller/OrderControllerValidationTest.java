@@ -13,6 +13,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.containsString;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(OrderController.class)
@@ -34,6 +38,17 @@ class OrderControllerValidationTest {
     @Timeout(10)
     void rejectsPriceWithHugeExponent() throws Exception {
         assertRejected("{\"orderLineItemsDtoList\":[{\"skuCode\":\"unknown_sku\",\"price\":1e1000000000,\"quantity\":1}]}");
+    }
+
+    @Test
+    void errorBodyListsFieldsWithoutEchoingRejectedValues() throws Exception {
+        mockMvc.perform(post("/api/order").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"orderLineItemsDtoList\":[{\"skuCode\":\"secret_sku_value\",\"price\":1e2147483647,\"quantity\":1}]}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Invalid order request"))
+                .andExpect(jsonPath("$.fields[0]").value(containsString("orderLineItemsDtoList[0].price")))
+                .andExpect(content().string(not(containsString("secret_sku_value"))));
+        verify(orderService, never()).placeOrder(any());
     }
 
     @Test
