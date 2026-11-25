@@ -20,7 +20,7 @@ public class PriceFeedService {
     static final int MAX_PRICE_PENCE = 9_999_999;
     static final int MAX_BATCH_SIZE = 10_000;
 
-    /** {@code pricePence} is a {@link Number} so fractional values are rejected rather than truncated by Jackson. */
+    /** {@code pricePence} is a {@link Number} so fractional values (399.9) are rejected rather than truncated by Jackson. */
     public record PriceUpdate(String barcode, Number pricePence) {
     }
 
@@ -73,15 +73,14 @@ public class PriceFeedService {
             if (update == null || update.barcode() == null || update.barcode().isBlank()) {
                 throw new PricingException(HttpStatus.BAD_REQUEST, "INVALID_PRICE", "Every price needs a barcode");
             }
-            Number raw = update.pricePence();
-            boolean whole = raw instanceof Integer || raw instanceof Long;
-            if (!whole || raw.longValue() <= 0 || raw.longValue() > MAX_PRICE_PENCE) {
+            Integer pence = wholePence(update.pricePence());
+            if (pence == null || pence <= 0 || pence > MAX_PRICE_PENCE) {
                 throw new PricingException(HttpStatus.BAD_REQUEST, "INVALID_PRICE",
                         "Price for " + update.barcode() + " must be 1-" + MAX_PRICE_PENCE + " pence");
             }
             Product product = productRepository.findFirstByBarcode(update.barcode()).orElseThrow(() ->
                     new PricingException(HttpStatus.NOT_FOUND, "UNKNOWN_BARCODE", "No product for barcode " + update.barcode()));
-            products.add(withPrice(product, raw.intValue()));
+            products.add(withPrice(product, pence));
         }
         productRepository.saveAll(products);
         log.info("Price feed applied {} prices", products.size());
@@ -107,6 +106,18 @@ public class PriceFeedService {
             log.warn("Legacy price file listed {} barcodes not in the catalogue: {}", unknown.size(), unknown);
         }
         return new ImportResult(applied, List.copyOf(unknown));
+    }
+
+    /** The value as whole pence (425 or 425.0), or null when missing, fractional or out of int range. */
+    private static Integer wholePence(Number raw) {
+        if (raw == null) {
+            return null;
+        }
+        try {
+            return new BigDecimal(raw.toString()).intValueExact();
+        } catch (ArithmeticException | NumberFormatException e) {
+            return null;
+        }
     }
 
     private static Product withPrice(Product product, int pricePence) {
