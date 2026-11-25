@@ -172,13 +172,24 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
    cd ecommerce-microservices
    ```
 
-2. Start the containers:
+2. Create a `.env` file (git-ignored) with your own database passwords:
+   ```shell
+   cp .env.example .env
+   ```
+   The order database is initialised from `mysql-order-init/`: the schema is created by root, and the
+   service connects as `ORDER_DB_APP_USER`, which only has `SELECT`/`INSERT`/`UPDATE`/`DELETE` on
+   `order_service`. These scripts only run on an empty `./mysql_order` directory, so for an existing
+   one, run `mysql-order-init/02-app-user.sh` inside the container or recreate the directory.
+   When running `order-service` outside Docker, set `SPRING_DATASOURCE_USERNAME` and
+   `SPRING_DATASOURCE_PASSWORD` to that account.
+
+3. Start the containers:
    ```shell
    docker compose up -d
    ```
 
 
-3. Confirm that the containers are up and running:
+4. Confirm that the containers are up and running:
    ```shell
    docker ps
    ```
