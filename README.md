@@ -183,6 +183,7 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
    - Upgrading an existing stack: database init only runs on an empty data directory, so `mysql_order/`, `mysql_inventory/` and `mongo-data/` keep their old accounts. If the data is disposable, delete those directories before starting. Otherwise start only the databases (`docker compose up -d mysql-order mysql-inventory mongo`) and set the new credentials in place:
      - MySQL (`docker exec -it mysql-order mysql -uroot -p`, then the same for `mysql-inventory`): `CREATE USER` and `GRANT ALL ON order_service.*` (or `inventory_service.*`) for the new user, `DROP USER 'ibatulanand'@'%'` to remove the old login, and `ALTER USER` for `'root'@'%'` and `'root'@'localhost'`.
      - MongoDB: without users, only the first user can be created unauthenticated. Run `docker exec -it mongo mongosh admin` and create the root user, then reconnect as root (`docker exec -it mongo mongosh -u <MONGO_ROOT_USER> -p --authenticationDatabase admin`) and create the app user in `product-service` as in `mongo-init/create-app-user.js`.
+     - Then `docker compose restart mysql-order mysql-inventory mongo` to close any session opened with the old logins before starting the rest of the stack.
    - `scripts/check-compose-db-security.sh` checks the rendered compose config for these settings.
 
 3. Start the containers:
