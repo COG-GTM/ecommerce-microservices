@@ -8,6 +8,7 @@ import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -28,6 +29,13 @@ public class OrderController {
     }
 
     public CompletableFuture<String> fallbackMethod(OrderRequest orderRequest, RuntimeException runtimeException) {
+        if (runtimeException.getCause() instanceof ResponseStatusException rejection) {
+            return CompletableFuture.failedFuture(rejection);
+        }
         return CompletableFuture.supplyAsync(() -> "Oops! Something went wrong, please order after some time!");
+    }
+
+    public CompletableFuture<String> fallbackMethod(OrderRequest orderRequest, ResponseStatusException rejection) {
+        return CompletableFuture.failedFuture(rejection);
     }
 }

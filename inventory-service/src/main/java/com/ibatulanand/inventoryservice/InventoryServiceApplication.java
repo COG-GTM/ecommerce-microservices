@@ -7,6 +7,8 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 
+import java.util.List;
+
 @SpringBootApplication
 public class InventoryServiceApplication {
 
@@ -25,8 +27,11 @@ public class InventoryServiceApplication {
             inventory2.setSkuCode("iphone_15_pro");
             inventory2.setQuantity(0);
 
-            inventoryRepository.save(inventory1);
-            inventoryRepository.save(inventory2);
+            for (Inventory inventory : List.of(inventory1, inventory2)) {
+                if (!inventoryRepository.existsBySkuCode(inventory.getSkuCode())) {
+                    inventoryRepository.save(inventory);
+                }
+            }
         };
     }
 
