@@ -1,5 +1,7 @@
 package com.ibatulanand.productservice.pricing;
 
+import com.ibatulanand.productservice.repository.ProductRepository;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -33,6 +35,8 @@ class PriceFeedApiTest {
 
     @Autowired
     private MockMvc mockMvc;
+    @Autowired
+    private ProductRepository productRepository;
 
     private void publish(String body, int expectedStatus) throws Exception {
         mockMvc.perform(put("/api/product/price-feed").contentType(MediaType.APPLICATION_JSON).content(body))
@@ -51,7 +55,7 @@ class PriceFeedApiTest {
                 .andExpect(jsonPath("$.pricePence").value(399))
                 .andExpect(jsonPath("$.price").value(3.99));
         mockMvc.perform(get("/api/product/price-feed"))
-                .andExpect(jsonPath("$.prices.length()").value(11))
+                .andExpect(jsonPath("$.prices.length()").value((int) productRepository.count()))
                 .andExpect(jsonPath("$.prices[?(@.barcode=='394102')].pricePence").value(399));
     }
 

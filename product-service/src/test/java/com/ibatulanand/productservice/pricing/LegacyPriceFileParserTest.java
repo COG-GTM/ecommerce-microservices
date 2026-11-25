@@ -1,5 +1,6 @@
 package com.ibatulanand.productservice.pricing;
 
+import com.ibatulanand.productservice.seed.PriceFeedCatalogueSeeder;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -22,7 +23,7 @@ class LegacyPriceFileParserTest {
         try (Reader reader = new InputStreamReader(Objects.requireNonNull(
                 getClass().getResourceAsStream("/legacy/PRICEFILE.DAT")), StandardCharsets.US_ASCII)) {
             List<PriceRecord> records = LegacyPriceFileParser.parse(reader);
-            assertThat(records).hasSize(11);
+            assertThat(records).hasSize(PriceFeedCatalogueSeeder.seededPrices().size());
             assertThat(records.get(0)).isEqualTo(new PriceRecord("1001", "MOR-MILK-SS-4PT", 155));
             assertThat(records).contains(new PriceRecord("394103", "MOR-DIGESTIVE-400", 99));
         }

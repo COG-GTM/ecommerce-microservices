@@ -95,7 +95,6 @@ public class OrderService {
         order.setTransactionId(orderRequest.getTransactionId());
         order.setTenderType(orderRequest.getTenderType());
         order.setTotalPence(orderRequest.getTotalPence());
-        order.setIdempotencyKey(orderRequest.getIdempotencyKey());
 
         List<OrderLineItems> orderLineItems = orderRequest.getOrderLineItemsDtoList()
                 .stream()

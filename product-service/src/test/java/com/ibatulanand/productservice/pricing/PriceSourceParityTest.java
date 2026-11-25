@@ -76,7 +76,7 @@ class PriceSourceParityTest {
                 .andExpect(jsonPath("$.error").value("PRICE_FEED_DISABLED"));
         mockMvc.perform(post("/api/product/price-feed/legacy-import"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.applied").value(11));
+                .andExpect(jsonPath("$.applied").value(PriceFeedCatalogueSeeder.seededPrices().size()));
     }
 
     private void scramblePrices() {
