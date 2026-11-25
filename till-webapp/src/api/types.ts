@@ -89,9 +89,12 @@ export interface TenderResult {
 }
 
 export interface RefundableLine {
+  /** the sale line; a weighed pack is its own line */
+  lineId: number
   skuCode: string
   name: string
-  unitPricePence: number
+  /** paidPence per unit, or null when that is not a whole number of pence */
+  unitPricePence: number | null
   /** what the customer paid for all soldQuantity units, after savings */
   paidPence: number
   soldQuantity: number
@@ -115,6 +118,7 @@ export interface RefundableSale {
 }
 
 export interface RefundedLine {
+  lineId: number
   skuCode: string
   name: string
   quantity: number

@@ -25,4 +25,6 @@ public class OrderLineItems {
     private Integer paidPence;
     /** Product name as printed on the receipt. */
     private String name;
+    /** On a refund line: the id of the sale line it returns. */
+    private Long refundOfLineId;
 }
