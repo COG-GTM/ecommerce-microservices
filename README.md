@@ -177,8 +177,10 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
    cp .env.example .env && chmod 600 .env
    # fill in every value, e.g. with: openssl rand -base64 32
    ```
-   The Keycloak admin user is only created on first start (empty `./keycloak_db_data`); later changes to
-   `KEYCLOAK_ADMIN_*` in `.env` do not change it, so change the password in the admin console instead.
+   The Keycloak admin user and the `keycloak` MySQL user are only created on first start (empty
+   `./keycloak_db_data`); later changes to `KEYCLOAK_ADMIN_*` or `KEYCLOAK_DB_*` in `.env` do not change them
+   (a changed DB password stops Keycloak from starting). Change the admin password in the admin console instead,
+   or reset Keycloak as described in [Environment Cleanup](#environment-cleanup).
 
    Keycloak's issuer is fixed to `http://keycloak:8080`, so add `127.0.0.1 keycloak` to `/etc/hosts`
    (Windows: `C:\Windows\System32\drivers\etc\hosts`).
