@@ -39,6 +39,19 @@ class SecurityConfigTest {
     }
 
     @Test
+    void anonymousCallerCannotReadOrRegisterEurekaInstances() {
+        webTestClient.get().uri("/eureka/apps").exchange().expectStatus().isUnauthorized();
+        webTestClient.post().uri("/eureka/apps/TEST")
+                .header("Content-Type", "application/json")
+                .bodyValue("{\"instance\":{\"app\":\"TEST\",\"hostName\":\"attacker.example\"}}")
+                .exchange()
+                .expectStatus().isUnauthorized();
+        webTestClient.put().uri("/eureka/apps/ORDER-SERVICE/order-1/status?value=OUT_OF_SERVICE")
+                .exchange()
+                .expectStatus().isUnauthorized();
+    }
+
+    @Test
     void authenticatedEurekaRequestsAreForbidden() {
         WebTestClient client = webTestClient.mutateWith(mockJwt());
         for (HttpMethod method : List.of(HttpMethod.GET, HttpMethod.POST, HttpMethod.PUT, HttpMethod.DELETE)) {
