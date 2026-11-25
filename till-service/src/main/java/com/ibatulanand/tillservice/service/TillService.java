@@ -212,6 +212,7 @@ public class TillService {
         }
         int points = moreCardProperties.pointsFor(basket.getTotalPence());
         MoreCardMember member = moreCards.award(basket.getMemberCardNumber(), points);
+        basket.setMember(member);
         return new MoreCardReceipt(member.cardLast4(), member.name(), points, member.pointsBalance());
     }
 
