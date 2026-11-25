@@ -149,14 +149,15 @@ public class TillService {
             throw new TillException(HttpStatus.CONFLICT, "TOTAL_CHANGED", "Basket total changed; review the basket before taking payment");
         }
         int balance = basket.getBalanceDuePence();
+        if (request.expectedBalanceDuePence() != null && request.expectedBalanceDuePence() != balance) {
+            throw new TillException(HttpStatus.CONFLICT, "BALANCE_CHANGED",
+                    "A payment was already taken on this basket; check the amount left to pay");
+        }
         TenderLine tenderLine;
         if ("CASH".equals(tenderType)) {
             int tendered = request.amountTenderedPence() == null ? balance : request.amountTenderedPence();
-            if (tendered <= 0) {
-                throw new TillException(HttpStatus.UNPROCESSABLE_ENTITY, "INSUFFICIENT_TENDER", "Enter the cash received");
-            }
             if (tendered < balance) {
-                if (!Boolean.TRUE.equals(request.partialPayment())) {
+                if (!Boolean.TRUE.equals(request.partialPayment()) || tendered <= 0) {
                     throw new TillException(HttpStatus.UNPROCESSABLE_ENTITY, "INSUFFICIENT_TENDER",
                             "Cash tendered is less than the total to pay");
                 }
@@ -179,7 +180,7 @@ public class TillService {
         }
         basket.getTenders().add(tenderLine);
         List<TenderLine> tenders = List.copyOf(basket.getTenders());
-        String orderTenderType = tenders.size() > 1 ? "SPLIT" : tenderType;
+        String orderTenderType = tenders.stream().map(TenderLine::tenderType).distinct().count() > 1 ? "SPLIT" : tenderType;
         String orderNumber;
         try {
             orderNumber = orders.placeSale(basket, properties.storeNumber(), orderTenderType);
@@ -205,7 +206,7 @@ public class TillService {
     }
 
     /** Previews a cash tender without taking it, so the till never computes change itself. */
-    public CashQuote cashQuote(String basketId, int amountTenderedPence) {
+    public synchronized CashQuote cashQuote(String basketId, int amountTenderedPence) {
         if (amountTenderedPence < 0) {
             throw new TillException(HttpStatus.BAD_REQUEST, "INVALID_AMOUNT", "Cash amount cannot be negative");
         }

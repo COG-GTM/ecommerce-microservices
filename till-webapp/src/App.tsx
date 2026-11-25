@@ -7,6 +7,7 @@ import { Header } from './components/Header'
 import { SaleComplete } from './components/SaleComplete'
 import { SellPanel } from './components/SellPanel'
 import { TenderPanel } from './components/TenderPanel'
+import { formatPence } from './money'
 
 type Screen = 'sell' | 'tender' | 'complete'
 
@@ -114,7 +115,8 @@ export default function App() {
     basket &&
     run(async () => {
       showBasket(await tillApi.voidSale(basket.basketId))
-      setMessage({ kind: 'ok', text: 'Sale voided' })
+      setMessage({ kind: 'ok', text: basket.paidPence > 0 ? `Sale voided. Return ${formatPence(basket.paidPence)} cash` : 'Sale voided' })
+      setScreen('sell')
     }, (text) => setMessage({ kind: 'error', text }))
 
   const applyTender = (r: TenderResult) => {
@@ -135,7 +137,7 @@ export default function App() {
     run(async () => {
       setDeclineMessage(null)
       setTenderError(null)
-      applyTender(await tillApi.tender(basket.basketId, type, { terminalOutcome: outcome, expectedTotalPence: basket.totalPence }))
+      applyTender(await tillApi.tender(basket.basketId, type, { terminalOutcome: outcome, expectedTotalPence: basket.totalPence, expectedBalanceDuePence: basket.balanceDuePence }))
     }, setTenderError)
 
   const payByCash = (amountTenderedPence: number, partialPayment = false) =>
@@ -143,7 +145,7 @@ export default function App() {
     run(async () => {
       setDeclineMessage(null)
       setTenderError(null)
-      applyTender(await tillApi.tender(basket.basketId, 'CASH', { amountTenderedPence, partialPayment, expectedTotalPence: basket.totalPence }))
+      applyTender(await tillApi.tender(basket.basketId, 'CASH', { amountTenderedPence, partialPayment, expectedTotalPence: basket.totalPence, expectedBalanceDuePence: basket.balanceDuePence }))
     }, setTenderError)
 
   const newSale = () =>
@@ -198,6 +200,7 @@ export default function App() {
                 onCard={payByCard}
                 onCash={payByCash}
                 onMethodChange={resetTenderState}
+                onVoidSale={voidSale}
               />
             )}
             {screen === 'complete' && result && <SaleComplete result={result} onNewSale={newSale} />}

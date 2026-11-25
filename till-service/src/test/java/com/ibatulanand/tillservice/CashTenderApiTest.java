@@ -139,7 +139,21 @@ class CashTenderApiTest {
         JsonNode cash = tender(Map.of("tenderType", "CASH", "amountTenderedPence", 500), status().isOk());
         assertThat(cash.get("status").asText()).isEqualTo("APPROVED");
         assertThat(cash.get("changeDuePence").asInt()).isEqualTo(175);
-        verify(services).placeSale(any(), eq("0417"), eq("SPLIT"));
+        assertThat(cash.get("receipt").get("tenderType").asText()).isEqualTo("CASH");
+        assertThat(cash.get("receipt").get("tenders")).hasSize(2);
+        verify(services).placeSale(any(), eq("0417"), eq("CASH"));
+    }
+
+    @Test
+    void retriedTenderWithStaleBalanceIsRejected() throws Exception {
+        Map<String, Object> partCash = Map.of("tenderType", "CASH", "amountTenderedPence", 500, "partialPayment", true,
+                "expectedBalanceDuePence", 825);
+        tender(partCash, status().isOk());
+        JsonNode retry = tender(partCash, status().isConflict());
+        assertThat(retry.get("error").asText()).isEqualTo("BALANCE_CHANGED");
+        JsonNode basket = call(get("/api/till/basket/" + basketId), status().isOk());
+        assertThat(basket.get("paidPence").asInt()).isEqualTo(500);
+        verify(services, never()).placeSale(any(), anyString(), anyString());
     }
 
     @Test
