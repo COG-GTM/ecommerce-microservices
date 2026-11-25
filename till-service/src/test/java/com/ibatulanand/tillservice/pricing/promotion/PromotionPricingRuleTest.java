@@ -72,7 +72,7 @@ class PromotionPricingRuleTest {
         Basket basket = pricer.price(basket(line("l-drink", COLA, 1, 135), line("l-main", CHICKEN_SANDWICH, 1, 300),
                 line("l-milk", "1001", 1, 155), line("l-side", CRISPS, 1, 85)));
         assertThat(basket.getAdjustments()).containsExactly(
-                new Adjustment("MEAL_DEAL", "Meal deal £3.50", -170, "l-side"));
+                new Adjustment("MEAL_DEAL", "Meal deal £3.50", -170, "l-side", List.of("l-drink", "l-main", "l-side")));
         assertThat(basket.getTotalPence()).isEqualTo(135 + 300 + 155 + 85 - 170);
     }
 
@@ -82,7 +82,7 @@ class PromotionPricingRuleTest {
         Basket basket = pricer.price(basket(line("l-main", CHICKEN_SANDWICH, 1, 300), line("l-side", CRISPS, 1, 85),
                 line("l-cola", COLA, 2, 135)));
         assertThat(basket.getAdjustments()).containsExactly(
-                new Adjustment("MEAL_DEAL", "Meal deal £3.50", -170, "l-cola"));
+                new Adjustment("MEAL_DEAL", "Meal deal £3.50", -170, "l-cola", List.of("l-main", "l-side", "l-cola")));
         assertThat(basket.getTotalPence()).isEqualTo(300 + 85 + 270 - 170);
     }
 
@@ -93,7 +93,7 @@ class PromotionPricingRuleTest {
                 line("l-cola", COLA, 3, 135)));
         assertThat(basket.getAdjustments()).containsExactlyInAnyOrder(
                 new Adjustment("MULTIBUY", "Soft drinks 2 for £2.00", -70, "l-cola"),
-                new Adjustment("MEAL_DEAL", "Meal deal £3.50", -170, "l-cola"));
+                new Adjustment("MEAL_DEAL", "Meal deal £3.50", -170, "l-cola", List.of("l-main", "l-side", "l-cola")));
         assertThat(basket.getSavingsPence()).isEqualTo(240);
     }
 
@@ -109,7 +109,7 @@ class PromotionPricingRuleTest {
                 line("l-water", WATER, 1, 90), line("l-cola", COLA, 2, 135)));
         assertThat(basket.getSavingsPence()).isEqualTo(195);
         assertThat(basket.getAdjustments()).containsExactlyInAnyOrder(
-                new Adjustment("MEAL_DEAL", "Meal deal", -75, "l-water"),
+                new Adjustment("MEAL_DEAL", "Meal deal", -75, "l-water", List.of("l-egg", "l-crisps", "l-water")),
                 new Adjustment("MULTIBUY", "Cola 2 for £1.50", -120, "l-cola"));
     }
 
@@ -125,7 +125,7 @@ class PromotionPricingRuleTest {
     void mixAndMatchMultiBuyAcrossLines() {
         Basket basket = pricer.price(basket(line("l-water", WATER, 1, 90), line("l-cola", COLA, 1, 135)));
         assertThat(basket.getAdjustments()).containsExactly(
-                new Adjustment("MULTIBUY", "Soft drinks 2 for £2.00", -25, "l-cola"));
+                new Adjustment("MULTIBUY", "Soft drinks 2 for £2.00", -25, "l-cola", List.of("l-water", "l-cola")));
     }
 
     @Test
