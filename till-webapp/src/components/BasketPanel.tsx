@@ -20,9 +20,9 @@ export function BasketPanel({ basket, selectedLineId, onSelect }: Props) {
 
   useEffect(() => {
     const selected = scrollRef.current?.querySelector('tr.selected')
-    let lastSaving = selected?.nextElementSibling
-    while (lastSaving?.nextElementSibling?.classList.contains('saving-line')) lastSaving = lastSaving.nextElementSibling
-    if (lastSaving?.classList.contains('saving-line')) lastSaving.scrollIntoView({ block: 'nearest' })
+    let lastRow = selected
+    while (lastRow?.nextElementSibling?.classList.contains('saving-line')) lastRow = lastRow.nextElementSibling
+    if (lastRow !== selected) lastRow?.scrollIntoView({ block: 'nearest' })
     selected?.scrollIntoView({ block: 'nearest' })
   }, [selectedLineId, basket])
   return (
