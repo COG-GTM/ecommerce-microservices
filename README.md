@@ -179,7 +179,7 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
    ```
    The Keycloak admin user and the `keycloak` MySQL user are only created on first start (empty
    `./keycloak_db_data`); later changes to `KEYCLOAK_ADMIN_*` or `KEYCLOAK_DB_*` in `.env` do not change them
-   (a changed DB password stops Keycloak from starting). Change the admin password in the admin console instead,
+   (a changed `KEYCLOAK_DB_PASSWORD` stops Keycloak from starting). Change the admin password in the admin console instead,
    or reset Keycloak as described in [Environment Cleanup](#environment-cleanup).
 
    Keycloak's issuer is fixed to `http://keycloak:8080`, so add `127.0.0.1 keycloak` to `/etc/hosts`
