@@ -80,6 +80,7 @@ export function WeightDialog({ product, busy, error, onConfirm, onCancel }: Prop
                 setGarbled(false)
               } else if (/^\d{0,2}(\.\d{0,3})?$/.test(next)) {
                 setKg(next)
+                setGarbled(false)
               } else {
                 setGarbled(true)
               }
