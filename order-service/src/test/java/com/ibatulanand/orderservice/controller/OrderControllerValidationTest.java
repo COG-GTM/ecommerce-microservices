@@ -50,7 +50,9 @@ class OrderControllerValidationTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("Invalid order request"))
                 .andExpect(jsonPath("$.fields[0]").value(containsString("orderLineItemsDtoList[0].price")))
-                .andExpect(content().string(not(containsString("secret_sku_value"))));
+                .andExpect(content().string(not(containsString("secret_sku_value"))))
+                .andExpect(content().string(not(containsString("2147483647"))))
+                .andExpect(content().string(not(containsString("E+"))));
         verify(orderService, never()).placeOrder(any());
     }
 
