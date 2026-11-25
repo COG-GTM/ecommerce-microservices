@@ -43,6 +43,6 @@ public class NotificationServiceApplication {
         }
         // Send out an email notification
         log.info("Received Notification for Order - {}",
-                orderPlacedEvent.getOrderNumber().replaceAll("\\p{Cntrl}", "_"));
+                orderPlacedEvent.getOrderNumber().replaceAll("[\\p{Cc}\\p{Zl}\\p{Zp}]", "_"));
     }
 }

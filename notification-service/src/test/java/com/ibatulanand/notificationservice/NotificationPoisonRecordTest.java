@@ -98,10 +98,11 @@ class NotificationPoisonRecordTest {
     void orderNumberControlCharactersCannotForgeLogLines(CapturedOutput output) throws Exception {
         String id = UUID.randomUUID().toString();
 
-        send("{\"orderNumber\":\"" + id + "\\nINFO forged-" + id + "\"}");
+        send("{\"orderNumber\":\"" + id + "\\nINFO forged-" + id + "\\u2028INFO again-" + id + "\"}");
 
-        awaitTrue(() -> output.getOut().contains("Received Notification for Order - " + id + "_INFO forged-" + id));
-        assertThat(output.getOut()).doesNotContain(id + "\nINFO forged-");
+        awaitTrue(() -> output.getOut().contains(
+                "Received Notification for Order - " + id + "_INFO forged-" + id + "_INFO again-" + id));
+        assertThat(output.getOut()).doesNotContain(id + "\nINFO forged-").doesNotContain("\u2028INFO again-");
     }
 
     @Test
