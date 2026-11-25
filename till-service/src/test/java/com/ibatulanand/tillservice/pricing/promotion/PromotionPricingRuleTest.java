@@ -148,6 +148,9 @@ class PromotionPricingRuleTest {
         Basket basket = pricer.price(basket(line("l-yog", YOGHURT, 3_000_000, 150)));
         assertThat(basket.getAdjustments()).containsExactly(
                 new Adjustment("MULTIBUY", "Greek yoghurt 3 for £3.50 x1000000", -100_000_000, "l-yog"));
+        assertThat(new PromotionEngine(List.of(YOGHURT_3_FOR_350))
+                .bestApplications(List.of(line("l-yog", YOGHURT, 3_000_000, 150))))
+                .singleElement().extracting(PromotionEngine.Application::times).isEqualTo(1_000_000);
     }
 
     @Test
