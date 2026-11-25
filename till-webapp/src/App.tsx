@@ -361,6 +361,9 @@ export default function App() {
                 onMethodChange={resetTenderState}
               />
             )}
+            {screen === 'complete' && result && message?.kind === 'error' && (
+              <p className="scan-msg error" data-testid="new-sale-error" role="alert">{message.text}</p>
+            )}
             {screen === 'complete' && result && <SaleComplete result={result} onNewSale={newSale} />}
           </div>
         </main>
