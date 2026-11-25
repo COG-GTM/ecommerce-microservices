@@ -49,14 +49,14 @@ services:
     container_name: keycloak-mysql
     image: mysql:8.4
     volumes:
-      - ./mysql_keycloak_data:/var/lib/mysql
+      - ./keycloak_db_data:/var/lib/mysql
     environment:
       MYSQL_ROOT_PASSWORD: ${KEYCLOAK_DB_ROOT_PASSWORD:?set KEYCLOAK_DB_ROOT_PASSWORD in .env (see .env.example)}
       MYSQL_DATABASE: keycloak
       MYSQL_USER: keycloak
       MYSQL_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?set KEYCLOAK_DB_PASSWORD in .env (see .env.example)}
     healthcheck:
-      test: [ "CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u keycloak -p\"$$MYSQL_PASSWORD\" --silent" ]
+      test: [ "CMD-SHELL", "MYSQL_PWD=\"$$MYSQL_PASSWORD\" mysql -h 127.0.0.1 -u keycloak -e 'SELECT 1' keycloak" ]
       interval: 5s
       timeout: 5s
       retries: 30
@@ -66,7 +66,7 @@ services:
   # the port is published on loopback only, so the admin console is not reachable from the network.
   keycloak:
     container_name: keycloak
-    image: quay.io/keycloak/keycloak:${KEYCLOAK_VERSION:-26.4}
+    image: quay.io/keycloak/keycloak:${KEYCLOAK_VERSION:-26.4.14}
     command: [ "start", "--import-realm" ]
     environment:
       KC_DB: mysql
