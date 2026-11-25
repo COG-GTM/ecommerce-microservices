@@ -79,6 +79,7 @@ export default function App() {
           const ack = await tillApi.syncOfflineSale(sale)
           if (!ack?.orderNumber) throw new Error('no order number in the sync response')
           offlineStore.remove(sale.saleId)
+          setResult((r) => (r && isLocal(r.basket) && r.basket.basketId.endsWith(sale.saleId) ? { ...r, orderNumber: ack.orderNumber } : r))
           synced++
         } catch (e) {
           if (isUnreachable(e)) break
