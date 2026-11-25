@@ -47,4 +47,19 @@ test.describe('MBA-3938 card terminal declines and retries', () => {
     expect(await ordersForSale(request, orderNumber)).toEqual([expect.objectContaining({ orderNumber })])
     expect(await backend.order(orderNumber)).toMatchObject({ tillId: till.tillId, totalPence: 350 })
   })
+
+  test('a reload after a timeout can still retry the same attempt', async ({ till, page, request }) => {
+    await till.open()
+    await till.quickKey('1002')
+    await till.pay()
+    await till.payByCard('timeout')
+    await expect(page.getByTestId('retry-payment')).toBeVisible()
+
+    await page.reload()
+    await till.pay()
+    await expect(page.getByTestId('decline-message')).toHaveCount(0)
+    await page.getByTestId('retry-payment').click()
+    const orderNumber = await till.orderNumber()
+    expect(await ordersForSale(request, orderNumber)).toEqual([expect.objectContaining({ orderNumber })])
+  })
 })

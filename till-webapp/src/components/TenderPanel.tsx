@@ -33,7 +33,8 @@ interface Props {
 
 export function TenderPanel(props: Props) {
   const { basketId, totalPence, paidPence, balanceDuePence, busy, paymentUnresolved, cardAvailable } = props
-  const [chosen, setMethod] = useState<TenderType | null>(null)
+  // A timed-out card attempt (also after a reload) opens straight on the PIN pad so the operator can retry it.
+  const [chosen, setMethod] = useState<TenderType | null>(paymentUnresolved ? 'CARD' : null)
   const method = chosen === 'CASH' || cardAvailable ? chosen : null
   const [cashPence, setCashPence] = useState(0)
   const [quote, setQuote] = useState<CashQuote | null>(null)

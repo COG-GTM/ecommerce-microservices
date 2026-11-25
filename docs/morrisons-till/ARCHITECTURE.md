@@ -81,6 +81,9 @@ compute totals; they render `subtotalPence`, `savingsPence` and `totalPence` fro
 `till.terminal.simulator.timeout-delay-ms` (default 1500) and models a charge whose response was lost: status `TIMEOUT`,
 basket still OPEN and locked until the same `idempotencyKey` is retried. A repeated attempt key replays the first
 result, so a retry never charges or orders twice; a different key, cash or a basket change gets 409 `PAYMENT_UNRESOLVED`.
+Keys are 1-64 of `[A-Za-z0-9._:-]`; when omitted the till generates one and returns it as `TenderResult.idempotencyKey`,
+which is the key to resend after a `TIMEOUT`. The till webapp keeps the pending key in `sessionStorage`, so a reload can
+still retry.
 
 ### JSON shapes
 

@@ -30,6 +30,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -115,6 +116,42 @@ class CardTerminalIdempotencyTest {
 
         assertThat(tender(basketId, key, "APPROVED", status().isOk()).get("status").asText()).isEqualTo("APPROVED");
         verify(services, times(1)).placeSale(any(), anyString(), anyString());
+    }
+
+    @Test
+    void cashCannotSettleATimedOutCardAttemptEvenWithItsKey() throws Exception {
+        String key = "k-" + UUID.randomUUID();
+        tender(basketId, key, "TIMEOUT", status().isOk());
+        Map<String, Object> body = Map.of("basketId", basketId, "tenderType", "CASH", "amountTenderedPence", 500,
+                "idempotencyKey", key);
+        assertThat(call(post("/api/till/basket/tender").contentType(MediaType.APPLICATION_JSON)
+                .content(json.writeValueAsString(body)), status().isConflict()).get("error").asText())
+                .isEqualTo("PAYMENT_UNRESOLVED");
+        verify(services, never()).placeSale(any(), anyString(), anyString());
+    }
+
+    @Test
+    void anApprovedCardWhoseOrderFailsKeepsTheBasketLockedToThatAttempt() throws Exception {
+        String key = "k-" + UUID.randomUUID();
+        when(services.placeSale(any(), anyString(), anyString())).thenThrow(
+                new com.ibatulanand.tillservice.web.TillException(org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE,
+                        "ORDER_SERVICE_UNAVAILABLE", "down"));
+        tender(basketId, key, "APPROVED", status().isServiceUnavailable());
+        assertThat(cash(basketId, status().isConflict()).get("error").asText()).isEqualTo("PAYMENT_UNRESOLVED");
+        assertThat(add(basketId, status().isConflict()).get("error").asText()).isEqualTo("PAYMENT_UNRESOLVED");
+
+        doReturn("ORDER-retried").when(services).placeSale(any(), anyString(), anyString());
+        int chargesBefore = terminal.chargeCount();
+        assertThat(tender(basketId, key, "APPROVED", status().isOk()).get("orderNumber").asText()).isEqualTo("ORDER-retried");
+        assertThat(terminal.chargeCount()).isEqualTo(chargesBefore);
+    }
+
+    @Test
+    void malformedKeysAreRejected() throws Exception {
+        assertThat(tender(basketId, "bad\nkey", "APPROVED", status().isBadRequest()).get("error").asText())
+                .isEqualTo("INVALID_IDEMPOTENCY_KEY");
+        assertThat(tender(basketId, "k".repeat(65), "APPROVED", status().isBadRequest()).get("error").asText())
+                .isEqualTo("INVALID_IDEMPOTENCY_KEY");
     }
 
     @Test

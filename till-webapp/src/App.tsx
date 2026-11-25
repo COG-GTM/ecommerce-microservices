@@ -42,6 +42,26 @@ const newAttemptKey = () =>
     ? crypto.randomUUID()
     : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`
 
+/** The card attempt in progress for this till; kept in sessionStorage so a reload can still retry it with the same key. */
+interface CardAttempt {
+  basketId: string
+  key: string
+  /** The terminal timed out or the response was lost: the basket stays locked until this key is retried. */
+  unresolved: boolean
+}
+const ATTEMPT_STORAGE_KEY = `till.cardAttempt.${TILL_ID ?? 'default'}`
+const loadAttempt = (): CardAttempt | null => {
+  try {
+    return JSON.parse(sessionStorage.getItem(ATTEMPT_STORAGE_KEY) ?? 'null')
+  } catch {
+    return null
+  }
+}
+const saveAttempt = (attempt: CardAttempt | null) => {
+  if (attempt) sessionStorage.setItem(ATTEMPT_STORAGE_KEY, JSON.stringify(attempt))
+  else sessionStorage.removeItem(ATTEMPT_STORAGE_KEY)
+}
+
 const DECLINED_MESSAGE = 'Card declined. Ask for another payment method.'
 const TIMEOUT_MESSAGE = 'No response from the PIN pad. Retry the payment; the customer will not be charged twice.'
 
@@ -57,8 +77,12 @@ export default function App() {
   const [message, setMessage] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null)
   const [declineMessage, setDeclineMessage] = useState<string | null>(null)
   const [tenderError, setTenderError] = useState<string | null>(null)
-  /** Set while a card attempt timed out: retries must resend this key so the customer is charged once. */
-  const [unresolvedAttemptKey, setUnresolvedAttemptKey] = useState<string | null>(null)
+  const [cardAttempt, setCardAttemptState] = useState<CardAttempt | null>(loadAttempt)
+  const setCardAttempt = (attempt: CardAttempt | null) => {
+    saveAttempt(attempt)
+    setCardAttemptState(attempt)
+  }
+  const paymentUnresolved = !!cardAttempt?.unresolved && cardAttempt.basketId === basket?.basketId
   const [result, setResult] = useState<TenderResult | null>(null)
   const [weighing, setWeighing] = useState<Product | null>(null)
   const [ageCheckLineId, setAgeCheckLineId] = useState<string | null>(null)
@@ -301,7 +325,6 @@ export default function App() {
     }, (text) => setMessage({ kind: 'error', text }))
 
   const applyTender = (r: TenderResult) => {
-    setUnresolvedAttemptKey(r.status === 'TIMEOUT' ? r.idempotencyKey : null)
     if (r.status === 'APPROVED') {
       setResult(r)
       setBasket(r.basket)
@@ -326,8 +349,22 @@ export default function App() {
     run(async () => {
       setDeclineMessage(null)
       setTenderError(null)
-      const idempotencyKey = unresolvedAttemptKey ?? newAttemptKey()
-      applyTender(await tillApi.tender(basket.basketId, type, { terminalOutcome: outcome, expectedTotalPence: basket.totalPence, idempotencyKey, expectedBalanceDuePence: basket.balanceDuePence }))
+      // Reuse the key until the attempt settles, so a retry after a timeout or a lost response is never a second charge.
+      const attempt = cardAttempt?.basketId === basket.basketId ? cardAttempt : { basketId: basket.basketId, key: newAttemptKey(), unresolved: false }
+      setCardAttempt(attempt)
+      let r: TenderResult
+      try {
+        r = await tillApi.tender(basket.basketId, type, { terminalOutcome: outcome, expectedTotalPence: basket.totalPence, idempotencyKey: attempt.key, expectedBalanceDuePence: basket.balanceDuePence })
+      } catch (e) {
+        if (!(e instanceof TillApiError)) {
+          setCardAttempt({ ...attempt, unresolved: true })
+          setDeclineMessage(TIMEOUT_MESSAGE)
+          return
+        }
+        throw e
+      }
+      setCardAttempt(r.status === 'TIMEOUT' ? { ...attempt, unresolved: true } : null)
+      applyTender(r)
     }, tenderFailed)
 
   const payByCash = (amountTenderedPence: number, partialPayment = false) =>
@@ -405,7 +442,7 @@ export default function App() {
                 busy={busy}
                 cardAvailable={cardAvailable}
                 declineMessage={declineMessage}
-                paymentUnresolved={unresolvedAttemptKey !== null}
+                paymentUnresolved={paymentUnresolved}
                 errorMessage={tenderError}
                 onBack={() => setScreen('sell')}
                 onCard={payByCard}

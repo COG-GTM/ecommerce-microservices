@@ -30,7 +30,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -38,6 +37,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -62,6 +62,7 @@ public class TillService {
 
     static final int MAX_TILLS = 10_000;
     static final int MAX_SETTLED_ATTEMPTS = 10_000;
+    private static final java.util.regex.Pattern IDEMPOTENCY_KEY = java.util.regex.Pattern.compile("[A-Za-z0-9._:-]{1,64}");
 
     private final Map<String, Basket> baskets = new ConcurrentHashMap<>();
     private final Map<String, String> openBasketByTill = new ConcurrentHashMap<>();
@@ -79,7 +80,7 @@ public class TillService {
                     return size() > MAX_SETTLED_ATTEMPTS;
                 }
             });
-    private final Object[] attemptLocks = new Object[64];
+    private final Map<String, CompletableFuture<Void>> attemptsInProgress = new ConcurrentHashMap<>();
 
     public TillService(CatalogueClient catalogue, StockClient stock, OrderClient orders, PaymentTerminal terminal,
                        BasketPricer pricer, TillProperties properties, Optional<MoreCardDirectory> moreCards,
@@ -92,7 +93,6 @@ public class TillService {
         this.properties = properties;
         this.moreCards = moreCards;
         this.moreCardProperties = moreCardProperties;
-        Arrays.setAll(attemptLocks, i -> new Object());
     }
 
     public TillSession session(String requestedTillId, Map<String, String> services) {
@@ -285,22 +285,50 @@ public class TillService {
     public TenderResult tender(TenderRequest request) {
         String key = request.idempotencyKey() == null || request.idempotencyKey().isBlank()
                 ? UUID.randomUUID().toString() : request.idempotencyKey();
-        synchronized (attemptLocks[Math.floorMod(key.hashCode(), attemptLocks.length)]) {
-            TenderResult previous = settledAttempts.get(key);
+        if (!IDEMPOTENCY_KEY.matcher(key).matches()) {
+            throw new TillException(HttpStatus.BAD_REQUEST, "INVALID_IDEMPOTENCY_KEY",
+                    "Idempotency key must be 1-64 letters, digits, '.', '_', ':' or '-'");
+        }
+        // Duplicates of one attempt run one at a time; attempts with other keys never wait on each other.
+        while (true) {
+            TenderResult previous = settledAttempt(key, request.basketId());
             if (previous != null) {
-                if (!previous.basket().getBasketId().equals(request.basketId())) {
-                    throw new TillException(HttpStatus.CONFLICT, "IDEMPOTENCY_KEY_REUSED",
-                            "Idempotency key already used for another basket");
-                }
-                log.info("Till {} replayed tender attempt {} ({})", previous.basket().getTillId(), key, previous.status());
                 return previous;
             }
-            TenderResult result = attemptTender(request, key);
-            if (!"TIMEOUT".equals(result.status())) {
-                settledAttempts.put(key, result);
+            CompletableFuture<Void> mine = new CompletableFuture<>();
+            CompletableFuture<Void> running = attemptsInProgress.putIfAbsent(key, mine);
+            if (running != null) {
+                running.join();
+                continue;
             }
-            return result;
+            try {
+                previous = settledAttempt(key, request.basketId());
+                if (previous != null) {
+                    return previous;
+                }
+                TenderResult result = attemptTender(request, key);
+                if (!"TIMEOUT".equals(result.status())) {
+                    settledAttempts.put(key, result);
+                }
+                return result;
+            } finally {
+                attemptsInProgress.remove(key, mine);
+                mine.complete(null);
+            }
         }
+    }
+
+    private TenderResult settledAttempt(String key, String basketId) {
+        TenderResult previous = settledAttempts.get(key);
+        if (previous == null) {
+            return null;
+        }
+        if (!previous.basket().getBasketId().equals(basketId)) {
+            throw new TillException(HttpStatus.CONFLICT, "IDEMPOTENCY_KEY_REUSED",
+                    "Idempotency key already used for another basket");
+        }
+        log.info("Till {} replayed tender attempt {} ({})", previous.basket().getTillId(), key, previous.status());
+        return previous;
     }
 
     private TenderResult attemptTender(TenderRequest request, String key) {
@@ -315,6 +343,10 @@ public class TillService {
                         "The last card payment timed out; retry it before taking another payment");
             }
             openForChange(basket.getBasketId(), unresolved != null);
+            if (unresolved != null && "CASH".equals(tenderType)) {
+                throw new TillException(HttpStatus.CONFLICT, "PAYMENT_UNRESOLVED",
+                        "The last card payment timed out; retry it on the card terminal");
+            }
             if (!TENDER_TYPES.contains(tenderType)) {
                 throw new TillException(HttpStatus.BAD_REQUEST, "UNSUPPORTED_TENDER", "Unsupported tender " + tenderType);
             }
@@ -356,16 +388,27 @@ public class TillService {
         PaymentTerminal.Authorisation auth;
         try {
             auth = terminal.authorise(key, basket.getBasketId(), tenderType, balance, request.terminalOutcome());
-        } finally {
+        } catch (RuntimeException e) {
             synchronized (this) {
                 tenderInFlight.remove(basket.getBasketId());
             }
+            throw e;
         }
+        // Release the in-flight lock in the same critical section that settles the basket, so no other tender
+        // can slip in between a card approval and the sale being recorded.
         synchronized (this) {
+            tenderInFlight.remove(basket.getBasketId());
             switch (auth.outcome()) {
                 case APPROVED -> {
-                    unresolvedAttemptByBasket.remove(basket.getBasketId());
-                    return complete(basket, tenderType, new TenderLine(tenderType, balance, balance, 0, auth.authCode()), key);
+                    try {
+                        TenderResult completed = complete(basket, tenderType, new TenderLine(tenderType, balance, balance, 0, auth.authCode()), key);
+                        unresolvedAttemptByBasket.remove(basket.getBasketId());
+                        return completed;
+                    } catch (RuntimeException e) {
+                        // The card is charged but the order was not recorded: keep the basket locked to this attempt.
+                        unresolvedAttemptByBasket.put(basket.getBasketId(), key);
+                        throw e;
+                    }
                 }
                 case DECLINED -> {
                     unresolvedAttemptByBasket.remove(basket.getBasketId());
