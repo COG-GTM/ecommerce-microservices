@@ -3,7 +3,7 @@ import { expect, test } from '../fixtures/offline'
 // MBA-3940: the till keeps selling cash from its cached catalogue while it cannot reach the backend, queues the
 // sales locally and replays them once on reconnect. The network cut is the browser's own (no responses are mocked).
 test.describe('MBA-3940 offline resilience', () => {
-  test('offline cash sale from the cached catalogue syncs exactly once on reconnect @tablet', async ({ till, offlineTill: offline, offlineBackend, backend, page }) => {
+  test('offline cash sale from the cached catalogue syncs exactly once on reconnect @tablet', async ({ till, offlineTill: offline, offlineBackend, backend }) => {
     await till.open()
     await till.quickKey('1001')
     await till.expectLine('Semi skimmed milk 4 pints', 1, '£1.55', '£1.55')
