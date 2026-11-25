@@ -110,6 +110,8 @@ class RefundApiTest {
     @Test
     void invalidRequestsAre400() throws Exception {
         call(post("/api/till/refund"), Map.of("reference", "ORDER-1", "lines", List.of()), status().isBadRequest());
+        call(post("/api/till/refund"), Map.of("reference", "ORDER-1", "lines", java.util.Collections.singletonList(null)),
+                status().isBadRequest());
         call(post("/api/till/refund"), Map.of("reference", "ORDER-1",
                 "lines", List.of(Map.of("skuCode", "MOR-MILK-SS-4PT", "quantity", 0))), status().isBadRequest());
         JsonNode error = call(post("/api/till/refund"), Map.of("reference", "ORDER-1",
