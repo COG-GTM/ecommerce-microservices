@@ -24,6 +24,7 @@ interface Props {
   onCard: (type: TenderType, outcome: 'APPROVED' | 'DECLINED') => void
   onCash: (amountTenderedPence: number, partialPayment?: boolean) => void
   onMethodChange: () => void
+  onVoidSale: () => void
 }
 
 export function TenderPanel(props: Props) {
@@ -79,6 +80,11 @@ export function TenderPanel(props: Props) {
           <button type="button" className="btn outline back" data-testid="back-to-basket" disabled={busy || paidPence > 0} onClick={props.onBack}>
             Back to basket
           </button>
+          {paidPence > 0 && (
+            <button type="button" className="btn danger" data-testid="void-part-paid-sale" disabled={busy} onClick={props.onVoidSale}>
+              Void sale
+            </button>
+          )}
         </div>
       </section>
 
