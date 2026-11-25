@@ -118,7 +118,7 @@ export default function App() {
       showBasket(await tillApi.voidSale(basket.basketId))
       setMessage({ kind: 'ok', text: paidPence > 0 ? `Sale voided. Return ${formatPence(paidPence)} cash` : 'Sale voided' })
       setScreen('sell')
-    }, (text) => setMessage({ kind: 'error', text }))
+    }, (text) => (screen === 'tender' ? setTenderError(text) : setMessage({ kind: 'error', text })))
 
   const applyTender = (r: TenderResult) => {
     if (r.status === 'APPROVED') {
