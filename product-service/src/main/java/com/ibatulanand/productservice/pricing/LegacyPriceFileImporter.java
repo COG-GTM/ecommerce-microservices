@@ -61,8 +61,9 @@ public class LegacyPriceFileImporter {
             log.info("Legacy price file {} imported: {} prices applied", properties.legacyFile(), result.applied());
             return result;
         } catch (IOException e) {
+            log.error("Cannot read legacy price file {}", properties.legacyFile(), e);
             throw new PricingException(HttpStatus.INTERNAL_SERVER_ERROR, "LEGACY_PRICE_FILE_UNREADABLE",
-                    "Cannot read legacy price file " + properties.legacyFile());
+                    "Cannot read the legacy price file");
         } catch (IllegalArgumentException e) {
             throw new PricingException(HttpStatus.UNPROCESSABLE_ENTITY, "LEGACY_PRICE_FILE_INVALID", e.getMessage());
         }
