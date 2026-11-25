@@ -158,6 +158,8 @@ services:
     environment:
       <<: *spring-env
       SERVER_PORT: "8080"
+      # till-demo enables the seeded fictional More Cards (9826000000000001/2)
+      SPRING_PROFILES_ACTIVE: till-demo
     depends_on:
       discovery-server: { condition: service_healthy }
     healthcheck:

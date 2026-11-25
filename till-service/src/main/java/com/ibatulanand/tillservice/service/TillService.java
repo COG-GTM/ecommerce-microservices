@@ -26,6 +26,7 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -47,7 +48,7 @@ public class TillService {
     private final PaymentTerminal terminal;
     private final BasketPricer pricer;
     private final TillProperties properties;
-    private final MoreCardDirectory moreCards;
+    private final Optional<MoreCardDirectory> moreCards;
     private final MoreCardProperties moreCardProperties;
 
     static final int MAX_TILLS = 10_000;
@@ -58,7 +59,7 @@ public class TillService {
     private final Map<String, AtomicInteger> transactionCounters = new ConcurrentHashMap<>();
 
     public TillService(CatalogueClient catalogue, StockClient stock, OrderClient orders, PaymentTerminal terminal,
-                       BasketPricer pricer, TillProperties properties, MoreCardDirectory moreCards,
+                       BasketPricer pricer, TillProperties properties, Optional<MoreCardDirectory> moreCards,
                        MoreCardProperties moreCardProperties) {
         this.catalogue = catalogue;
         this.stock = stock;
@@ -135,7 +136,9 @@ public class TillService {
     public synchronized Basket attachMember(String basketId, String cardNumber) {
         Basket basket = openForChange(basketId);
         String card = cardNumber.replaceAll("\\s", "");
-        MoreCardMember member = moreCards.find(card).orElseThrow(() -> new TillException(HttpStatus.NOT_FOUND,
+        MoreCardDirectory directory = moreCards.orElseThrow(() -> new TillException(HttpStatus.SERVICE_UNAVAILABLE,
+                "MORE_CARD_UNAVAILABLE", "More Card is not available on this till. Continuing as non-member."));
+        MoreCardMember member = directory.find(card).orElseThrow(() -> new TillException(HttpStatus.NOT_FOUND,
                 "UNKNOWN_CARD", basket.getMember() == null
                         ? "More Card not recognised. Continuing as non-member."
                         : "More Card not recognised. Keeping " + basket.getMember().name() + "'s card."));
@@ -211,7 +214,7 @@ public class TillService {
             return null;
         }
         int points = moreCardProperties.pointsFor(basket.getTotalPence());
-        MoreCardMember member = moreCards.award(basket.getMemberCardNumber(), points);
+        MoreCardMember member = moreCards.orElseThrow().award(basket.getMemberCardNumber(), points);
         basket.setMember(member);
         return new MoreCardReceipt(member.cardLast4(), member.name(), points, member.pointsBalance());
     }
