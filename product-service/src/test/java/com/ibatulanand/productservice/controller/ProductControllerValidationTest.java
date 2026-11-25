@@ -68,6 +68,8 @@ class ProductControllerValidationTest {
     void rejectsPriceWithTooManyDigits() throws Exception {
         postJson(body("name", "desc", "1e30")).andExpect(status().isBadRequest());
         postJson(body("name", "desc", "1.001")).andExpect(status().isBadRequest());
+        postJson(body("name", "desc", "1e2147483647")).andExpect(status().isBadRequest());
+        verify(productService, never()).createProduct(any());
     }
 
     @Test
