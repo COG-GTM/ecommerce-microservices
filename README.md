@@ -215,6 +215,7 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
     - Endpoint: http://localhost:8181/api/product
     - Authorization: Use the OAuth 2.0 token fetched, following the previous step.
     - Validation: `name` (max 200 chars) and `description` (max 2000 chars) are required, `price` is required, `>= 0` with at most 10 integer and 2 fraction digits. Bodies over 32 KB are rejected with `413` (or `400` if they are malformed JSON before the limit is reached), invalid fields with `400`.
+    - Upgrading: products stored before these limits are returned as-is. Before deploying, find and clean up oversized ones, e.g. in `mongosh` against the `product-service` database: `db.product.find({$or: [{$expr: {$gt: [{$strLenCP: "$name"}, 200]}}, {$expr: {$gt: [{$strLenCP: "$description"}, 2000]}}]}, {_id: 1})`
     - Body: 
       ```json
       {
