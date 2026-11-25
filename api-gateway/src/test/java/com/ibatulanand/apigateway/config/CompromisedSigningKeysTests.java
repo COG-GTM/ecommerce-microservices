@@ -55,6 +55,19 @@ class CompromisedSigningKeysTests {
     }
 
     @Test
+    void keepsEveryAlgorithmTheDecoderAllows() {
+        DefaultJWTProcessor<SecurityContext> processor = new DefaultJWTProcessor<>();
+        processor.setJWSKeySelector(new JWSVerificationKeySelector<>(Set.of(JWSAlgorithm.RS256, JWSAlgorithm.PS256, JWSAlgorithm.ES256),
+                new ImmutableJWKSet<>(new JWKSet())));
+        new CompromisedSigningKeys(CompromisedSigningKeys.KNOWN).apply(processor);
+
+        JWSVerificationKeySelector<SecurityContext> selector =
+                (JWSVerificationKeySelector<SecurityContext>) processor.getJWSKeySelector();
+        assertThat(List.of(JWSAlgorithm.RS256, JWSAlgorithm.PS256, JWSAlgorithm.ES256)).allMatch(selector::isAllowed);
+        assertThat(List.of(JWSAlgorithm.RS512, JWSAlgorithm.HS256)).noneMatch(selector::isAllowed);
+    }
+
+    @Test
     void refusesKeySelectorsItCannotWrap() {
         DefaultJWTProcessor<SecurityContext> processor = new DefaultJWTProcessor<>();
         processor.setJWSKeySelector((header, context) -> List.of());

@@ -1,5 +1,6 @@
 package com.ibatulanand.apigateway.config;
 
+import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.KeySourceException;
 import com.nimbusds.jose.proc.JWSVerificationKeySelector;
@@ -14,6 +15,8 @@ import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Refuses to verify tokens with signing keys that are known to be public, so a realm that still runs on
@@ -55,7 +58,7 @@ public final class CompromisedSigningKeys {
     private final class TrustedKeySelector<C extends SecurityContext> extends JWSVerificationKeySelector<C> {
 
         private TrustedKeySelector(JWSVerificationKeySelector<C> delegate) {
-            super(delegate.getExpectedJWSAlgorithms(), delegate.getJWKSource());
+            super(allowedAlgorithms(delegate), delegate.getJWKSource());
         }
 
         @Override
@@ -68,6 +71,17 @@ public final class CompromisedSigningKeys {
             }
             return trusted;
         }
+    }
+
+    private static Set<JWSAlgorithm> allowedAlgorithms(JWSVerificationKeySelector<?> selector) {
+        Set<JWSAlgorithm> allowed = Stream.of(JWSAlgorithm.Family.RSA, JWSAlgorithm.Family.EC, JWSAlgorithm.Family.HMAC_SHA)
+                .flatMap(Set::stream)
+                .filter(selector::isAllowed)
+                .collect(Collectors.toUnmodifiableSet());
+        if (allowed.isEmpty()) {
+            throw new IllegalStateException("JWS key selector allows no RSA, EC or HMAC algorithm");
+        }
+        return allowed;
     }
 
     static String fingerprint(byte[] encodedKey) {
