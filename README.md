@@ -244,7 +244,7 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
       {
          "orderLineItemsDtoList": [
            {
-              "skuCode": "iphone_15_pro",
+              "skuCode": "iphone_15",
               "quantity": 1
             }
          ]
