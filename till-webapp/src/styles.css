@@ -64,7 +64,7 @@ h1, h2, h3, p { margin: 0; }
 
 /* Basket */
 .basket { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
-.basket-scroll { flex: 1; min-height: 0; overflow: auto; }
+.basket-scroll { flex: 1; min-height: 0; overflow: auto; scroll-padding-top: 48px; }
 .basket-table { width: 100%; border-collapse: collapse; }
 .basket-table th {
   text-align: left; font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #34413b;
