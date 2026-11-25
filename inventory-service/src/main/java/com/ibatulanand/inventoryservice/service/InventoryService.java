@@ -38,10 +38,12 @@ public class InventoryService {
 //        log.info("Wait Ended");
 
         return inventoryRepository.findBySkuCodeIn(skuCode).stream()
-                .map(inventory ->
+                .collect(Collectors.groupingBy(Inventory::getSkuCode, LinkedHashMap::new, Collectors.toList()))
+                .entrySet().stream()
+                .map(entry ->
                         InventoryResponse.builder()
-                                .skuCode(inventory.getSkuCode())
-                                .isInStock(inventory.getQuantity() > 0)
+                                .skuCode(entry.getKey())
+                                .isInStock(available(entry.getValue()) > 0)
                                 .build()
                 ).toList();
     }
