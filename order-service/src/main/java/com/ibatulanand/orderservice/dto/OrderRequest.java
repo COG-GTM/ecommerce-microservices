@@ -1,6 +1,9 @@
 package com.ibatulanand.orderservice.dto;
 
-import com.ibatulanand.orderservice.model.OrderLineItems;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -11,5 +14,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class OrderRequest {
-    private List<OrderLineItemsDto> orderLineItemsDtoList;
+    @NotEmpty
+    @Size(max = 100)
+    private List<@NotNull @Valid OrderLineItemsDto> orderLineItemsDtoList;
 }
