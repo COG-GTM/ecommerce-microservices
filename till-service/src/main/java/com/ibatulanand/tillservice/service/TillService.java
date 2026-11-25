@@ -204,9 +204,11 @@ public class TillService {
                 throw new TillException(HttpStatus.UNPROCESSABLE_ENTITY, "UNKNOWN_BARCODE",
                         "No product for barcode " + sold.barcode());
             }
+            // The customer paid the price the till charged offline, so that price is recorded, not today's.
+            int unitPrice = sold.unitPricePence() != null ? sold.unitPricePence() : item.pricePence();
             basket.getLines().add(new BasketLine(UUID.randomUUID().toString(), sold.barcode(),
                     item != null ? item.skuCode() : sold.skuCode(), item != null ? item.name() : sold.name(),
-                    sold.quantity(), item != null ? item.pricePence() : sold.unitPricePence(), 0));
+                    sold.quantity(), unitPrice, 0));
         }
         pricer.price(basket);
         int tendered = request.amountTenderedPence() == null ? basket.getTotalPence() : request.amountTenderedPence();
