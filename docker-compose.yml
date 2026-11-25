@@ -6,10 +6,10 @@ services:
     container_name: mysql-order
     image: mysql:latest
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ORDER_ROOT_PASSWORD:?set MYSQL_ORDER_ROOT_PASSWORD in .env}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ORDER_ROOT_PASSWORD:-}
       MYSQL_DATABASE: order_service
       ORDER_DB_APP_USER: ${ORDER_DB_APP_USER:-order_app}
-      ORDER_DB_APP_PASSWORD: ${ORDER_DB_APP_PASSWORD:?set ORDER_DB_APP_PASSWORD in .env}
+      ORDER_DB_APP_PASSWORD: ${ORDER_DB_APP_PASSWORD:-}
     volumes:
       - ./mysql_order:/var/lib/mysql
       - ./mysql-order-init:/docker-entrypoint-initdb.d:ro
@@ -171,7 +171,7 @@ services:
     environment:
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-order:3306/order_service?allowPublicKeyRetrieval=true&useSSL=false
       - SPRING_DATASOURCE_USERNAME=${ORDER_DB_APP_USER:-order_app}
-      - SPRING_DATASOURCE_PASSWORD=${ORDER_DB_APP_PASSWORD:?set ORDER_DB_APP_PASSWORD in .env}
+      - SPRING_DATASOURCE_PASSWORD=${ORDER_DB_APP_PASSWORD:-}
       - SERVER_PORT=8080
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
       - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
