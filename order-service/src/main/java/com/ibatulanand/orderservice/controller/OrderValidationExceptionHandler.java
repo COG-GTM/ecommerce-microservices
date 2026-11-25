@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import java.util.List;
 import java.util.Map;
 
-@RestControllerAdvice
+@RestControllerAdvice(assignableTypes = OrderController.class)
 public class OrderValidationExceptionHandler {
 
     private static final int MAX_REPORTED_FIELDS = 20;
