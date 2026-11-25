@@ -50,7 +50,10 @@ HELP.md
 /mysql_inventory
 /mongo-data
 /mysql_keycloak_data
+/keycloak_db_data
 /grafana_data
 
 # Draw.io
 *.drawio
+# Local secrets for docker compose
+.env

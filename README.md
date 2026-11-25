@@ -162,7 +162,7 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
 ## Getting Started
 
 ### Prerequisites
-1. Docker and Docker Compose should be installed.
+1. Docker Engine 28.0+ (older engines let hosts on the same LAN reach ports published on 127.0.0.1) and Docker Compose should be installed.
 2. Docker should be running.
 
 ### Deployment
@@ -172,13 +172,26 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
    cd ecommerce-microservices
    ```
 
-2. Start the containers:
+2. Create a `.env` file with your own secrets (it is git-ignored; compose refuses to start without it):
+   ```shell
+   cp .env.example .env && chmod 600 .env
+   # fill in every value, e.g. with: openssl rand -base64 32
+   ```
+   The Keycloak admin user and the `keycloak` MySQL user are only created on first start (empty
+   `./keycloak_db_data`); later changes to `KEYCLOAK_ADMIN_*` or `KEYCLOAK_DB_*` in `.env` do not change them
+   (a changed `KEYCLOAK_DB_PASSWORD` stops Keycloak from starting). Change the admin password in the admin console instead,
+   or reset Keycloak as described in [Environment Cleanup](#environment-cleanup).
+
+   Keycloak's issuer is fixed to `http://keycloak:8080`, so add `127.0.0.1 keycloak` to `/etc/hosts`
+   (Windows: `C:\Windows\System32\drivers\etc\hosts`).
+
+3. Start the containers:
    ```shell
    docker compose up -d
    ```
 
 
-3. Confirm that the containers are up and running:
+4. Confirm that the containers are up and running:
    ```shell
    docker ps
    ```
@@ -190,7 +203,9 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
 ### Interacting with Application
 
 - **Getting Credentials from KeyCloak**
-  - Access the KeyCloak Admin UI at http://localhost:8080/
+  - Access the KeyCloak Admin UI at http://localhost:8080/ and sign in with `KEYCLOAK_ADMIN_USERNAME` / `KEYCLOAK_ADMIN_PASSWORD` from your `.env`
+    (or the password you later set in the console)
+    (Keycloak runs in production mode and is published on `127.0.0.1` only, so the console is not reachable from other machines)
   - Go to the Realm `spring-boot-microservices-realm`
   - Go to the Client `spring-cloud-client`
   - Go the the 'Credentials' section, and get the 'Client Secret'
@@ -300,4 +315,9 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
 - To completely stop and remove the containers and other resources (network, volume, etc.), run the following command:
    ```shell
    docker compose down -v
+   ```
+- Keycloak's database lives in `./keycloak_db_data` on the host, which `down -v` keeps. To reset Keycloak (realm,
+  admin user and DB user are recreated from `.env` on next start), also run:
+   ```shell
+   sudo rm -rf ./keycloak_db_data   # files are owned by the container's mysql user; sudo not needed on Docker Desktop
    ```
