@@ -107,7 +107,10 @@ export function TenderPanel(props: Props) {
       </div>
 
       {method === null && (
-        <section className="panel dashed choose" data-testid="choose-method">Choose how the customer is paying</section>
+        <section className="panel dashed choose" data-testid="choose-method">
+          Choose how the customer is paying
+          {props.errorMessage && <p className="decline" data-testid="tender-error" role="alert">{props.errorMessage}</p>}
+        </section>
       )}
 
       {(method === 'CARD' || method === 'CONTACTLESS') && (
