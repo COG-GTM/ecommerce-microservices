@@ -162,7 +162,7 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
 ## Getting Started
 
 ### Prerequisites
-1. Docker and Docker Compose should be installed.
+1. Docker Engine 28.0.0 or newer and Docker Compose should be installed. Older engines let hosts on the same LAN reach ports published on `127.0.0.1`, which would expose the unauthenticated Kafka broker.
 2. Docker should be running.
 
 ### Deployment
