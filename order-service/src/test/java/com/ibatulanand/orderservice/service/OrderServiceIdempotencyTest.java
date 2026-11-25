@@ -1,48 +1,104 @@
 package com.ibatulanand.orderservice.service;
 
+import com.ibatulanand.orderservice.dto.InventoryResponse;
+import com.ibatulanand.orderservice.dto.OrderLineItemsDto;
 import com.ibatulanand.orderservice.dto.OrderRequest;
 import com.ibatulanand.orderservice.event.OrderPlacedEvent;
 import com.ibatulanand.orderservice.model.Order;
 import com.ibatulanand.orderservice.repository.OrderRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-/** MBA-3938: a repeated till sale with the same idempotency key returns the existing order. */
+/** MBA-3940: a replayed offline till sale (same idempotency key) is stored and published exactly once. */
 class OrderServiceIdempotencyTest {
 
+    OrderRepository repository;
+    WebClient.Builder webClientBuilder;
+    KafkaTemplate<String, OrderPlacedEvent> kafka;
+    OrderService service;
+    List<Order> stored;
+
+    @BeforeEach
     @SuppressWarnings("unchecked")
-    private final KafkaTemplate<String, OrderPlacedEvent> kafka = mock(KafkaTemplate.class);
-    private final OrderRepository repository = mock(OrderRepository.class);
-    private final WebClient.Builder webClient = mock(WebClient.Builder.class);
-    private final OrderService service = new OrderService(repository, webClient, kafka);
+    void setUp() {
+        repository = mock(OrderRepository.class);
+        webClientBuilder = mock(WebClient.Builder.class, RETURNS_DEEP_STUBS);
+        kafka = mock(KafkaTemplate.class);
+        service = new OrderService(repository, webClientBuilder, kafka);
+        stored = new ArrayList<>();
+        when(webClientBuilder.build().get().uri(anyString(), any(java.util.function.Function.class)).retrieve()
+                .bodyToMono(InventoryResponse[].class).block())
+                .thenReturn(new InventoryResponse[]{new InventoryResponse("MOR-MILK-SS-4PT", true)});
+        when(repository.save(any(Order.class))).thenAnswer(inv -> {
+            stored.add(inv.getArgument(0));
+            return inv.getArgument(0);
+        });
+        when(repository.findFirstByIdempotencyKey(anyString())).thenAnswer(inv -> stored.stream()
+                .filter(o -> inv.getArgument(0).equals(o.getIdempotencyKey())).findFirst());
+    }
 
     @Test
-    void repeatedSaleReturnsTheExistingOrderWithoutSavingOrPublishing() {
-        Order existing = new Order();
-        existing.setOrderNumber("ORDER-1");
-        existing.setIdempotencyKey("basket-1");
-        existing.setOrderLineItemsList(List.of());
-        when(repository.findFirstByIdempotencyKey("basket-1")).thenReturn(Optional.of(existing));
+    void replayWithSameKeyReturnsTheStoredOrderWithoutPublishingAgain() {
+        Order first = service.placeAndReturnOrder(sale("offline-sale-1"));
+        Order replay = service.placeAndReturnOrder(sale("offline-sale-1"));
 
-        Order order = service.placeAndReturnOrder(OrderRequest.builder().idempotencyKey("basket-1")
-                .orderLineItemsDtoList(List.of()).build());
+        assertThat(replay.getOrderNumber()).isEqualTo(first.getOrderNumber());
+        assertThat(stored).hasSize(1);
+        assertThat(stored.get(0).getIdempotencyKey()).isEqualTo("offline-sale-1");
+        verify(kafka, times(1)).send(eq("notificationTopic"), any(OrderPlacedEvent.class));
+    }
 
-        assertThat(order.getOrderNumber()).isEqualTo("ORDER-1");
-        verify(repository, never()).save(any());
-        verify(kafka, never()).send(anyString(), any());
-        verifyNoInteractions(webClient);
+    @Test
+    void differentKeysAreDifferentSales() {
+        Order a = service.placeAndReturnOrder(sale("offline-sale-a"));
+        Order b = service.placeAndReturnOrder(sale("offline-sale-b"));
+
+        assertThat(a.getOrderNumber()).isNotEqualTo(b.getOrderNumber());
+        assertThat(stored).hasSize(2);
+    }
+
+    @Test
+    void salesWithoutAKeyAreNeverDeduplicated() {
+        service.placeAndReturnOrder(sale(null));
+        service.placeAndReturnOrder(sale(" "));
+
+        assertThat(stored).hasSize(2);
+        assertThat(stored).allMatch(o -> o.getIdempotencyKey() == null);
+        verify(repository, never()).findFirstByIdempotencyKey(any());
+    }
+
+    private static OrderRequest sale(String idempotencyKey) {
+        OrderLineItemsDto line = new OrderLineItemsDto();
+        line.setSkuCode("MOR-MILK-SS-4PT");
+        line.setPrice(new BigDecimal("1.55"));
+        line.setQuantity(1);
+        OrderRequest request = new OrderRequest();
+        request.setOrderLineItemsDtoList(List.of(line));
+        request.setChannel("TILL");
+        request.setStoreNumber("0417");
+        request.setTillId("till-1");
+        request.setTransactionId("0417-till-1-OFF1");
+        request.setTenderType("CASH");
+        request.setTotalPence(155);
+        request.setIdempotencyKey(idempotencyKey);
+        return request;
     }
 }

@@ -61,6 +61,12 @@ public class OrderController {
         return orderService.findByTransactionId(transactionId).stream().map(OrderResponse::from).toList();
     }
 
+    /** Till orders in the order they were stored, e.g. to reconcile a till's synced offline sales. */
+    @GetMapping(params = "tillId")
+    public List<OrderResponse> ordersForTill(@RequestParam String tillId) {
+        return orderService.findByTillId(tillId).stream().map(OrderResponse::from).toList();
+    }
+
     @GetMapping("/{orderNumber}")
     public ResponseEntity<OrderResponse> getOrder(@PathVariable String orderNumber) {
         return orderService.findByOrderNumber(orderNumber)

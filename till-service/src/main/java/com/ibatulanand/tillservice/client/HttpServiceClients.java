@@ -98,6 +98,11 @@ public class HttpServiceClients implements CatalogueClient, StockClient, OrderCl
 
     @Override
     public String placeSale(Basket basket, String storeNumber, String tenderType) {
+        return placeSale(basket, storeNumber, tenderType, null);
+    }
+
+    @Override
+    public String placeSale(Basket basket, String storeNumber, String tenderType, String idempotencyKey) {
         List<Map<String, Object>> lines = basket.getLines().stream()
                 .map(HttpServiceClients::saleLine)
                 .toList();
@@ -112,7 +117,7 @@ public class HttpServiceClients implements CatalogueClient, StockClient, OrderCl
                     return tender;
                 })
                 .toList();
-        Map<String, Object> body = Map.of(
+        Map<String, Object> body = new HashMap<>(Map.of(
                 "orderLineItemsDtoList", lines,
                 "tenders", tenders,
                 "channel", "TILL",
@@ -120,9 +125,10 @@ public class HttpServiceClients implements CatalogueClient, StockClient, OrderCl
                 "tillId", basket.getTillId(),
                 "transactionId", basket.getTransactionNumber(),
                 "tenderType", tenderType,
-                "totalPence", basket.getTotalPence(),
-                // One sale per basket: order-service returns the existing order if this request is repeated.
-                "idempotencyKey", basket.getBasketId());
+                "totalPence", basket.getTotalPence()));
+        // An explicit key (a replayed offline sale id) wins; otherwise one sale per basket. order-service returns the
+        // existing order when a request with the same key is repeated.
+        body.put("idempotencyKey", idempotencyKey != null ? idempotencyKey : basket.getBasketId());
         try {
             OrderDto order = webClientBuilder.build().post()
                     .uri(properties.orderServiceUrl() + "/api/order/sale")

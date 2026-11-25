@@ -4,11 +4,14 @@ import { ApiChip } from './ApiChip'
 interface Props {
   session: TillSession | null
   connected: boolean
+  healthKnown: boolean
+  /** Offline sales waiting to sync. */
+  queued: number
   transactionNumber: string | undefined
   member: MoreCardMember | null
 }
 
-export function Header({ session, connected, transactionNumber, member }: Props) {
+export function Header({ session, connected, healthKnown, queued, transactionNumber, member }: Props) {
   const txn = transactionNumber?.split('-').pop()
   return (
     <header className="till-header">
@@ -29,8 +32,13 @@ export function Header({ session, connected, transactionNumber, member }: Props)
           </span>
         )}
         <span className={'backend ' + (connected ? 'up' : 'down')} data-testid="backend-status">
-          <span className="dot" /> {connected ? 'Backend connected' : 'Backend offline'}
+          <span className="dot" /> {connected ? 'Backend connected' : healthKnown ? 'Offline' : 'Connecting…'}
         </span>
+        {queued > 0 && (
+          <span className="offline-queue" data-testid="offline-queue" title="Sales saved offline, synced on reconnect">
+            {queued} queued
+          </span>
+        )}
         <span className="txn" data-testid="transaction-number" title={transactionNumber}>
           Transaction #{txn ?? '----'}
         </span>

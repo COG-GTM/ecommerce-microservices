@@ -1,3 +1,4 @@
+import type { OfflineSale, OfflineSaleResult } from '../offline/offline'
 import type { AgeDecision, Basket, CashQuote, Product, RefundableSale, RefundResult, TenderResult, TenderType, TerminalOutcome, TillSession } from './types'
 
 const BASE = '/api/till'
@@ -18,7 +19,12 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     headers: { 'Content-Type': 'application/json', Accept: 'application/json', ...init?.headers },
   })
   const text = await response.text()
-  const body = text ? JSON.parse(text) : null
+  let body = null
+  try {
+    body = text ? JSON.parse(text) : null
+  } catch {
+    // e.g. an HTML 502 page from the proxy when the gateway is down
+  }
   if (!response.ok) {
     throw new TillApiError(response.status, body?.error ?? 'HTTP_' + response.status, body?.message ?? response.statusText)
   }
@@ -50,4 +56,5 @@ export const tillApi = {
   refundLookup: (reference: string) => request<RefundableSale>('/refund/' + encodeURIComponent(reference)),
   refund: (reference: string, lines: { skuCode: string; quantity: number }[], tillId?: string) =>
     request<RefundResult>('/refund', json('POST', { reference, lines, tillId })),
+  syncOfflineSale: (sale: OfflineSale) => request<OfflineSaleResult>('/offline-sales', json('POST', sale)),
 }

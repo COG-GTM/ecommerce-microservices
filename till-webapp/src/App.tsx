@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { TillApiError, tillApi } from './api/client'
 import type { AgeDecision, Basket, Product, TenderResult, TenderType, TerminalOutcome, TillSession } from './api/types'
 import { AgeCheckPrompt } from './components/AgeCheckPrompt'
@@ -11,6 +11,17 @@ import { SellPanel } from './components/SellPanel'
 import { TenderPanel } from './components/TenderPanel'
 import { WeightDialog } from './components/WeightDialog'
 import { formatKg } from './money'
+import {
+  OfflineStore,
+  addLocalLine,
+  completeOffline,
+  isHealthy,
+  isLocal,
+  isUnreachable,
+  newLocalBasket,
+  setLocalQuantity,
+  voidLocalLine,
+} from './offline/offline'
 
 type Screen = 'sell' | 'tender' | 'complete' | 'refund'
 
@@ -23,6 +34,8 @@ const TILL_ID = params.get('till') ?? undefined
 const isMoreCard = (code: string) => /^9826\d{8,15}$/.test(code.replace(/\s/g, ''))
 
 const errorText = (e: unknown) => (e instanceof TillApiError ? e.message : 'Backend unavailable')
+const HEALTH_CHECK_MS = 5000
+const offlineStore = new OfflineStore(TILL_ID ?? 'default')
 
 const newAttemptKey = () =>
   typeof crypto.randomUUID === 'function'
@@ -35,6 +48,7 @@ const TIMEOUT_MESSAGE = 'No response from the PIN pad. Retry the payment; the cu
 export default function App() {
   const [session, setSession] = useState<TillSession | null>(null)
   const [connected, setConnected] = useState(false)
+  const [healthKnown, setHealthKnown] = useState(false)
   const [basket, setBasket] = useState<Basket | null>(null)
   const [quickKeys, setQuickKeys] = useState<Product[]>([])
   const [selectedLineId, setSelectedLineId] = useState<string | null>(null)
@@ -48,56 +62,133 @@ export default function App() {
   const [result, setResult] = useState<TenderResult | null>(null)
   const [weighing, setWeighing] = useState<Product | null>(null)
   const [ageCheckLineId, setAgeCheckLineId] = useState<string | null>(null)
+  const [queued, setQueued] = useState(() => offlineStore.queue().length)
+  const offline = healthKnown && !connected
+  const basketRef = useRef<Basket | null>(null)
+  basketRef.current = basket
+  /** Server basket left behind when the till went offline mid-sale; voided on reconnect (its lines were sold offline). */
+  const abandonedBasketRef = useRef<string | null>(null)
+  const syncingRef = useRef(false)
+  const reconnectingRef = useRef(false)
 
   const showBasket = useCallback((next: Basket) => {
     setBasket(next)
     setSelectedLineId(next.lastLineId)
   }, [])
 
+  const markOffline = useCallback(() => {
+    setConnected(false)
+    setHealthKnown(true)
+  }, [])
+
+  const showQuickKeys = useCallback((keys: Product[]) => {
+    offlineStore.cacheProducts(keys)
+    setQuickKeys(keys)
+  }, [])
+
+  /** Replays queued offline sales, oldest first. Each is idempotent on its sale id, so a retry never duplicates. */
+  const flushQueue = useCallback(async () => {
+    if (syncingRef.current || offlineStore.queue().length === 0) return
+    syncingRef.current = true
+    let synced = 0
+    try {
+      for (const sale of offlineStore.queue()) {
+        try {
+          await tillApi.syncOfflineSale(sale)
+          offlineStore.remove(sale.saleId)
+          synced++
+        } catch (e) {
+          if (isUnreachable(e)) break
+          setMessage({ kind: 'error', text: `Offline sale ${sale.transactionNumber} not synced: ${errorText(e)}` })
+        }
+      }
+    } finally {
+      syncingRef.current = false
+      setQueued(offlineStore.queue().length)
+      if (synced > 0) setMessage({ kind: 'ok', text: `Synced ${synced} offline sale${synced === 1 ? '' : 's'}` })
+    }
+  }, [])
+
+  /** Back online with nothing in the offline basket: return to the till's server basket. */
+  const returnToServerBasket = useCallback(async (s: TillSession) => {
+    if (reconnectingRef.current) return
+    reconnectingRef.current = true
+    try {
+      if (abandonedBasketRef.current === s.basketId) {
+        showBasket(await tillApi.voidSale(s.basketId))
+        abandonedBasketRef.current = null
+      } else {
+        showBasket(await tillApi.basket(s.basketId))
+      }
+      showQuickKeys(await tillApi.quickKeys())
+    } catch (e) {
+      if (isUnreachable(e)) markOffline()
+    } finally {
+      reconnectingRef.current = false
+    }
+  }, [markOffline, showBasket, showQuickKeys])
+
   const loadSession = useCallback(async () => {
     try {
       const s = await tillApi.session(TILL_ID)
+      const healthy = isHealthy(s)
       setSession(s)
-      setConnected(s.backendConnected)
-      // Recover after a failed first load or a till-service restart (the open basket id changes).
-      setBasket((current) => {
-        if (current?.basketId !== s.basketId && current?.status !== 'COMPLETED') {
-          tillApi.basket(s.basketId).then(showBasket).catch(() => setConnected(false))
-          tillApi.quickKeys().then(setQuickKeys).catch(() => setConnected(false))
-        }
-        return current
-      })
+      offlineStore.cacheSession(s)
+      setConnected(healthy)
+      setHealthKnown(true)
+      if (!healthy) return s
+      void flushQueue()
+      const current = basketRef.current
+      // Recover after a failed first load, a till-service restart (the open basket id changes) or a reconnect.
+      if (current?.status !== 'COMPLETED' && current?.basketId !== s.basketId && (!isLocal(current) || current?.lines.length === 0)) {
+        await returnToServerBasket(s)
+      }
       return s
     } catch {
-      setConnected(false)
+      markOffline()
+      setSession((current) => current ?? offlineStore.session())
       return null
     }
-  }, [showBasket])
+  }, [flushQueue, markOffline, returnToServerBasket])
 
   useEffect(() => {
-    let cancelled = false
-    ;(async () => {
-      const s = await loadSession()
-      if (!s || cancelled) return
-      const [b, keys] = await Promise.all([tillApi.basket(s.basketId), tillApi.quickKeys()])
-      if (!cancelled) {
-        showBasket(b)
-        setQuickKeys(keys)
-      }
-    })().catch(() => setConnected(false))
-    const timer = window.setInterval(loadSession, 15000)
+    void loadSession()
+    const timer = window.setInterval(loadSession, HEALTH_CHECK_MS)
+    window.addEventListener('online', loadSession)
+    window.addEventListener('offline', markOffline)
     return () => {
-      cancelled = true
       window.clearInterval(timer)
+      window.removeEventListener('online', loadSession)
+      window.removeEventListener('offline', markOffline)
     }
-  }, [loadSession, showBasket])
+  }, [loadSession, markOffline])
+
+  const newOfflineBasket = useCallback(
+    (s: TillSession, lines: Basket['lines'] = []) => newLocalBasket(s, offlineStore.nextOfflineTransaction(s), lines),
+    [],
+  )
+
+  // Going offline: keep selling from the cached catalogue in a local basket, carrying over any lines already scanned.
+  // Also re-runs when a server response lands after the till went offline, so a late server basket is converted too.
+  useEffect(() => {
+    if (!offline || !session) return
+    setQuickKeys((keys) => (keys.length ? keys : offlineStore.quickKeys()))
+    if (basket?.status === 'COMPLETED' || isLocal(basket)) return
+    if (basket) abandonedBasketRef.current = basket.basketId
+    showBasket(newOfflineBasket(session, basket?.lines ?? []))
+  }, [offline, session, basket, newOfflineBasket, showBasket])
 
   const run = async (action: () => Promise<void>, onError: (text: string) => void) => {
     setBusy(true)
     try {
       await action()
     } catch (e) {
-      onError(errorText(e))
+      if (isUnreachable(e)) {
+        markOffline()
+        onError('Backend unreachable. The till is now offline; try again.')
+      } else {
+        onError(errorText(e))
+      }
     } finally {
       setBusy(false)
     }
@@ -117,6 +208,14 @@ export default function App() {
   const scan = (barcode: string) =>
     basket &&
     run(async () => {
+      if (isLocal(basket)) {
+        const product = offlineStore.catalogue()[barcode]
+        if (!product) throw new TillApiError(404, 'NOT_CACHED', `Item ${barcode} is not available offline`)
+        if (product.soldByWeight || product.minimumAge) throw new TillApiError(422, 'ONLINE_ONLY', `${product.name} needs the till online (weighed or age-restricted)`)
+        showBasket(addLocalLine(basket, product))
+        setMessage({ kind: 'ok', text: `Added ${product.name}` })
+        return
+      }
       if (isMoreCard(barcode)) {
         const next = await tillApi.attachMember(basket.basketId, barcode)
         setBasket(next)
@@ -127,6 +226,10 @@ export default function App() {
         const next = await tillApi.addLine(basket.basketId, barcode)
         showBasket(next)
         const line = next.lines.find((l) => l.lineId === next.lastLineId)
+        if (line && line.pricedBy === 'EACH' && !line.minimumAge) {
+          const cached = offlineStore.catalogue()[line.barcode]
+          offlineStore.cacheProducts([{ barcode: line.barcode, skuCode: line.skuCode, name: line.name, pricePence: line.unitPricePence, quickKey: !!cached?.quickKey, vatCode: line.vatCode ?? cached?.vatCode ?? 'S' }])
+        }
         setMessage({ kind: 'ok', text: `Added ${line?.name ?? barcode}` })
         if (line?.ageCheck === 'PENDING') setAgeCheckLineId(line.lineId)
       } catch (e) {
@@ -171,20 +274,22 @@ export default function App() {
 
   const changeQty = (delta: number) =>
     basket && selectedLine &&
-    run(async () => showBasket(await tillApi.updateLine(basket.basketId, selectedLine.lineId, selectedLine.quantity + delta)),
-      (text) => setMessage({ kind: 'error', text }))
+    run(async () => showBasket(isLocal(basket)
+      ? setLocalQuantity(basket, selectedLine.lineId, selectedLine.quantity + delta)
+      : await tillApi.updateLine(basket.basketId, selectedLine.lineId, selectedLine.quantity + delta)),
+    (text) => setMessage({ kind: 'error', text }))
 
   const voidLine = () =>
     basket && selectedLine &&
     run(async () => {
-      showBasket(await tillApi.voidLine(basket.basketId, selectedLine.lineId))
+      showBasket(isLocal(basket) ? voidLocalLine(basket, selectedLine.lineId) : await tillApi.voidLine(basket.basketId, selectedLine.lineId))
       setMessage({ kind: 'ok', text: `Voided ${selectedLine.name}` })
     }, (text) => setMessage({ kind: 'error', text }))
 
   const voidSale = () =>
     basket &&
     run(async () => {
-      showBasket(await tillApi.voidSale(basket.basketId))
+      showBasket(isLocal(basket) && session ? newOfflineBasket(session) : await tillApi.voidSale(basket.basketId))
       setMessage({ kind: 'ok', text: 'Sale voided' })
     }, (text) => setMessage({ kind: 'error', text }))
 
@@ -202,8 +307,10 @@ export default function App() {
     }
   }
 
+  const cardAvailable = !offline && !isLocal(basket)
+
   const payByCard = (type: TenderType, outcome: TerminalOutcome) =>
-    basket &&
+    basket && cardAvailable &&
     run(async () => {
       setDeclineMessage(null)
       setTenderError(null)
@@ -216,17 +323,30 @@ export default function App() {
     run(async () => {
       setDeclineMessage(null)
       setTenderError(null)
+      if (isLocal(basket) && session) {
+        const { sale, result: r } = completeOffline(basket, session, amountTenderedPence, newOfflineBasket(session))
+        offlineStore.enqueue(sale)
+        setQueued(offlineStore.queue().length)
+        applyTender(r)
+        if (!offline) void flushQueue()
+        return
+      }
       applyTender(await tillApi.tender(basket.basketId, 'CASH', { amountTenderedPence, partialPayment, expectedTotalPence: basket.totalPence }))
     }, setTenderError)
 
   const newSale = () =>
     result &&
     run(async () => {
-      showBasket(await tillApi.basket(result.nextBasketId))
       setResult(null)
       setMessage(null)
       setScreen('sell')
-      await loadSession()
+      if (!isLocal(result.basket)) {
+        showBasket(await tillApi.basket(result.nextBasketId))
+        await loadSession()
+      } else if (session) {
+        showBasket(newOfflineBasket(session))
+        if (!offline) await loadSession()
+      }
     }, (text) => setMessage({ kind: 'error', text }))
 
   const resetTenderState = () => {
@@ -237,7 +357,7 @@ export default function App() {
   return (
     <ApiChipsContext.Provider value={SHOW_API}>
       <div className="till" data-screen={screen}>
-        <Header session={session} connected={connected} transactionNumber={basket?.transactionNumber} member={basket?.member ?? null} />
+        <Header session={session} connected={connected} healthKnown={healthKnown} queued={queued} transactionNumber={basket?.transactionNumber} member={basket?.member ?? null} />
         <main className="till-main">
           <BasketPanel basket={basket} selectedLineId={selectedLineId} onSelect={selectLine} />
           <div className={'work work-' + screen}>
@@ -271,6 +391,7 @@ export default function App() {
                 paidPence={basket.paidPence ?? 0}
                 balanceDuePence={basket.balanceDuePence ?? basket.totalPence}
                 busy={busy}
+                cardAvailable={cardAvailable}
                 declineMessage={declineMessage}
                 paymentUnresolved={unresolvedAttemptKey !== null}
                 errorMessage={tenderError}

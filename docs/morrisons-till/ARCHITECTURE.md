@@ -73,6 +73,7 @@ compute totals; they render `subtotalPence`, `savingsPence` and `totalPence` fro
 | POST | `/basket/member` | `{ basketId, cardNumber }` (More Card, seeded test cards `9826000000000001`/`…0002`) | `Basket` with `member`; 404 `UNKNOWN_CARD` leaves the sale non-member |
 | GET | `/refund/{reference}` | - | `RefundableSale` (reference: receipt `R-...`, transaction or order number) |
 | POST | `/refund` | `{ reference, tillId?, lines: [{ skuCode, quantity }] }` | `RefundResult`; `409 REFUND_EXCEEDS_SOLD` beyond what is left |
+| POST | `/offline-sales` | `{ saleId, tillId, transactionNumber, tenderType: CASH, lines: [{ barcode, skuCode?, name?, quantity, unitPricePence? }], amountTenderedPence }` | `{ saleId, orderNumber, transactionNumber, totalPence, amountTenderedPence }`; idempotent on `saleId` |
 
 `tillId` is optional (default `07`). Each till id has its own basket, which is how parallel E2E tests stay isolated.
 `terminalOutcome` drives the simulated PIN pad. A real terminal adapter ignores it. `TIMEOUT` waits
@@ -185,5 +186,5 @@ yoghurt 3 for £3.50, still water/cola 2 for £2.00, and a £3.50 meal deal (san
 | Weighed items, age-restricted items | product fields plus a line attribute; a `TillService.addLine` guard returns a new error code |
 | Cash/change, card terminal declines and timeouts | `TillService.tender`, `PaymentTerminal` (decline reasons in `declineReason`, retries keyed by `idempotencyKey`) |
 | Refunds | `/api/till/refund/**` (MBA-3939); order-service stores a negative `REFUND` order linked to the sale and emits a `REFUND` event |
-| Offline store-and-forward | decorate `OrderClient` with a durable queue |
+| Offline store-and-forward (MBA-3940) | the webapp sells cash from its cached catalogue and queues sales in `localStorage` (`src/offline/`); on reconnect it replays them to `POST /offline-sales`, which places the order with idempotency key `offline-<saleId>` (order-service stores one order per key; `GET /api/order?tillId=` lists a till's orders) |
 | Legacy price-feed bridge | alternative `CatalogueClient` or a product-service feed importer |

@@ -50,15 +50,28 @@ public class OrderService {
         return orders;
     }
 
+    @Transactional(readOnly = true)
+    public List<Order> findByTillId(String tillId) {
+        List<Order> orders = orderRepository.findByTillIdOrderByIdAsc(tillId);
+        orders.forEach(order -> order.getOrderLineItemsList().size());
+        return orders;
+    }
+
+    /**
+     * Places a till sale. A request carrying an idempotency key that was already stored returns the existing order
+     * and publishes nothing, so a replayed offline sale is never duplicated.
+     */
     public Order placeAndReturnOrder(OrderRequest orderRequest) {
-        if (orderRequest.getIdempotencyKey() != null) {
-            Optional<Order> existing = orderRepository.findFirstByIdempotencyKey(orderRequest.getIdempotencyKey());
+        String idempotencyKey = orderRequest.getIdempotencyKey();
+        if (idempotencyKey != null && !idempotencyKey.isBlank()) {
+            Optional<Order> existing = orderRepository.findFirstByIdempotencyKey(idempotencyKey);
             if (existing.isPresent()) {
                 existing.get().getOrderLineItemsList().size();
                 return existing.get();
             }
         }
         Order order = new Order();
+        order.setIdempotencyKey(idempotencyKey == null || idempotencyKey.isBlank() ? null : idempotencyKey);
         order.setOrderNumber(UUID.randomUUID().toString());
         order.setChannel(orderRequest.getChannel());
         order.setStoreNumber(orderRequest.getStoreNumber());

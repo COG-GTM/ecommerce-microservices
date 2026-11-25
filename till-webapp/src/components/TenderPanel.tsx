@@ -18,6 +18,8 @@ interface Props {
   paidPence: number
   balanceDuePence: number
   busy: boolean
+  /** False while offline: only cash can be taken. */
+  cardAvailable: boolean
   declineMessage: string | null
   /** The last card attempt timed out: only a retry of that attempt is allowed until it resolves. */
   paymentUnresolved: boolean
@@ -29,8 +31,9 @@ interface Props {
 }
 
 export function TenderPanel(props: Props) {
-  const { basketId, totalPence, paidPence, balanceDuePence, busy, paymentUnresolved } = props
-  const [method, setMethod] = useState<TenderType | null>(null)
+  const { basketId, totalPence, paidPence, balanceDuePence, busy, paymentUnresolved, cardAvailable } = props
+  const [chosen, setMethod] = useState<TenderType | null>(null)
+  const method = chosen === 'CASH' || cardAvailable ? chosen : null
   const [cashPence, setCashPence] = useState(0)
   const [quote, setQuote] = useState<CashQuote | null>(null)
 
@@ -93,7 +96,7 @@ export function TenderPanel(props: Props) {
             aria-checked={method === m.type}
             className={'method' + (method === m.type ? ' active' : '')}
             data-testid={`tender-${m.type.toLowerCase()}`}
-            disabled={busy || paymentUnresolved}
+            disabled={busy || paymentUnresolved || (m.type !== 'CASH' && !cardAvailable)}
             onClick={() => choose(m.type)}
           >
             <span className="method-title">{m.title}</span>
@@ -101,6 +104,12 @@ export function TenderPanel(props: Props) {
           </button>
         ))}
       </div>
+
+      {!cardAvailable && (
+        <p className="panel offline-note" data-testid="card-offline-note" role="status">
+          Offline: card payments are unavailable. Take cash; the sale syncs when the till reconnects.
+        </p>
+      )}
 
       {method === null && (
         <section className="panel dashed choose" data-testid="choose-method">Choose how the customer is paying</section>
