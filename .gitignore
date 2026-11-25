@@ -54,3 +54,6 @@ HELP.md
 
 # Draw.io
 *.drawio
+
+# Local secrets for docker compose
+.env
