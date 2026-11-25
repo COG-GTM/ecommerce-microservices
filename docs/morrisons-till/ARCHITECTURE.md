@@ -105,7 +105,8 @@ still retry.
 { "basketId": "b0c1…", "tillId": "07", "transactionNumber": "0417-07-0001", "status": "OPEN", "currency": "GBP",
   "lines": [ { "lineId": "l-1", "barcode": "393407", "skuCode": "MOR-YOGHURT-GREEK-500", "name": "Greek style yoghurt 500g",
                "quantity": 3, "unitPricePence": 150, "linePence": 450, "pricedBy": "EACH", "weightGrams": null, "vatCode": "Z" } ],
-  "adjustments": [ { "code": "MULTIBUY", "label": "Greek yoghurt 3 for £3.50", "amountPence": -100, "lineId": "l-1" } ],
+  "adjustments": [ { "code": "MULTIBUY", "label": "Greek yoghurt 3 for £3.50", "amountPence": -100, "lineId": "l-1",
+                     "lineIds": ["l-1"] } ],
   "lastLineId": "l-1", "itemCount": 3, "subtotalPence": 450, "savingsPence": 100, "totalPence": 350,
   "vatSummary": [ { "code": "Z", "ratePercent": 0, "netPence": 350, "vatPence": 0, "grossPence": 350 } ], "orderNumber": null,
   "member": null, "tenders": [], "paidPence": 0, "balanceDuePence": 350 }  // More Card attached: { "cardLast4": "0001", "name": "Test Member One", "pointsBalance": 1200 }
