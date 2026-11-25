@@ -72,7 +72,7 @@ public class LegacyPriceFileImporter {
     private void runSafely() {
         try {
             importNow();
-        } catch (PricingException e) {
+        } catch (RuntimeException e) {
             log.error("Legacy price file import failed: {}", e.getMessage());
         }
     }
