@@ -1,0 +1,250 @@
+package com.ibatulanand.orderservice.service;
+
+import com.ibatulanand.orderservice.dto.RefundDtos.RefundLineRequest;
+import com.ibatulanand.orderservice.dto.RefundDtos.RefundRequest;
+import com.ibatulanand.orderservice.dto.RefundDtos.RefundableLine;
+import com.ibatulanand.orderservice.dto.RefundDtos.RefundableSale;
+import com.ibatulanand.orderservice.event.OrderPlacedEvent;
+import com.ibatulanand.orderservice.model.Order;
+import com.ibatulanand.orderservice.model.OrderLineItems;
+import com.ibatulanand.orderservice.repository.OrderRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.springframework.http.HttpStatus;
+import org.springframework.kafka.core.KafkaTemplate;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+@SuppressWarnings("unchecked")
+class RefundServiceTest {
+
+    OrderRepository repository = mock(OrderRepository.class);
+    KafkaTemplate<String, OrderPlacedEvent> kafka = mock(KafkaTemplate.class);
+    RefundService service = new RefundService(repository, kafka);
+    List<Order> refunds = new ArrayList<>();
+    Order sale;
+
+    @BeforeEach
+    void setUp() {
+        sale = new Order();
+        sale.setOrderNumber("SALE-1");
+        sale.setChannel("TILL");
+        sale.setStoreNumber("0123");
+        sale.setTillId("T1");
+        sale.setTransactionId("0123-T1-0001");
+        sale.setTenderType("CARD");
+        sale.setTotalPence(155 * 3 + 95);
+        sale.setOrderLineItemsList(List.of(line("MOR-MILK", 155, 3), line("MOR-BANANA", 95, 1)));
+        when(repository.findFirstByOrderNumber(anyString())).thenReturn(Optional.empty());
+        when(repository.findFirstByOrderNumber("SALE-1")).thenReturn(Optional.of(sale));
+        when(repository.findWithLockByOrderNumber("SALE-1")).thenReturn(Optional.of(sale));
+        when(repository.findByTransactionIdOrderByIdDesc(anyString())).thenReturn(List.of());
+        when(repository.findByTransactionIdOrderByIdDesc("0123-T1-0001")).thenReturn(List.of(sale));
+        when(repository.findByOriginalOrderNumber("SALE-1")).thenReturn(refunds);
+        when(repository.save(any(Order.class))).thenAnswer(inv -> {
+            refunds.add(inv.getArgument(0));
+            return inv.getArgument(0);
+        });
+    }
+
+    @Test
+    void looksUpSaleByOrderReceiptOrTransactionNumber() {
+        assertThat(service.refundable("SALE-1").orderNumber()).isEqualTo("SALE-1");
+        assertThat(service.refundable("R-0123-T1-0001").orderNumber()).isEqualTo("SALE-1");
+        assertThat(service.refundable("0123-T1-0001").lines()).hasSize(2);
+        assertThatThrownBy(() -> service.refundable("NOPE"))
+                .isInstanceOfSatisfying(RefundException.class, e -> assertThat(e.getCode()).isEqualTo("UNKNOWN_ORDER"));
+    }
+
+    @Test
+    void partialRefundIsANegativeOrderLinkedToTheSaleAndEmitsARefundEvent() {
+        Order refund = service.refund("SALE-1", request(new RefundLineRequest("MOR-MILK", 2)));
+
+        assertThat(refund.getOrderType()).isEqualTo("REFUND");
+        assertThat(refund.getOriginalOrderNumber()).isEqualTo("SALE-1");
+        assertThat(refund.getTotalPence()).isEqualTo(-310);
+        assertThat(refund.getOrderLineItemsList()).singleElement()
+                .satisfies(l -> assertThat(l.getQuantity()).isEqualTo(-2));
+        ArgumentCaptor<OrderPlacedEvent> event = ArgumentCaptor.forClass(OrderPlacedEvent.class);
+        verify(kafka).send(eq("notificationTopic"), event.capture());
+        assertThat(event.getValue().getEventType()).isEqualTo("REFUND");
+        assertThat(event.getValue().getOriginalOrderNumber()).isEqualTo("SALE-1");
+        assertThat(event.getValue().getTotalPence()).isEqualTo(-310);
+
+        RefundableSale remaining = service.refundable("SALE-1");
+        assertThat(remaining.lines().get(0).refundableQuantity()).isEqualTo(1);
+        assertThat(remaining.refundedPence()).isEqualTo(310);
+        assertThat(remaining.refunds()).containsExactly(refund.getOrderNumber());
+    }
+
+    @Test
+    void secondRefundUpToTheRemainingQuantityThenOverRefundIsRejected() {
+        service.refund("SALE-1", request(new RefundLineRequest("MOR-MILK", 2)));
+        service.refund("SALE-1", request(new RefundLineRequest("MOR-MILK", 1)));
+
+        assertThatThrownBy(() -> service.refund("SALE-1", request(new RefundLineRequest("MOR-MILK", 1))))
+                .isInstanceOfSatisfying(RefundException.class, e -> {
+                    assertThat(e.getStatus()).isEqualTo(HttpStatus.CONFLICT);
+                    assertThat(e.getCode()).isEqualTo("REFUND_EXCEEDS_SOLD");
+                });
+        assertThat(refunds).hasSize(2);
+        assertThat(service.refundable("SALE-1").lines().get(0).refundableQuantity()).isZero();
+    }
+
+    @Test
+    void duplicateLinesInOneRequestCountTogether() {
+        assertThatThrownBy(() -> service.refund("SALE-1",
+                request(new RefundLineRequest("MOR-MILK", 2), new RefundLineRequest("MOR-MILK", 2))))
+                .isInstanceOfSatisfying(RefundException.class,
+                        e -> assertThat(e.getCode()).isEqualTo("REFUND_EXCEEDS_SOLD"));
+        verify(repository, never()).save(any());
+    }
+
+    @Test
+    void rejectsInvalidRequestsAndRefundsOfRefunds() {
+        assertThatThrownBy(() -> service.refund("SALE-1", request()))
+                .isInstanceOfSatisfying(RefundException.class, e -> assertThat(e.getCode()).isEqualTo("INVALID_REFUND"));
+        assertThatThrownBy(() -> service.refund("SALE-1", request(new RefundLineRequest("MOR-MILK", 0))))
+                .isInstanceOfSatisfying(RefundException.class, e -> assertThat(e.getCode()).isEqualTo("INVALID_REFUND"));
+        assertThatThrownBy(() -> service.refund("SALE-1", request(new RefundLineRequest("MOR-BREAD", 1))))
+                .isInstanceOfSatisfying(RefundException.class, e -> assertThat(e.getCode()).isEqualTo("INVALID_REFUND"));
+
+        Order refund = service.refund("SALE-1", request(new RefundLineRequest("MOR-BANANA", 1)));
+        when(repository.findFirstByOrderNumber(refund.getOrderNumber())).thenReturn(Optional.of(refund));
+        assertThatThrownBy(() -> service.refundable(refund.getOrderNumber()))
+                .isInstanceOfSatisfying(RefundException.class, e -> assertThat(e.getCode()).isEqualTo("NOT_REFUNDABLE"));
+    }
+
+    @Test
+    void receiptSharedByTwoSalesIsAmbiguous() {
+        Order other = new Order();
+        other.setOrderNumber("SALE-2");
+        when(repository.findByTransactionIdOrderByIdDesc("0123-T1-0001")).thenReturn(List.of(other, sale));
+        assertThatThrownBy(() -> service.refundable("R-0123-T1-0001"))
+                .isInstanceOfSatisfying(RefundException.class, e -> assertThat(e.getCode()).isEqualTo("AMBIGUOUS_RECEIPT"));
+        assertThat(service.refundable("SALE-1").orderNumber()).isEqualTo("SALE-1");
+    }
+
+    @Test
+    void refundPaysBackWhatTheCustomerPaidNotTheShelfPrice() {
+        // Mature cheddar: £3.50 shelf, £3.00 with a More Card.
+        OrderLineItems cheddar = line("MOR-CHEDDAR", 350, 1);
+        cheddar.setPaidPence(300);
+        cheddar.setName("Mature cheddar 400g");
+        sale.setOrderLineItemsList(List.of(cheddar));
+        sale.setTotalPence(300);
+
+        RefundableSale summary = service.refundable("SALE-1");
+        assertThat(summary.lines()).singleElement().satisfies(l -> {
+            assertThat(l.name()).isEqualTo("Mature cheddar 400g");
+            assertThat(l.paidPence()).isEqualTo(300);
+            assertThat(l.unitPricePence()).isEqualTo(300);
+        });
+        Order refund = service.refund("SALE-1", request(new RefundLineRequest("MOR-CHEDDAR", 1)));
+        assertThat(refund.getTotalPence()).isEqualTo(-300);
+        assertThat(refund.getOrderLineItemsList()).singleElement().satisfies(l -> {
+            assertThat(l.getPaidPence()).isEqualTo(-300);
+            assertThat(l.getName()).isEqualTo("Mature cheddar 400g");
+        });
+    }
+
+    @Test
+    void multiBuyRefundsSplitThePaidAmountAndAddUpExactly() {
+        // 3 for £2.50 on a £1.00 item.
+        OrderLineItems item = line("MOR-YOGHURT", 100, 3);
+        item.setPaidPence(250);
+        sale.setOrderLineItemsList(List.of(item));
+        sale.setTotalPence(250);
+
+        assertThat(service.refund("SALE-1", request(new RefundLineRequest("MOR-YOGHURT", 1))).getTotalPence()).isEqualTo(-83);
+        assertThat(service.refund("SALE-1", request(new RefundLineRequest("MOR-YOGHURT", 2))).getTotalPence()).isEqualTo(-167);
+        assertThat(service.refundable("SALE-1").refundablePence()).isZero();
+    }
+
+    @Test
+    void linesWithoutPaidAmountsAreScaledToTheSaleTotal() {
+        // Shelf prices add up to 560p but the sale took 500p.
+        sale.setTotalPence(500);
+        RefundableSale summary = service.refundable("SALE-1");
+        assertThat(summary.lines()).extracting(l -> l.paidPence()).containsExactly(416, 84);
+
+        int refunded = -service.refund("SALE-1", request(new RefundLineRequest("MOR-MILK", 3),
+                new RefundLineRequest("MOR-BANANA", 1))).getTotalPence();
+        assertThat(refunded).isEqualTo(500);
+    }
+
+    @Test
+    void weighedPacksOfOneSkuEachRefundTheirOwnPaidPrice() {
+        OrderLineItems first = line("MOR-SALMON", 412, 1);
+        first.setPaidPence(412);
+        OrderLineItems second = line("MOR-SALMON", 389, 1);
+        second.setPaidPence(389);
+        sale.setOrderLineItemsList(List.of(first, second));
+        sale.setTotalPence(801);
+
+        assertThat(service.refundable("SALE-1").lines()).extracting(RefundableLine::unitPricePence)
+                .containsExactly(412, 389);
+        Order refund = service.refund("SALE-1", request(new RefundLineRequest("MOR-SALMON", 1, second.getId())));
+        assertThat(refund.getTotalPence()).isEqualTo(-389);
+        assertThat(refund.getOrderLineItemsList().get(0).getRefundOfLineId()).isEqualTo(second.getId());
+        assertThat(refund.getOrderLineItemsList().get(0).getPrice()).isEqualByComparingTo("3.89");
+
+        assertThat(service.refund("SALE-1", request(new RefundLineRequest("MOR-SALMON", 1))).getTotalPence())
+                .isEqualTo(-412);
+        assertThatThrownBy(() -> service.refund("SALE-1", request(new RefundLineRequest("MOR-SALMON", 1))))
+                .isInstanceOfSatisfying(RefundException.class,
+                        e -> assertThat(e.getCode()).isEqualTo("REFUND_EXCEEDS_SOLD"));
+    }
+
+    @Test
+    void refundLinePricesAreExactAndAddUpToThePaidAmount() {
+        OrderLineItems item = line("MOR-YOGHURT", 100, 3);
+        item.setPaidPence(250);
+        sale.setOrderLineItemsList(List.of(item));
+        sale.setTotalPence(250);
+
+        assertThat(service.refundable("SALE-1").lines().get(0).unitPricePence()).isNull();
+        Order refund = service.refund("SALE-1", request(new RefundLineRequest("MOR-YOGHURT", 3)));
+        assertThat(refund.getTotalPence()).isEqualTo(-250);
+        assertThat(refund.getOrderLineItemsList()).allSatisfy(l -> assertThat(
+                l.getPrice().movePointRight(2).intValueExact() * l.getQuantity()).isEqualTo(l.getPaidPence()));
+        assertThat(refund.getOrderLineItemsList()).extracting(OrderLineItems::getPrice)
+                .usingElementComparator(java.math.BigDecimal::compareTo)
+                .containsExactly(new java.math.BigDecimal("0.83"), new java.math.BigDecimal("0.84"));
+    }
+
+    @Test
+    void unknownSaleLineIsRejected() {
+        assertThatThrownBy(() -> service.refund("SALE-1", request(new RefundLineRequest("MOR-MILK", 1, 999L))))
+                .isInstanceOfSatisfying(RefundException.class, e -> assertThat(e.getCode()).isEqualTo("INVALID_REFUND"));
+    }
+
+    private static RefundRequest request(RefundLineRequest... lines) {
+        return new RefundRequest("0123", "T2", "0123-T2-R0001", List.of(lines));
+    }
+
+    private static long nextLineId = 1;
+
+    private static OrderLineItems line(String sku, int pence, int quantity) {
+        OrderLineItems item = new OrderLineItems();
+        item.setId(nextLineId++);
+        item.setSkuCode(sku);
+        item.setPrice(BigDecimal.valueOf(pence, 2));
+        item.setQuantity(quantity);
+        return item;
+    }
+}

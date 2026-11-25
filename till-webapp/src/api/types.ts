@@ -88,6 +88,59 @@ export interface TenderResult {
   nextBasketId: string
 }
 
+export interface RefundableLine {
+  /** the sale line; a weighed pack is its own line */
+  lineId: number
+  skuCode: string
+  name: string
+  /** paidPence per unit, or null when that is not a whole number of pence */
+  unitPricePence: number | null
+  /** what the customer paid for all soldQuantity units, after savings */
+  paidPence: number
+  soldQuantity: number
+  refundedQuantity: number
+  refundableQuantity: number
+}
+
+/** A completed sale found by receipt/order number, with what is still refundable against it. */
+export interface RefundableSale {
+  orderNumber: string
+  /** null on orders written without till metadata */
+  transactionId: string | null
+  storeNumber: string | null
+  tillId: string | null
+  tenderType: TenderType | null
+  totalPence: number
+  refundedPence: number
+  refundablePence: number
+  lines: RefundableLine[]
+  refunds: string[]
+}
+
+export interface RefundedLine {
+  lineId: number
+  skuCode: string
+  name: string
+  quantity: number
+  unitPricePence: number
+  lineTotalPence: number
+}
+
+export interface RefundResult {
+  status: 'REFUNDED'
+  refundNumber: string
+  originalOrderNumber: string
+  transactionNumber: string
+  tillId: string
+  operatorName: string
+  tenderType: TenderType | null
+  refundPence: number
+  lines: RefundedLine[]
+  /** null if the refund committed but the refreshed sale could not be read */
+  remaining: RefundableSale | null
+  issuedAt: string
+}
+
 export interface ApiError {
   error: string
   message: string

@@ -69,6 +69,8 @@ compute totals; they render `subtotalPence`, `savingsPence` and `totalPence` fro
 | DELETE | `/basket/lines/{lineId}?basketId=` | - | `Basket` (void line) |
 | POST | `/basket/void` | `{ basketId }` | new empty `Basket` (void sale) |
 | POST | `/basket/tender` | `{ basketId, tenderType: CARD\|CONTACTLESS\|CASH, amountTenderedPence?, terminalOutcome?: APPROVED\|DECLINED }` | `TenderResult` |
+| GET | `/refund/{reference}` | - | `RefundableSale` (reference: receipt `R-...`, transaction or order number) |
+| POST | `/refund` | `{ reference, tillId?, lines: [{ skuCode, quantity, lineId? }] }` (`lineId` picks one sale line, e.g. a weighed pack; without it the quantity comes off that SKU's lines in order) | `RefundResult` (`remaining` is null if the refund committed but the refreshed sale could not be read); `409 REFUND_EXCEEDS_SOLD` beyond what is left |
 
 `tillId` is optional (default `07`). Each till id has its own basket, which is how parallel E2E tests stay isolated.
 `terminalOutcome` drives the simulated PIN pad. A real terminal adapter ignores it.
@@ -139,6 +141,6 @@ Error codes: `UNKNOWN_BARCODE` / `UNKNOWN_BASKET` / `UNKNOWN_LINE` (404), `OUT_O
 | VAT, multi-buys, More Card loyalty | new `PricingRule` bean(s), which add `Adjustment`s (savings) or VAT lines; the UI already renders `savingsPence` |
 | Weighed items, age-restricted items | product fields plus a line attribute; a `TillService.addLine` guard returns a new error code |
 | Cash/change, card terminal declines | `TillService.tender`, `PaymentTerminal` (decline reasons in `declineReason`) |
-| Refunds | new `/api/till/refund/**` endpoints plus an order-service refund call |
+| Refunds | `/api/till/refund/**` (MBA-3939); order-service stores a negative `REFUND` order linked to the sale and emits a `REFUND` event |
 | Offline store-and-forward | decorate `OrderClient` with a durable queue |
 | Legacy price-feed bridge | alternative `CatalogueClient` or a product-service feed importer |

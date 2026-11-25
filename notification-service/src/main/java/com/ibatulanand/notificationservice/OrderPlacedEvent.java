@@ -15,4 +15,7 @@ public class OrderPlacedEvent {
     private String transactionId;
     private String tenderType;
     private Integer totalPence;
+    /** SALE or REFUND (absent on events from before refunds existed). */
+    private String eventType;
+    private String originalOrderNumber;
 }
