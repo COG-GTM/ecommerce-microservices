@@ -11,8 +11,8 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/order")
@@ -33,10 +33,10 @@ public class OrderController {
     /** Reports field names and messages only; the default resolver would log every rejected value at WARN. */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public List<String> handleInvalidOrder(MethodArgumentNotValidException exception) {
+    public String handleInvalidOrder(MethodArgumentNotValidException exception) {
         return exception.getFieldErrors().stream()
                 .map(error -> error.getField() + ": " + error.getDefaultMessage())
-                .toList();
+                .collect(Collectors.joining("; "));
     }
 
     public CompletableFuture<String> fallbackMethod(OrderRequest orderRequest, RuntimeException runtimeException) {

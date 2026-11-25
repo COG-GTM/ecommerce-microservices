@@ -95,6 +95,16 @@ class OrderControllerValidationTest {
         verifyNoInteractions(orderService);
     }
 
+    @Test
+    void reportsValidationErrorsForPlainTextClients() throws Exception {
+        MvcResult result = mockMvc.perform(post("/api/order").contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.TEXT_PLAIN).content(itemsBody(OrderRequest.MAX_LINE_ITEMS + 1)))
+                .andExpect(status().isBadRequest())
+                .andReturn();
+
+        assertThat(result.getResponse().getContentAsString()).startsWith("orderLineItemsDtoList: ");
+    }
+
     private org.springframework.test.web.servlet.ResultActions postOrder(String body) throws Exception {
         return mockMvc.perform(post("/api/order").contentType(MediaType.APPLICATION_JSON).content(body));
     }
