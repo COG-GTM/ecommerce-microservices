@@ -34,4 +34,15 @@ public class OrderLineItemsDto {
     @Min(1)
     @Max(10000)
     private Integer quantity;
+
+    /** Drops trailing zeros beyond cents (e.g. 1200.000 -> 1200.00) without expanding huge exponents. */
+    public void setPrice(BigDecimal price) {
+        this.price = price;
+        if (price != null && price.scale() > 2) {
+            BigDecimal stripped = price.stripTrailingZeros();
+            if (stripped.scale() <= 2 && stripped.scale() >= -12) {
+                this.price = stripped.setScale(2);
+            }
+        }
+    }
 }

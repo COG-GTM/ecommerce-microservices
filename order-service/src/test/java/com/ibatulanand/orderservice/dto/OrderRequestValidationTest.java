@@ -9,6 +9,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -46,6 +48,27 @@ class OrderRequestValidationTest {
     @Test
     void acceptsNormalOrder() {
         assertThat(validate(item("1200.00", 1), item("0.99", 3))).isEmpty();
+    }
+
+    @Test
+    @Timeout(5)
+    void normalizesTrailingZerosBeyondCents() throws Exception {
+        OrderLineItemsDto dto = new ObjectMapper().readValue(
+                "{\"skuCode\":\"iphone_13\",\"price\":1200.000,\"quantity\":1}", OrderLineItemsDto.class);
+        assertThat(dto.getPrice()).isEqualTo(new BigDecimal("1200.00"));
+        assertThat(validate(dto)).isEmpty();
+        assertThat(priceAfterSetter("12.500")).isEqualTo(new BigDecimal("12.50"));
+        assertThat(priceAfterSetter("0.000")).isEqualTo(new BigDecimal("0.00"));
+        assertThat(priceAfterSetter("1.001")).isEqualTo(new BigDecimal("1.001"));
+        assertThat(priceAfterSetter("1e-1000000000")).isEqualTo(new BigDecimal("1e-1000000000"));
+        assertThat(priceAfterSetter("1e1000000000")).isEqualTo(new BigDecimal("1e1000000000"));
+        assertThat(priceAfterSetter("100000000000000000000.000").scale()).isEqualTo(3);
+    }
+
+    private static BigDecimal priceAfterSetter(String price) {
+        OrderLineItemsDto dto = new OrderLineItemsDto();
+        dto.setPrice(new BigDecimal(price));
+        return dto.getPrice();
     }
 
     @Test
