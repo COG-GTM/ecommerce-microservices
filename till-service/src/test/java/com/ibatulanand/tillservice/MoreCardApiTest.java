@@ -11,6 +11,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
@@ -30,6 +31,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /** MBA-3933 More Card loyalty: member attach, member prices as savings, server-side points on the receipt. */
 @SpringBootTest(properties = "eureka.client.enabled=false")
 @AutoConfigureMockMvc
+@ActiveProfiles("till-demo")
 class MoreCardApiTest {
 
     static final String MEMBER_CARD = "9826000000000002";
@@ -145,6 +147,9 @@ class MoreCardApiTest {
         attach(MEMBER_CARD, status().isConflict());
         call(post("/api/till/basket/member").contentType(MediaType.APPLICATION_JSON)
                 .content(json.writeValueAsString(Map.of("basketId", basketId, "cardNumber", ""))), status().isBadRequest());
+        call(post("/api/till/basket/member").contentType(MediaType.APPLICATION_JSON)
+                .content(json.writeValueAsString(Map.of("basketId", basketId, "cardNumber", "9".repeat(33)))),
+                status().isBadRequest());
     }
 
     private JsonNode attach(String card, ResultMatcher expected) throws Exception {

@@ -1,6 +1,7 @@
 package com.ibatulanand.tillservice.loyalty;
 
 import com.ibatulanand.tillservice.web.TillException;
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
@@ -9,7 +10,9 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 /** In-memory directory of fictional test More Cards (9826 prefix) for the demo stack and E2E tests. */
+/** Fictional test cards for local and demo tills only; other profiles have no More Card directory. */
 @Component
+@Profile({"dev", "till-demo"})
 public class SeededMoreCardDirectory implements MoreCardDirectory {
 
     private record Account(String name, int pointsBalance) {

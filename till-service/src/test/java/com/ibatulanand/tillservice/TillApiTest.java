@@ -140,6 +140,18 @@ class TillApiTest {
     }
 
     @Test
+    void seededMoreCardsAreNotAcceptedOutsideTheDevAndDemoProfiles() throws Exception {
+        add("1001", 1);
+        JsonNode error = call(post("/api/till/basket/member").contentType(MediaType.APPLICATION_JSON)
+                .content(json.writeValueAsString(Map.of("basketId", basketId, "cardNumber", "9826000000000001"))),
+                status().isServiceUnavailable());
+        assertThat(error.get("error").asText()).isEqualTo("MORE_CARD_UNAVAILABLE");
+        JsonNode basket = call(get("/api/till/basket/" + basketId), status().isOk());
+        assertThat(basket.get("member").isNull()).isTrue();
+        assertThat(basket.get("totalPence").asInt()).isEqualTo(155);
+    }
+
+    @Test
     void emptyBasketCannotBeTendered() throws Exception {
         tender(Map.of("basketId", basketId, "tenderType", "CARD"), status().isUnprocessableEntity());
     }

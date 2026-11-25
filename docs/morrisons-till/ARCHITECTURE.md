@@ -70,7 +70,7 @@ compute totals; they render `subtotalPence`, `savingsPence` and `totalPence` fro
 | POST | `/basket/lines/{lineId}/age-check` | `{ basketId, decision: APPROVED\|REFUSED }` | `Basket` (Challenge 25: APPROVED records the till operator as `ageApprovedBy`; REFUSED voids the line) |
 | POST | `/basket/void` | `{ basketId }` | new empty `Basket` (void sale) |
 | POST | `/basket/tender` | `{ basketId, tenderType: CARD\|CONTACTLESS\|CASH, amountTenderedPence?, terminalOutcome?: APPROVED\|DECLINED\|TIMEOUT, idempotencyKey? }` | `TenderResult` |
-| POST | `/basket/member` | `{ basketId, cardNumber }` (More Card, seeded test cards `9826000000000001`/`…0002`) | `Basket` with `member`; 404 `UNKNOWN_CARD` leaves the sale non-member |
+| POST | `/basket/member` | `{ basketId, cardNumber }` (More Card, seeded test cards `9826000000000001`/`…0002`) | `Basket` with `member`; 404 `UNKNOWN_CARD` leaves the basket's membership unchanged (non-member if no card was attached); seeded cards only under the `dev`/`till-demo` profile (otherwise 503 `MORE_CARD_UNAVAILABLE`) |
 | GET | `/refund/{reference}` | - | `RefundableSale` (reference: receipt `R-...`, transaction or order number) |
 | POST | `/refund` | `{ reference, tillId?, lines: [{ skuCode, quantity }] }` | `RefundResult`; `409 REFUND_EXCEEDS_SOLD` beyond what is left |
 | POST | `/offline-sales` | `{ saleId, tillId, transactionNumber, tenderType: CASH, lines: [{ barcode, skuCode?, name?, quantity, unitPricePence? }], amountTenderedPence }` | `{ saleId, orderNumber, transactionNumber, totalPence, amountTenderedPence }`; idempotent on `saleId` |
