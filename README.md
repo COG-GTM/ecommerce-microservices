@@ -184,7 +184,7 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
    on a missing or invalid value; `up -d` recreates the container so it picks up the new `.env`:
    ```shell
    docker compose up -d mysql-order
-   MYSQL_ROOT_PASSWORD=$(trap 'stty echo' EXIT; stty -echo; printf 'Current root password: ' >&2; read -r p; printf '%s' "$p"); echo
+   MYSQL_ROOT_PASSWORD=$(trap 'stty echo' EXIT; stty -echo; printf 'Current root password: ' >&2; IFS= read -r p; printf '%s' "$p"); echo
    export MYSQL_ROOT_PASSWORD
    docker compose exec -e MYSQL_ROOT_PASSWORD mysql-order bash -c \
      'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -uroot order_service < /docker-entrypoint-initdb.d/01-schema.sql \
