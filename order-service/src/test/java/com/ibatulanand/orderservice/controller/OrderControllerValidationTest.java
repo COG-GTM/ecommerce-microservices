@@ -66,6 +66,18 @@ class OrderControllerValidationTest {
     }
 
     @Test
+    void malformedOrMissingBodyUsesTheSameErrorEnvelope() throws Exception {
+        for (String body : new String[] {"{\"orderLineItemsDtoList\":[", "", "{\"orderLineItemsDtoList\":[{\"price\":\"secret_price\"}]}"}) {
+            mockMvc.perform(post("/api/order").contentType(MediaType.APPLICATION_JSON).content(body))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.error").value("Invalid order request"))
+                    .andExpect(jsonPath("$.fields").isArray())
+                    .andExpect(content().string(not(containsString("secret_price"))));
+        }
+        verify(orderService, never()).placeOrder(any());
+    }
+
+    @Test
     void rejectsNegativePrice() throws Exception {
         assertRejected("{\"orderLineItemsDtoList\":[{\"skuCode\":\"iphone_13\",\"price\":-5,\"quantity\":1}]}");
     }
