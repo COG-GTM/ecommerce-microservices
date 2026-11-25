@@ -55,13 +55,25 @@ public class OrderService {
      * Places a till sale. A request carrying an idempotency key that was already stored returns the existing order
      * and publishes nothing, so a replayed offline sale is never duplicated.
      */
+    /** The idempotency key already belongs to a different till sale, so this request is not a replay of it. */
+    public static class IdempotencyConflictException extends RuntimeException {
+        public IdempotencyConflictException(String idempotencyKey) {
+            super("Idempotency key " + idempotencyKey + " already belongs to a different sale");
+        }
+    }
+
     public Order placeAndReturnOrder(OrderRequest orderRequest) {
         String idempotencyKey = orderRequest.getIdempotencyKey();
         if (idempotencyKey != null && !idempotencyKey.isBlank()) {
             Optional<Order> existing = orderRepository.findFirstByIdempotencyKey(idempotencyKey);
             if (existing.isPresent()) {
-                existing.get().getOrderLineItemsList().size();
-                return existing.get();
+                Order stored = existing.get();
+                if (!java.util.Objects.equals(stored.getTillId(), orderRequest.getTillId())
+                        || !java.util.Objects.equals(stored.getTransactionId(), orderRequest.getTransactionId())) {
+                    throw new IdempotencyConflictException(idempotencyKey);
+                }
+                stored.getOrderLineItemsList().size();
+                return stored;
             }
         }
         Order order = new Order();

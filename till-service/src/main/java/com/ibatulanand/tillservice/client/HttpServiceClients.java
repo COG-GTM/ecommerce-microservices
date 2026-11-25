@@ -123,6 +123,10 @@ public class HttpServiceClients implements CatalogueClient, StockClient, OrderCl
             }
             return order.orderNumber();
         } catch (WebClientResponseException.Conflict e) {
+            if (e.getResponseBodyAsString().contains("IDEMPOTENCY_CONFLICT")) {
+                throw new TillException(HttpStatus.CONFLICT, "IDEMPOTENCY_CONFLICT",
+                        "This sale id is already recorded for a different sale");
+            }
             throw new TillException(HttpStatus.CONFLICT, "OUT_OF_STOCK", "One or more items are out of stock");
         } catch (TillException e) {
             throw e;

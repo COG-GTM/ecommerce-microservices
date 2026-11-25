@@ -50,6 +50,9 @@ public class OrderController {
         try {
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(OrderResponse.from(orderService.placeAndReturnOrder(orderRequest)));
+        } catch (OrderService.IdempotencyConflictException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("error", "IDEMPOTENCY_CONFLICT", "message", e.getMessage()));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
                     .body(Map.of("error", "OUT_OF_STOCK", "message", e.getMessage()));

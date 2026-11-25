@@ -67,6 +67,21 @@ class OrderServiceIdempotencyTest {
     }
 
     @Test
+    void aKeyReusedByADifferentSaleIsRejectedNotAcknowledged() {
+        service.placeAndReturnOrder(sale("offline-sale-1"));
+        OrderRequest otherTill = sale("offline-sale-1");
+        otherTill.setTillId("till-2");
+        OrderRequest otherTransaction = sale("offline-sale-1");
+        otherTransaction.setTransactionId("0417-till-1-OFF9");
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.placeAndReturnOrder(otherTill))
+                .isInstanceOf(OrderService.IdempotencyConflictException.class);
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.placeAndReturnOrder(otherTransaction))
+                .isInstanceOf(OrderService.IdempotencyConflictException.class);
+        assertThat(stored).hasSize(1);
+    }
+
+    @Test
     void differentKeysAreDifferentSales() {
         Order a = service.placeAndReturnOrder(sale("offline-sale-a"));
         Order b = service.placeAndReturnOrder(sale("offline-sale-b"));
