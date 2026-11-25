@@ -213,7 +213,7 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
   - Creating products requires the realm role `product-admin`; other authenticated callers can only read the catalog and get `403` on `POST`.
   - Use a dedicated confidential client for catalog management rather than the shared `spring-cloud-client`, whose secret is published in `realms/spring-boot-microservices-realm.json`. If you do reuse `spring-cloud-client`, regenerate its secret ('Credentials' > 'Regenerate') before granting the role.
   - In the KeyCloak Admin UI, go to that client > 'Service account roles' > 'Assign role', and assign `product-admin`.
-  - Roles are copied into the token when it is issued, so click "Get New Access Token" again after assigning the role.
+  - In Postman, set Client ID / Client Secret to that client's values (or the regenerated secret), then click "Get New Access Token" again; roles are copied into the token when it is issued.
   - If your KeyCloak instance kept a realm imported before this role existed (startup import skips existing realms), first create it under 'Realm roles' > 'Create role' with the name `product-admin`.
 
 - **Accessing API Endpoints**
