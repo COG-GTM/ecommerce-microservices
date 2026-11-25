@@ -144,13 +144,23 @@ class PromotionPricingRuleTest {
     }
 
     @Test
+    void bulkQuantityIsPricedWithoutOneApplicationPerBundle() {
+        Basket basket = pricer.price(basket(line("l-yog", YOGHURT, 3_000_000, 150)));
+        assertThat(basket.getAdjustments()).containsExactly(
+                new Adjustment("MULTIBUY", "Greek yoghurt 3 for £3.50 x1000000", -100_000_000, "l-yog"));
+    }
+
+    @Test
     void unrelatedOffersDoNotChangeEachOthersBestPrice() {
-        BasketLine[] meals = {line("l-chk", CHICKEN_SANDWICH, 40, 300), line("l-crisps", CRISPS, 40, 85),
-                line("l-water", WATER, 40, 90), line("l-cola", COLA, 40, 135)};
-        int mealSavings = pricer.price(basket(meals)).getSavingsPence();
-        Basket withYoghurt = basket(meals);
-        withYoghurt.getLines().add(line("l-yog", YOGHURT, 6, 150));
-        assertThat(pricer.price(withYoghurt).getSavingsPence()).isEqualTo(mealSavings + 200);
+        // Greedy takes the £1.80 bundle and strands W; the exact best is the two £1.00 pairs.
+        Promotion bigBundle = new Promotion.MealDeal("BIG", "X+Y+Z for £1.20", Set.of("X"), Set.of("Y"), Set.of("Z"), 120);
+        Promotion xw = new Promotion.MultiBuy("XW", "X/W 2 for £1.00", Set.of("X", "W"), 2, 100);
+        Promotion yz = new Promotion.MultiBuy("YZ", "Y/Z 2 for £1.00", Set.of("Y", "Z"), 2, 100);
+        BasketPricer custom = new BasketPricer(List.of(new PromotionPricingRule(
+                List.of(bigBundle, xw, yz, YOGHURT_3_FOR_350))));
+        Basket basket = custom.price(basket(line("l-x", "X", 1, 100), line("l-y", "Y", 1, 100),
+                line("l-z", "Z", 1, 100), line("l-w", "W", 1, 100), line("l-yog", YOGHURT, 30_000, 150)));
+        assertThat(basket.getSavingsPence()).isEqualTo(200 + 10_000 * 100);
     }
 
     @Test
