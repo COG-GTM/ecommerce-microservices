@@ -37,15 +37,15 @@ test.describe('MBA-3941 price feed', () => {
 
   test('price changed through the feed shows on the next scan without a restart', async ({ till, page, request, backend }) => {
     await till.open()
-    await till.scan('4002')
+    await till.scan('394102')
     await till.expectLine('Instant coffee 200g', 1, '£4.25', '£4.25')
     await page.getByTestId('void-line').click()
     await expect(till.lines).toHaveCount(0)
 
-    const published = await request.put(FEED, { data: { prices: [{ barcode: '4002', pricePence: 399 }] } })
+    const published = await request.put(FEED, { data: { prices: [{ barcode: '394102', pricePence: 399 }] } })
     expect(published.status()).toBe(200)
 
-    await till.scan('4002')
+    await till.scan('394102')
     await expect(till.scanMessage).toHaveText('Added Instant coffee 200g')
     await till.expectLine('Instant coffee 200g', 1, '£3.99', '£3.99')
     await expect(till.total).toHaveText('£3.99')

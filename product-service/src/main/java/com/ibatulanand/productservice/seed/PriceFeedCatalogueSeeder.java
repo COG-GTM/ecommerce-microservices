@@ -16,7 +16,7 @@ import java.util.Map;
 import java.util.stream.Stream;
 
 /**
- * Seeds non-quick-key items (barcodes 4001-4003) whose prices the price-feed E2E specs change, so the shared
+ * Seeds non-quick-key items (barcodes 394101-394103) whose prices the price-feed E2E specs change, so the shared
  * 1001-1008 prices other specs assert never move. Idempotent: upserts by barcode.
  */
 @Component
@@ -26,9 +26,9 @@ import java.util.stream.Stream;
 public class PriceFeedCatalogueSeeder implements ApplicationRunner {
 
     static final List<GroceryCatalogueSeeder.SeedItem> ITEMS = List.of(
-            new GroceryCatalogueSeeder.SeedItem("4001", "MOR-TEA-BAGS-80", "Tea bags x80", 250),
-            new GroceryCatalogueSeeder.SeedItem("4002", "MOR-COFFEE-INST-200", "Instant coffee 200g", 425),
-            new GroceryCatalogueSeeder.SeedItem("4003", "MOR-DIGESTIVE-400", "Digestive biscuits 400g", 99));
+            new GroceryCatalogueSeeder.SeedItem("394101", "MOR-TEA-BAGS-80", "Tea bags x80", 250),
+            new GroceryCatalogueSeeder.SeedItem("394102", "MOR-COFFEE-INST-200", "Instant coffee 200g", 425),
+            new GroceryCatalogueSeeder.SeedItem("394103", "MOR-DIGESTIVE-400", "Digestive biscuits 400g", 99));
 
     private final ProductRepository productRepository;
 

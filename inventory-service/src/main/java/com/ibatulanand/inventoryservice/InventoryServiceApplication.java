@@ -28,7 +28,7 @@ public class InventoryServiceApplication {
             for (String sku : GROCERY_SKUS) {
                 seed.put(sku, 500);
             }
-            // Price-feed demo SKUs (barcodes 4001-4003 in product-service)
+            // Price-feed demo SKUs (barcodes 394101-394103 in product-service)
             for (String sku : PRICE_FEED_SKUS) {
                 seed.put(sku, 500);
             }

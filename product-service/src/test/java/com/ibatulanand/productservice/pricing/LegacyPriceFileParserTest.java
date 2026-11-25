@@ -24,7 +24,7 @@ class LegacyPriceFileParserTest {
             List<PriceRecord> records = LegacyPriceFileParser.parse(reader);
             assertThat(records).hasSize(11);
             assertThat(records.get(0)).isEqualTo(new PriceRecord("1001", "MOR-MILK-SS-4PT", 155));
-            assertThat(records).contains(new PriceRecord("4003", "MOR-DIGESTIVE-400", 99));
+            assertThat(records).contains(new PriceRecord("394103", "MOR-DIGESTIVE-400", 99));
         }
     }
 

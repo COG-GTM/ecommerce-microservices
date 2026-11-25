@@ -41,26 +41,26 @@ class PriceFeedApiTest {
 
     @Test
     void feedPriceIsServedOnTheNextBarcodeLookup() throws Exception {
-        mockMvc.perform(get("/api/product/barcode/4002")).andExpect(jsonPath("$.pricePence").value(425));
+        mockMvc.perform(get("/api/product/barcode/394102")).andExpect(jsonPath("$.pricePence").value(425));
         mockMvc.perform(put("/api/product/price-feed").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"prices\":[{\"barcode\":\"4002\",\"pricePence\":399}]}"))
+                        .content("{\"prices\":[{\"barcode\":\"394102\",\"pricePence\":399}]}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.source").value("PRICE_FEED"))
                 .andExpect(jsonPath("$.prices[0].pricePence").value(399));
-        mockMvc.perform(get("/api/product/barcode/4002"))
+        mockMvc.perform(get("/api/product/barcode/394102"))
                 .andExpect(jsonPath("$.pricePence").value(399))
                 .andExpect(jsonPath("$.price").value(3.99));
         mockMvc.perform(get("/api/product/price-feed"))
                 .andExpect(jsonPath("$.prices.length()").value(11))
-                .andExpect(jsonPath("$.prices[?(@.barcode=='4002')].pricePence").value(399));
+                .andExpect(jsonPath("$.prices[?(@.barcode=='394102')].pricePence").value(399));
     }
 
     @Test
     void invalidBatchesChangeNothing() throws Exception {
-        publish("{\"prices\":[{\"barcode\":\"4003\",\"pricePence\":120},{\"barcode\":\"0000\",\"pricePence\":1}]}", 404);
-        publish("{\"prices\":[{\"barcode\":\"4003\",\"pricePence\":0}]}", 400);
+        publish("{\"prices\":[{\"barcode\":\"394103\",\"pricePence\":120},{\"barcode\":\"0000\",\"pricePence\":1}]}", 404);
+        publish("{\"prices\":[{\"barcode\":\"394103\",\"pricePence\":0}]}", 400);
         publish("{\"prices\":[]}", 400);
-        mockMvc.perform(get("/api/product/barcode/4003")).andExpect(jsonPath("$.pricePence").value(99));
+        mockMvc.perform(get("/api/product/barcode/394103")).andExpect(jsonPath("$.pricePence").value(99));
     }
 
     @Test

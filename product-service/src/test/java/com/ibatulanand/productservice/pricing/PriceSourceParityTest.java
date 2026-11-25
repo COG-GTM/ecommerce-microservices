@@ -71,7 +71,7 @@ class PriceSourceParityTest {
     @Test
     void feedWritesAreRejectedWhileTheLegacyFileIsTheSource() throws Exception {
         mockMvc.perform(put("/api/product/price-feed").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"prices\":[{\"barcode\":\"4001\",\"pricePence\":300}]}"))
+                        .content("{\"prices\":[{\"barcode\":\"394101\",\"pricePence\":300}]}"))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error").value("PRICE_FEED_DISABLED"));
         mockMvc.perform(post("/api/product/price-feed/legacy-import"))
