@@ -28,6 +28,8 @@ public class OrderService {
     private final KafkaTemplate<String, OrderPlacedEvent> kafkaTemplate;
 
     public String placeOrder(OrderRequest orderRequest) {
+        // Replay keys belong to till sales only, so a web order can never claim one.
+        orderRequest.setIdempotencyKey(null);
         placeAndReturnOrder(orderRequest);
         return "Order Placed Successfully!";
     }
@@ -40,8 +42,42 @@ public class OrderService {
         });
     }
 
+    /** One page of a till's orders in the order they were stored, after the order with id {@code afterId}. */
+    @Transactional(readOnly = true)
+    public List<Order> findByTillId(String tillId, long afterId, int limit) {
+        List<Order> orders = orderRepository.findByTillIdAndIdGreaterThanOrderByIdAsc(tillId, afterId,
+                org.springframework.data.domain.PageRequest.of(0, limit));
+        orders.forEach(order -> order.getOrderLineItemsList().size());
+        return orders;
+    }
+
+    /**
+     * Places a till sale. A request carrying an idempotency key that was already stored returns the existing order
+     * and publishes nothing, so a replayed offline sale is never duplicated.
+     */
+    /** The idempotency key already belongs to a different till sale, so this request is not a replay of it. */
+    public static class IdempotencyConflictException extends RuntimeException {
+        public IdempotencyConflictException(String idempotencyKey) {
+            super("Idempotency key " + idempotencyKey + " already belongs to a different sale");
+        }
+    }
+
     public Order placeAndReturnOrder(OrderRequest orderRequest) {
+        String idempotencyKey = orderRequest.getIdempotencyKey();
+        if (idempotencyKey != null && !idempotencyKey.isBlank()) {
+            Optional<Order> existing = orderRepository.findFirstByIdempotencyKey(idempotencyKey);
+            if (existing.isPresent()) {
+                Order stored = existing.get();
+                if (!java.util.Objects.equals(stored.getTillId(), orderRequest.getTillId())
+                        || !java.util.Objects.equals(stored.getTransactionId(), orderRequest.getTransactionId())) {
+                    throw new IdempotencyConflictException(idempotencyKey);
+                }
+                stored.getOrderLineItemsList().size();
+                return stored;
+            }
+        }
         Order order = new Order();
+        order.setIdempotencyKey(idempotencyKey == null || idempotencyKey.isBlank() ? null : idempotencyKey);
         order.setOrderNumber(UUID.randomUUID().toString());
         order.setChannel(orderRequest.getChannel());
         order.setStoreNumber(orderRequest.getStoreNumber());

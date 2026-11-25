@@ -7,11 +7,13 @@ import io.github.resilience4j.retry.annotation.Retry;
 import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
 import lombok.RequiredArgsConstructor;
 import com.ibatulanand.orderservice.dto.OrderResponse;
+import com.ibatulanand.orderservice.model.Order;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -48,10 +50,33 @@ public class OrderController {
         try {
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(OrderResponse.from(orderService.placeAndReturnOrder(orderRequest)));
+        } catch (OrderService.IdempotencyConflictException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("error", "IDEMPOTENCY_CONFLICT", "message", e.getMessage()));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
                     .body(Map.of("error", "OUT_OF_STOCK", "message", e.getMessage()));
         }
+    }
+
+    static final int MAX_TILL_PAGE = 500;
+    static final String NEXT_PAGE_HEADER = "X-Next-After-Id";
+
+    /**
+     * Till orders in the order they were stored, e.g. to reconcile a till's synced offline sales. Paged by id: when a
+     * page is full, {@value #NEXT_PAGE_HEADER} holds the {@code afterId} that fetches the next one.
+     */
+    @GetMapping(params = "tillId")
+    public ResponseEntity<List<OrderResponse>> ordersForTill(@RequestParam String tillId,
+                                                             @RequestParam(defaultValue = "0") long afterId,
+                                                             @RequestParam(defaultValue = "200") int limit) {
+        int pageSize = Math.max(1, Math.min(limit, MAX_TILL_PAGE));
+        List<Order> page = orderService.findByTillId(tillId, afterId, pageSize);
+        ResponseEntity.BodyBuilder response = ResponseEntity.ok();
+        if (page.size() == pageSize) {
+            response.header(NEXT_PAGE_HEADER, String.valueOf(page.get(page.size() - 1).getId()));
+        }
+        return response.body(page.stream().map(OrderResponse::from).toList());
     }
 
     @GetMapping("/{orderNumber}")

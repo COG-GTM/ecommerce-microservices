@@ -14,6 +14,7 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -90,20 +91,28 @@ public class HttpServiceClients implements CatalogueClient, StockClient, OrderCl
 
     @Override
     public String placeSale(Basket basket, String storeNumber, String tenderType) {
+        return placeSale(basket, storeNumber, tenderType, null);
+    }
+
+    @Override
+    public String placeSale(Basket basket, String storeNumber, String tenderType, String idempotencyKey) {
         List<Map<String, Object>> lines = basket.getLines().stream()
                 .map(l -> Map.<String, Object>of(
                         "skuCode", l.getSkuCode(),
                         "price", BigDecimal.valueOf(l.getUnitPricePence(), 2),
                         "quantity", l.getQuantity()))
                 .toList();
-        Map<String, Object> body = Map.of(
+        Map<String, Object> body = new HashMap<>(Map.of(
                 "orderLineItemsDtoList", lines,
                 "channel", "TILL",
                 "storeNumber", storeNumber,
                 "tillId", basket.getTillId(),
                 "transactionId", basket.getTransactionNumber(),
                 "tenderType", tenderType,
-                "totalPence", basket.getTotalPence());
+                "totalPence", basket.getTotalPence()));
+        if (idempotencyKey != null) {
+            body.put("idempotencyKey", idempotencyKey);
+        }
         try {
             OrderDto order = webClientBuilder.build().post()
                     .uri(properties.orderServiceUrl() + "/api/order/sale")
@@ -114,6 +123,10 @@ public class HttpServiceClients implements CatalogueClient, StockClient, OrderCl
             }
             return order.orderNumber();
         } catch (WebClientResponseException.Conflict e) {
+            if (e.getResponseBodyAsString().contains("IDEMPOTENCY_CONFLICT")) {
+                throw new TillException(HttpStatus.CONFLICT, "IDEMPOTENCY_CONFLICT",
+                        "This sale id is already recorded for a different sale");
+            }
             throw new TillException(HttpStatus.CONFLICT, "OUT_OF_STOCK", "One or more items are out of stock");
         } catch (TillException e) {
             throw e;

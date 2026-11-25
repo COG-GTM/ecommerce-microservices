@@ -4,6 +4,8 @@ import com.ibatulanand.tillservice.domain.Basket;
 import com.ibatulanand.tillservice.domain.CatalogueItem;
 import com.ibatulanand.tillservice.service.TillService;
 import com.ibatulanand.tillservice.web.TillDtos.AddLineRequest;
+import com.ibatulanand.tillservice.web.TillDtos.OfflineSaleRequest;
+import com.ibatulanand.tillservice.web.TillDtos.OfflineSaleResult;
 import com.ibatulanand.tillservice.web.TillDtos.TenderRequest;
 import com.ibatulanand.tillservice.web.TillDtos.TenderResult;
 import com.ibatulanand.tillservice.web.TillDtos.TillSession;
@@ -86,6 +88,12 @@ public class TillController {
     @PostMapping("/basket/void")
     public Basket voidSale(@Valid @RequestBody VoidSaleRequest request) {
         return tillService.voidSale(request.basketId());
+    }
+
+    /** Store-and-forward replay of a cash sale completed while the till was offline. Idempotent on saleId. */
+    @PostMapping("/offline-sales")
+    public OfflineSaleResult syncOfflineSale(@Valid @RequestBody OfflineSaleRequest request) {
+        return tillService.syncOfflineSale(request);
     }
 
     @PostMapping("/basket/tender")

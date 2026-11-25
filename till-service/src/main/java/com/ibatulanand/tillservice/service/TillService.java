@@ -9,6 +9,9 @@ import com.ibatulanand.tillservice.domain.BasketLine;
 import com.ibatulanand.tillservice.domain.CatalogueItem;
 import com.ibatulanand.tillservice.payment.PaymentTerminal;
 import com.ibatulanand.tillservice.pricing.BasketPricer;
+import com.ibatulanand.tillservice.web.TillDtos.OfflineSaleLine;
+import com.ibatulanand.tillservice.web.TillDtos.OfflineSaleRequest;
+import com.ibatulanand.tillservice.web.TillDtos.OfflineSaleResult;
 import com.ibatulanand.tillservice.web.TillDtos.Operator;
 import com.ibatulanand.tillservice.web.TillDtos.Receipt;
 import com.ibatulanand.tillservice.web.TillDtos.TenderRequest;
@@ -179,6 +182,50 @@ public class TillService {
                 basket.getTransactionNumber(), orderNumber, total, tenderType);
         return new TenderResult("APPROVED", tenderType, basket, orderNumber, tendered, change, authCode, null,
                 receipt, next.getBasketId());
+    }
+
+    /**
+     * Persists a cash sale the till completed offline (store-and-forward). The sale already happened, so stock is
+     * not re-checked and the catalogue price is used when known, else the till's cached price. order-service keys
+     * the order on {@code offline-<saleId>}, so replays return the same order instead of a duplicate.
+     */
+    public OfflineSaleResult syncOfflineSale(OfflineSaleRequest request) {
+        if (!"CASH".equalsIgnoreCase(request.tenderType())) {
+            throw new TillException(HttpStatus.BAD_REQUEST, "UNSUPPORTED_TENDER", "Only cash is taken offline");
+        }
+        Basket basket = new Basket();
+        basket.setBasketId(request.saleId());
+        basket.setTillId(tillId(request.tillId()));
+        basket.setTransactionNumber(request.transactionNumber() == null || request.transactionNumber().isBlank()
+                ? "OFFLINE-" + request.saleId() : request.transactionNumber());
+        for (OfflineSaleLine sold : request.lines()) {
+            // The server reprices every line from the catalogue; the SKU, name and price the till sends are never trusted.
+            CatalogueItem item = catalogue.findByBarcode(sold.barcode()).orElseThrow(() -> new TillException(
+                    HttpStatus.UNPROCESSABLE_ENTITY, "UNKNOWN_BARCODE", "No product for barcode " + sold.barcode()));
+            basket.getLines().add(new BasketLine(UUID.randomUUID().toString(), sold.barcode(), item.skuCode(),
+                    item.name(), sold.quantity(), item.pricePence(), 0));
+        }
+        pricer.price(basket);
+        // The cashier collected cash against the till's offline total, so that is what the tender must cover.
+        int charged = request.totalPence() == null ? basket.getTotalPence() : request.totalPence();
+        int tendered = request.amountTenderedPence() == null ? charged : request.amountTenderedPence();
+        if (tendered < charged) {
+            throw new TillException(HttpStatus.UNPROCESSABLE_ENTITY, "INSUFFICIENT_TENDER",
+                    "Cash tendered " + tendered + "p is less than the total " + charged + "p");
+        }
+        if (charged != basket.getTotalPence()) {
+            log.warn("Till {} offline sale {} charged {}p; recorded at the catalogue total {}p",
+                    loggable(basket.getTillId()), loggable(request.saleId()), charged, basket.getTotalPence());
+        }
+        String orderNumber = orders.placeSale(basket, properties.storeNumber(), "CASH", "offline-" + request.saleId());
+        log.info("Till {} synced offline sale {} as order {} ({}p)", loggable(basket.getTillId()),
+                loggable(request.saleId()), orderNumber, basket.getTotalPence());
+        return new OfflineSaleResult(request.saleId(), orderNumber, basket.getTransactionNumber(),
+                basket.getTotalPence(), tendered);
+    }
+
+    private static String loggable(String value) {
+        return value.replaceAll("[\\r\\n\\t]", "_");
     }
 
     private String tillId(String requested) {

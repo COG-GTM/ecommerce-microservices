@@ -1,3 +1,4 @@
+import type { OfflineSale, OfflineSaleResult } from '../offline/offline'
 import type { Basket, Product, TenderResult, TenderType, TillSession } from './types'
 
 const BASE = '/api/till'
@@ -18,17 +19,30 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     headers: { 'Content-Type': 'application/json', Accept: 'application/json', ...init?.headers },
   })
   const text = await response.text()
-  const body = text ? JSON.parse(text) : null
+  let body = null
+  try {
+    body = text ? JSON.parse(text) : null
+  } catch {
+    // e.g. an HTML 502 page from the proxy when the gateway is down
+  }
   if (!response.ok) {
     throw new TillApiError(response.status, body?.error ?? 'HTTP_' + response.status, body?.message ?? response.statusText)
   }
   return body as T
 }
 
+/** The health check gives up on a stalled link instead of waiting for the browser's own timeout. */
+const HEALTH_CHECK_TIMEOUT_MS = 4_000
+/** A stalled replay is abandoned and retried on the next poll instead of holding the queue. */
+const SYNC_TIMEOUT_MS = 60_000
+
 const json = (method: string, body: unknown): RequestInit => ({ method, body: JSON.stringify(body) })
 
 export const tillApi = {
-  session: (tillId?: string) => request<TillSession>('/session' + (tillId ? '?tillId=' + encodeURIComponent(tillId) : '')),
+  session: (tillId?: string) =>
+    request<TillSession>('/session' + (tillId ? '?tillId=' + encodeURIComponent(tillId) : ''), {
+      signal: AbortSignal.timeout(HEALTH_CHECK_TIMEOUT_MS),
+    }),
   quickKeys: () => request<Product[]>('/products?quickkey=true'),
   product: (barcode: string) => request<Product>('/products/' + encodeURIComponent(barcode)),
   basket: (basketId: string) => request<Basket>('/basket/' + basketId),
@@ -41,4 +55,5 @@ export const tillApi = {
   voidSale: (basketId: string) => request<Basket>('/basket/void', json('POST', { basketId })),
   tender: (basketId: string, tenderType: TenderType, options: { amountTenderedPence?: number; terminalOutcome?: 'APPROVED' | 'DECLINED'; expectedTotalPence?: number } = {}) =>
     request<TenderResult>('/basket/tender', json('POST', { basketId, tenderType, ...options })),
+  syncOfflineSale: (sale: OfflineSale) => request<OfflineSaleResult>('/offline-sales', { ...json('POST', sale), signal: AbortSignal.timeout(SYNC_TIMEOUT_MS) }),
 }

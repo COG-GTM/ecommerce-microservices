@@ -21,7 +21,11 @@ export function SaleComplete({ result, onNewSale }: { result: TenderResult; onNe
           <div className="give-change-amount">{formatPence(result.changeDuePence)}</div>
         </div>
       )}
-      <p className="order-ref">Order <span data-testid="order-number">{result.orderNumber}</span></p>
+      {result.orderNumber ? (
+        <p className="order-ref">Order <span data-testid="order-number">{result.orderNumber}</span></p>
+      ) : (
+        <p className="order-ref" data-testid="queued-offline">Saved offline · order created when the till reconnects</p>
+      )}
       <ApiChip>POST /api/till/basket/tender → receipt</ApiChip>
       <div className="row-buttons">
         <button type="button" className="btn primary big" data-testid="start-new-sale" onClick={onNewSale}>Start new sale</button>
