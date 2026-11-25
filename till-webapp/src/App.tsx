@@ -49,6 +49,8 @@ export default function App() {
   basketRef.current = basket
   const syncingRef = useRef(false)
   const reconnectingRef = useRef(false)
+  /** Server basket whose lines were carried into the local basket when the till went offline. */
+  const carriedRef = useRef<{ server: string; local: string } | null>(null)
 
   const showBasket = useCallback((next: Basket) => {
     setBasket(next)
@@ -93,11 +95,17 @@ export default function App() {
     if (reconnectingRef.current) return
     reconnectingRef.current = true
     try {
-      const next = offlineStore.abandonedBasket() === s.basketId ? await tillApi.voidSale(s.basketId) : await tillApi.basket(s.basketId)
-      offlineStore.setAbandonedBasket(null)
-      // Keep anything scanned into the local basket while the request was in flight; it is sold offline instead.
       const current = basketRef.current
-      if (!isLocal(current) || current?.lines.length === 0) showBasket(next)
+      const keepLocal = isLocal(current) && (current?.lines.length ?? 0) > 0
+      const carried = carriedRef.current
+      // Void the server basket only when its lines were sold offline, or still sit in the local basket to be sold there.
+      const sold = offlineStore.abandonedBasket() === s.basketId
+        || (keepLocal && carried?.server === s.basketId && carried.local === current?.basketId)
+      const next = sold ? await tillApi.voidSale(s.basketId) : await tillApi.basket(s.basketId)
+      offlineStore.setAbandonedBasket(null)
+      carriedRef.current = null
+      // Keep anything scanned into the local basket while the request was in flight; it is sold offline instead.
+      if (!isLocal(basketRef.current) || basketRef.current?.lines.length === 0) showBasket(next)
       showQuickKeys(await tillApi.quickKeys())
     } catch (e) {
       if (isUnreachable(e)) markOffline()
@@ -152,8 +160,9 @@ export default function App() {
     if (!offline || !session) return
     setQuickKeys((keys) => (keys.length ? keys : offlineStore.quickKeys()))
     if (basket?.status === 'COMPLETED' || isLocal(basket)) return
-    if (basket) offlineStore.setAbandonedBasket(basket.basketId)
-    showBasket(newOfflineBasket(session, basket?.lines ?? []))
+    const local = newOfflineBasket(session, basket?.lines ?? [])
+    if (basket) carriedRef.current = { server: basket.basketId, local: local.basketId }
+    showBasket(local)
   }, [offline, session, basket, newOfflineBasket, showBasket])
 
   const run = async (action: () => Promise<void>, onError: (text: string) => void) => {
@@ -246,6 +255,7 @@ export default function App() {
       if (isLocal(basket) && session) {
         const { sale, result: r } = completeOffline(basket, session, amountTenderedPence, newOfflineBasket(session))
         offlineStore.enqueue(sale)
+        if (carriedRef.current?.local === basket.basketId) offlineStore.setAbandonedBasket(carriedRef.current.server)
         setQueued(offlineStore.queue().length)
         applyTender(r)
         if (!offline) void flushQueue()
