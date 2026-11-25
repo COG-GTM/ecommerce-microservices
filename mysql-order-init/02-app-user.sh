@@ -1,7 +1,8 @@
 #!/bin/bash
-# Creates the order-service application account with data-only access to
-# order_service. Sourced by the MySQL image entrypoint on first initialisation.
-set -euo pipefail
+# Creates (or re-keys) the order-service application account with data-only
+# access to order_service. Run by the MySQL image entrypoint on first
+# initialisation; safe to re-run, see README for existing data directories.
+set -eo pipefail
 
 app_user="${ORDER_DB_APP_USER:-order_app}"
 app_password="${ORDER_DB_APP_PASSWORD:-}"
@@ -10,13 +11,23 @@ if [[ ! "$app_user" =~ ^[A-Za-z0-9_]{1,32}$ ]] || [[ "${app_user,,}" == "root" ]
     echo "02-app-user.sh: ORDER_DB_APP_USER must be 1-32 letters, digits or '_' and not root" >&2
     exit 1
 fi
-if [[ -z "$app_password" || "$app_password" == *"'"* || "$app_password" == *"\\"* ]]; then
-    echo "02-app-user.sh: ORDER_DB_APP_PASSWORD must be set and must not contain quotes or backslashes" >&2
+if [[ -z "$app_password" ]]; then
+    echo "02-app-user.sh: ORDER_DB_APP_PASSWORD must be set" >&2
     exit 1
 fi
 
-mysql --protocol=socket -uroot -p"${MYSQL_ROOT_PASSWORD}" <<SQL
-CREATE USER IF NOT EXISTS '${app_user}'@'%' IDENTIFIED BY '${app_password}';
+sql_password=${app_password//\\/\\\\}
+sql_password=${sql_password//\'/\'\'}
+cnf_password=${MYSQL_ROOT_PASSWORD//\\/\\\\}
+cnf_password=${cnf_password//\"/\\\"}
+
+client_cnf=$(mktemp)
+trap 'rm -f "$client_cnf"' EXIT
+printf '[client]\nuser=root\npassword="%s"\n' "$cnf_password" > "$client_cnf"
+
+mysql --defaults-extra-file="$client_cnf" --protocol=socket <<SQL
+CREATE USER IF NOT EXISTS '${app_user}'@'%' IDENTIFIED BY '${sql_password}';
+ALTER USER '${app_user}'@'%' IDENTIFIED BY '${sql_password}';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`order_service\`.* TO '${app_user}'@'%';
 FLUSH PRIVILEGES;
 SQL
