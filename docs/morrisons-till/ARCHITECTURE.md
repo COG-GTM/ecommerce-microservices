@@ -143,7 +143,8 @@ reports `pendingAgeChecks`. `tender` returns `AGE_CHECK_REQUIRED` (409) until ea
 | Ticket | Where it plugs in |
 | --- | --- |
 | VAT, multi-buys, More Card loyalty | new `PricingRule` bean(s), which add `Adjustment`s (savings) or VAT lines; the UI already renders `savingsPence` |
-| Weighed items, age-restricted items | product fields plus a line attribute; a `TillService.addLine` guard returns a new error code |
+| Weighed items | product fields plus a line attribute; a `TillService.addLine` guard returns a new error code |
+| Age-restricted items (Challenge 25) | `minimumAge` on the product; `addLine` adds the line as a pending age check, `/basket/lines/{lineId}/age-check` approves or refuses it, and `tender` returns `AGE_CHECK_REQUIRED` while any check is pending |
 | Cash/change, card terminal declines | `TillService.tender`, `PaymentTerminal` (decline reasons in `declineReason`) |
 | Refunds | new `/api/till/refund/**` endpoints plus an order-service refund call |
 | Offline store-and-forward | decorate `OrderClient` with a durable queue |
