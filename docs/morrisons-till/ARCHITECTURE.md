@@ -30,8 +30,8 @@ Changes to existing services are additive:
 
 | Service | Change |
 | --- | --- |
-| product-service | `barcode`, `skuCode`, `pricePence`, `quickKey` on `Product`; `GET /api/product/barcode/{barcode}`, `GET /api/product?quickkey=true`; `GroceryCatalogueSeeder` (8 items, `catalogue.seed.grocery=true`) |
-| inventory-service | seeds the 8 grocery SKUs (500 each) when absent |
+| product-service | `barcode`, `skuCode`, `pricePence`, `quickKey` on `Product`; `GET /api/product/barcode/{barcode}`, `GET /api/product?quickkey=true`; `vatCode`; `GroceryCatalogueSeeder` (8 quick keys plus 2 barcode-only VAT items, `catalogue.seed.grocery=true`) |
+| inventory-service | seeds the 8 grocery SKUs and 2 VAT demo SKUs (500 each) when absent |
 | order-service | `POST /api/order/sale` (synchronous, returns the order; idempotent on `idempotencyKey`), `GET /api/order/{orderNumber}`, `GET /api/order/transaction/{transactionId}`; till metadata (`channel`, `storeNumber`, `tillId`, `transactionId`, `tenderType`, `totalPence`) on order and on the Kafka `OrderPlacedEvent` |
 | notification-service | records consumed events in a bounded `NotificationLog`; `GET /api/notification`, `GET /api/notification/{orderNumber}` |
 | api-gateway | routes `/api/till/**` and `/api/notification/**`; `dev` profile makes `/api/till/**` public and `GET /api/order/**`, `GET /api/notification/**` readable for tests. Everything else still requires a Keycloak JWT. |
@@ -91,14 +91,15 @@ result, so a retry never charges or orders twice; a different key, cash or a bas
   "services": { "product-service": "UP", "inventory-service": "UP", "order-service": "UP" } }
 
 // Product
-{ "barcode": "1001", "skuCode": "MOR-MILK-SS-4PT", "name": "Semi skimmed milk 4 pints", "pricePence": 155, "quickKey": true }
+{ "barcode": "1001", "skuCode": "MOR-MILK-SS-4PT", "name": "Semi skimmed milk 4 pints", "pricePence": 155, "quickKey": true, "vatCode": "Z" }
 
 // Basket
 { "basketId": "b0c1…", "tillId": "07", "transactionNumber": "0417-07-0001", "status": "OPEN", "currency": "GBP",
   "lines": [ { "lineId": "l-1", "barcode": "1004", "skuCode": "MOR-BANANA-5", "name": "Bananas x5",
-               "quantity": 2, "unitPricePence": 95, "linePence": 190, "pricedBy": "EACH", "weightGrams": null } ],
+               "quantity": 2, "unitPricePence": 95, "linePence": 190, "pricedBy": "EACH", "weightGrams": null, "vatCode": "Z" } ],
   "adjustments": [ { "code": "MULTIBUY", "label": "…", "amountPence": -50, "lineId": "l-1" } ],
-  "lastLineId": "l-1", "itemCount": 2, "subtotalPence": 190, "savingsPence": 0, "totalPence": 190, "orderNumber": null,
+  "lastLineId": "l-1", "itemCount": 2, "subtotalPence": 190, "savingsPence": 50, "totalPence": 140,
+  "vatSummary": [ { "code": "Z", "ratePercent": 0, "netPence": 140, "vatPence": 0, "grossPence": 140 } ], "orderNumber": null,
   "member": null }  // More Card attached: { "cardLast4": "0001", "name": "Test Member One", "pointsBalance": 1200 }
 
 // TenderResult
@@ -112,7 +113,7 @@ result, so a retry never charges or orders twice; a different key, cash or a bas
   "operatorName": "Demo Operator", "transactionNumber": "0417-07-0001", "orderNumber": "8df1…",
   "lines": [ /* BasketLine */ ], "subtotalPence": 190, "savingsPence": 0, "totalPence": 190,
   "tenderType": "CARD", "amountTenderedPence": 190, "changeDuePence": 0, "authCode": "419508", "issuedAt": "2026-11-25T14:36:16Z",
-  "moreCard": null }  // member sale: { "cardLast4": "0001", "memberName": "Test Member One", "pointsEarned": 20, "pointsBalance": 1220 }
+  "vatSummary": [ /* VatBand, same as the basket */ ], "moreCard": null }  // member sale: { "cardLast4": "0001", "memberName": "Test Member One", "pointsEarned": 20, "pointsBalance": 1220 }
 
 // Error (any 4xx/5xx)
 { "error": "UNKNOWN_BARCODE", "message": "No product for barcode 9999" }

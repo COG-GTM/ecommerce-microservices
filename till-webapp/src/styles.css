@@ -256,7 +256,8 @@ h1, h2, h3, p { margin: 0; }
 @media (max-width: 900px) {
   .till { height: auto; min-height: 100vh; }
   .till-main { grid-template-columns: minmax(0, 1fr); }
-  .basket { max-height: 40vh; }
+  .basket { max-height: none; }
+  .basket-scroll { flex: none; min-height: 120px; max-height: 30vh; }
   .work-sell { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); grid-template-rows: auto auto; }
   .quick-grid { grid-auto-rows: 64px; }
   .controls { grid-template-rows: auto auto 96px; }

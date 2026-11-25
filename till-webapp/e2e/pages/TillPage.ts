@@ -64,24 +64,6 @@ export class TillPage {
     await this.page.getByTestId(`simulate-${outcome}`).click()
   }
 
-  /** MBA-3932: VAT summary rows (one per rate band) on the basket or the reprinted receipt. */
-  vatBand(where: 'basket' | 'receipt', code: 'Z' | 'S') {
-    return this.page.getByTestId(`${where}-vat-summary`).locator(`[data-testid="vat-band"][data-vat-code="${code}"]`)
-  }
-
-  async expectVatBand(where: 'basket' | 'receipt', code: 'Z' | 'S', rate: string, net: string, vat: string, gross: string) {
-    const band = this.vatBand(where, code)
-    await expect(band.getByTestId('vat-rate')).toHaveText(rate)
-    await expect(band.getByTestId('vat-net')).toHaveText(net)
-    await expect(band.getByTestId('vat-amount')).toHaveText(vat)
-    await expect(band.getByTestId('vat-gross')).toHaveText(gross)
-  }
-
-  async showReceipt() {
-    await this.page.getByTestId('reprint-receipt').click()
-    await expect(this.page.getByTestId('receipt')).toBeVisible()
-  }
-
   async orderNumber() {
     await expect(this.page.getByTestId('sale-complete')).toBeVisible()
     return (await this.page.getByTestId('order-number').textContent())!.trim()
