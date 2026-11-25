@@ -1,6 +1,7 @@
 package com.ibatulanand.orderservice.controller;
 
 import com.ibatulanand.orderservice.dto.OrderRequest;
+import com.ibatulanand.orderservice.service.AgeRestrictedItemException;
 import com.ibatulanand.orderservice.service.OrderService;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
@@ -39,7 +40,19 @@ public class OrderController {
     }
 
     public CompletableFuture<String> fallbackMethod(OrderRequest orderRequest, RuntimeException runtimeException) {
+        // A rejected order is the caller's mistake, not a downstream outage: surface it instead of the generic fallback.
+        for (Throwable t = runtimeException; t != null; t = t.getCause()) {
+            if (t instanceof AgeRestrictedItemException restricted) {
+                return CompletableFuture.failedFuture(restricted);
+            }
+        }
         return CompletableFuture.supplyAsync(() -> "Oops! Something went wrong, please order after some time!", executor);
+    }
+
+    @ExceptionHandler(AgeRestrictedItemException.class)
+    public ResponseEntity<Map<String, Object>> ageRestricted(AgeRestrictedItemException e) {
+        return ResponseEntity.unprocessableEntity()
+                .body(Map.of("error", "AGE_RESTRICTED_ITEM", "message", e.getMessage(), "skuCodes", e.getSkuCodes()));
     }
 
     /** Till sale: synchronous, returns the persisted order so the till can print the order number on the receipt. */

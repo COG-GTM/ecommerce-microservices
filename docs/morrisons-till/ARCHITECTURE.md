@@ -36,7 +36,7 @@ Changes to existing services are additive:
 | notification-service | records consumed events in a bounded `NotificationLog`; `GET /api/notification`, `GET /api/notification/{orderNumber}` |
 | api-gateway | routes `/api/till/**` and `/api/notification/**`; `dev` profile makes `/api/till/**` public and `GET /api/order/**`, `GET /api/notification/**` readable for tests. Everything else still requires a Keycloak JWT. |
 
-Existing endpoints (`POST /api/order`, `GET/POST /api/product`, `GET /api/inventory`) are unchanged.
+Existing endpoints (`POST /api/order`, `GET/POST /api/product`, `GET /api/inventory`) are unchanged, except that `POST /api/order` rejects age-restricted SKUs with `AGE_RESTRICTED_ITEM` (422) until online age verification exists; they can only be sold through a till sale.
 
 ## Legacy bridge to modern services
 
@@ -67,6 +67,7 @@ compute totals; they render `subtotalPence`, `savingsPence` and `totalPence` fro
 | POST | `/basket/lines` | `{ basketId, barcode, quantity? }` | `Basket` (same barcode again increments the line) |
 | PATCH | `/basket/lines/{lineId}` | `{ basketId, quantity }` | `Basket` |
 | DELETE | `/basket/lines/{lineId}?basketId=` | - | `Basket` (void line) |
+| POST | `/basket/lines/{lineId}/age-check` | `{ basketId, decision: APPROVED\|REFUSED }` | `Basket` (Challenge 25: APPROVED records the till operator as `ageApprovedBy`; REFUSED voids the line) |
 | POST | `/basket/void` | `{ basketId }` | new empty `Basket` (void sale) |
 | POST | `/basket/tender` | `{ basketId, tenderType: CARD\|CONTACTLESS\|CASH, amountTenderedPence?, terminalOutcome?: APPROVED\|DECLINED }` | `TenderResult` |
 
@@ -110,6 +111,9 @@ compute totals; they render `subtotalPence`, `savingsPence` and `totalPence` fro
 
 Error codes: `UNKNOWN_BARCODE` / `UNKNOWN_BASKET` / `UNKNOWN_LINE` (404), `OUT_OF_STOCK` / `BASKET_CLOSED` (409),
 `EMPTY_BASKET` / `INSUFFICIENT_TENDER` (422), `UNSUPPORTED_TENDER` / validation (400).
+Age-restricted items (`Product.minimumAge` set): the line gets `minimumAge` and `ageCheck: PENDING`, and the basket
+reports `pendingAgeChecks`. `tender` returns `AGE_CHECK_REQUIRED` (409) until each such line is decided via `age-check`;
+`INVALID_AGE_DECISION` (400), `NOT_AGE_RESTRICTED` (422).
 
 ### Downstream calls made by till-service
 
@@ -131,13 +135,16 @@ Error codes: `UNKNOWN_BARCODE` / `UNKNOWN_BASKET` / `UNKNOWN_LINE` (404), `OUT_O
 | 1006 | MOR-CHEDDAR-MAT-400 | Mature cheddar 400g | 350 |
 | 1007 | MOR-CHICKEN-BF-600 | Chicken breast fillets 600g | 475 |
 | 1008 | MOR-CARROT-1KG | Carrots 1kg | 65 |
+| 3001 | MOR-LAGER-4X440 | Lager 4 x 440ml (18+, scan only) | 450 |
+| 3002 | MOR-WINE-RED-75CL | Red wine 75cl (18+, scan only) | 700 |
 
 ## Extension points for the till tickets
 
 | Ticket | Where it plugs in |
 | --- | --- |
 | VAT, multi-buys, More Card loyalty | new `PricingRule` bean(s), which add `Adjustment`s (savings) or VAT lines; the UI already renders `savingsPence` |
-| Weighed items, age-restricted items | product fields plus a line attribute; a `TillService.addLine` guard returns a new error code |
+| Weighed items | product fields plus a line attribute; a `TillService.addLine` guard returns a new error code |
+| Age-restricted items (Challenge 25) | `minimumAge` on the product; `addLine` adds the line as a pending age check, `/basket/lines/{lineId}/age-check` approves or refuses it, and `tender` returns `AGE_CHECK_REQUIRED` while any check is pending |
 | Cash/change, card terminal declines | `TillService.tender`, `PaymentTerminal` (decline reasons in `declineReason`) |
 | Refunds | new `/api/till/refund/**` endpoints plus an order-service refund call |
 | Offline store-and-forward | decorate `OrderClient` with a durable queue |

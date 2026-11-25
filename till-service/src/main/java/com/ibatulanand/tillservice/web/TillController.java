@@ -4,6 +4,7 @@ import com.ibatulanand.tillservice.domain.Basket;
 import com.ibatulanand.tillservice.domain.CatalogueItem;
 import com.ibatulanand.tillservice.service.TillService;
 import com.ibatulanand.tillservice.web.TillDtos.AddLineRequest;
+import com.ibatulanand.tillservice.web.TillDtos.AgeCheckRequest;
 import com.ibatulanand.tillservice.web.TillDtos.TenderRequest;
 import com.ibatulanand.tillservice.web.TillDtos.TenderResult;
 import com.ibatulanand.tillservice.web.TillDtos.TillSession;
@@ -81,6 +82,11 @@ public class TillController {
     @DeleteMapping("/basket/lines/{lineId}")
     public Basket voidLine(@PathVariable String lineId, @RequestParam String basketId) {
         return tillService.voidLine(basketId, lineId);
+    }
+
+    @PostMapping("/basket/lines/{lineId}/age-check")
+    public Basket ageCheck(@PathVariable String lineId, @Valid @RequestBody AgeCheckRequest request) {
+        return tillService.ageCheck(request.basketId(), lineId, request.decision());
     }
 
     @PostMapping("/basket/void")

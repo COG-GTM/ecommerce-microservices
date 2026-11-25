@@ -24,4 +24,6 @@ public class Product {
     private String skuCode;
     private Integer pricePence;
     private Boolean quickKey;
+    /** Minimum customer age to buy this item (Challenge 25 prompt at the till); null when unrestricted. */
+    private Integer minimumAge;
 }

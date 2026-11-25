@@ -41,7 +41,14 @@ export function BasketPanel({ basket, selectedLineId, onSelect }: Props) {
                 aria-selected={line.lineId === selectedLineId}
                 onClick={() => onSelect(line.lineId)}
               >
-                <td className="item" data-testid="line-name">{line.name}</td>
+                <td className="item">
+                  <span data-testid="line-name">{line.name}</span>
+                  {line.ageCheck && (
+                    <span className={'age-badge ' + line.ageCheck.toLowerCase()} data-testid="line-age">
+                      {line.ageCheck === 'APPROVED' ? `ID checked · ${line.ageApprovedBy}` : `Challenge 25 · ${line.minimumAge}+`}
+                    </span>
+                  )}
+                </td>
                 <td className="num qty" data-testid="line-qty">{line.quantity}</td>
                 <td className="num each" data-testid="line-each">{formatPence(line.unitPricePence)}</td>
                 <td className="num total" data-testid="line-total">{formatPence(line.linePence)}</td>

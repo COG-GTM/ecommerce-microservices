@@ -248,3 +248,18 @@ h1, h2, h3, p { margin: 0; }
   .pinpad { min-height: 320px; }
   .cash { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* MBA-3936 Challenge 25 */
+.age-badge { display: inline-block; margin-left: 10px; padding: 2px 8px; border-radius: 6px; font-size: 13px; font-weight: 700; vertical-align: middle; }
+.age-badge.pending { background: var(--red); color: #fff; }
+.age-badge.approved { background: var(--green-tint); color: var(--green); }
+.age-overlay { position: fixed; inset: 0; background: rgba(20, 32, 27, 0.55); display: grid; place-items: center; z-index: 20; }
+.age-prompt { background: #fff; border-radius: var(--radius); padding: 28px 32px; width: min(560px, 92vw); border-top: 8px solid var(--red); box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25); }
+.age-head { display: flex; gap: 18px; align-items: center; }
+.age-head h2 { margin: 0; font-size: 28px; }
+.age-head p { margin: 4px 0 0; font-size: 18px; }
+.age-logo { display: grid; place-items: center; width: 64px; height: 64px; border-radius: 50%; border: 5px solid var(--red); font-size: 26px; font-weight: 800; color: var(--red); flex: none; }
+.age-copy { font-size: 18px; margin: 18px 0 22px; }
+.age-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.age-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; }
+.receipt-row.age-note { color: var(--muted); font-size: 12px; padding-top: 0; }

@@ -16,7 +16,9 @@ import org.springframework.web.reactive.function.client.WebClient;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -28,8 +30,38 @@ public class OrderService {
     private final KafkaTemplate<String, OrderPlacedEvent> kafkaTemplate;
 
     public String placeOrder(OrderRequest orderRequest) {
+        // Age approvals are only recorded by the till sale route, after a till-side Challenge 25 decision.
+        orderRequest.getOrderLineItemsDtoList().forEach(line -> {
+            line.setMinimumAge(null);
+            line.setAgeApprovedBy(null);
+        });
+        rejectAgeRestrictedItems(orderRequest);
         placeAndReturnOrder(orderRequest);
         return "Order Placed Successfully!";
+    }
+
+    // Until online age verification exists, restricted SKUs can only be sold through a till sale.
+    private void rejectAgeRestrictedItems(OrderRequest orderRequest) {
+        ProductView[] products = webClientBuilder.build().get()
+                .uri("http://product-service/api/product")
+                .retrieve()
+                .bodyToMono(ProductView[].class)
+                .block();
+        Set<String> restricted = Arrays.stream(products == null ? new ProductView[0] : products)
+                .filter(p -> p.minimumAge() != null && p.minimumAge() > 0)
+                .map(ProductView::skuCode)
+                .collect(Collectors.toSet());
+        List<String> requested = orderRequest.getOrderLineItemsDtoList().stream()
+                .map(OrderLineItemsDto::getSkuCode)
+                .filter(restricted::contains)
+                .distinct()
+                .toList();
+        if (!requested.isEmpty()) {
+            throw new AgeRestrictedItemException(requested);
+        }
+    }
+
+    record ProductView(String skuCode, Integer minimumAge) {
     }
 
     @Transactional(readOnly = true)
@@ -90,6 +122,8 @@ public class OrderService {
         orderLineItems.setPrice(orderLineItemsDto.getPrice());
         orderLineItems.setQuantity(orderLineItemsDto.getQuantity());
         orderLineItems.setSkuCode(orderLineItemsDto.getSkuCode());
+        orderLineItems.setMinimumAge(orderLineItemsDto.getMinimumAge());
+        orderLineItems.setAgeApprovedBy(orderLineItemsDto.getAgeApprovedBy());
         return orderLineItems;
     }
 }
