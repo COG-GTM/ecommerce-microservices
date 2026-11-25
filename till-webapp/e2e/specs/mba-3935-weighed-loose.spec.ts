@@ -61,17 +61,36 @@ test.describe('MBA-3935 weighed and loose items', () => {
     await till.scan('2201')
     const weight = new WeightDialog(page)
     await expect(weight.root).toBeVisible()
+    const tabAround = async () => {
+      for (const key of ['Tab', 'Shift+Tab']) {
+        for (let i = 0; i < 18; i++) {
+          await page.keyboard.press(key)
+          await expect(weight.focusedControl).toHaveCount(1)
+        }
+      }
+    }
+    await tabAround()
+    await weight.input.focus()
     await page.keyboard.type('0.5')
     await expect(weight.preview).toContainText('£1.10')
-    for (let i = 0; i < 20; i++) {
-      await page.keyboard.press(i % 2 ? 'Tab' : 'Shift+Tab')
-      await expect(weight.root.locator(':focus')).toHaveCount(1)
-    }
+    await tabAround()
     await page.keyboard.press('Escape')
     await expect(weight.root).toBeHidden()
     await expect(weight.barcodeInput).toBeFocused()
     await expect(till.lines).toHaveCount(1)
     await expect(till.total).toHaveText('£1.55')
+  })
+
+  test('weight the till rejects keeps the prompt open with the reason', async ({ till, page }) => {
+    await till.open()
+    await till.scan('2201')
+    const weight = new WeightDialog(page)
+    await weight.keyWeight('0.002')
+    await weight.submitRejected()
+    await expect(weight.error).toHaveText('Weight is too low to charge for Loose tomatoes; weigh again')
+    await weight.keyWeight('C0.452')
+    await weight.confirm()
+    await expect(till.lines).toHaveCount(1)
   })
 
   test('label with a bad check digit is rejected with a clear message', async ({ till }) => {
