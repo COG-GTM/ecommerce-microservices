@@ -17,6 +17,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     java.util.List<Order> findByOriginalOrderNumber(String originalOrderNumber);
 
-    java.util.List<Order> findTop200ByTillIdOrderByIdDesc(String tillId);
+    java.util.List<Order> findByTillIdAndIdGreaterThanOrderByIdAsc(String tillId, Long afterId,
+            org.springframework.data.domain.Pageable page);
 
 }

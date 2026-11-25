@@ -31,8 +31,17 @@ const SALE_SERVICES = ['product-service', 'inventory-service', 'order-service']
 export const isHealthy = (s: TillSession) => SALE_SERVICES.every((name) => s.services?.[name] !== 'DOWN')
 
 /** A network failure, or the gateway / till-service saying a backend is unreachable. */
-export const isUnreachable = (e: unknown) =>
-  !(e instanceof TillApiError) || [502, 503, 504].includes(e.status) || e.code === 'BACKEND_UNAVAILABLE'
+const TILL_ERROR_CODE = /^[A-Z][A-Z0-9_]*$/
+
+/**
+ * True when the till cannot reach its backend. A 5xx carrying a till-service error code (e.g. MORE_CARD_UNAVAILABLE)
+ * is an answer from a reachable backend; only BACKEND_UNAVAILABLE among those means a service behind it is down.
+ */
+export const isUnreachable = (e: unknown) => {
+  if (!(e instanceof TillApiError) || e.code === 'BACKEND_UNAVAILABLE') return true
+  if (![502, 503, 504].includes(e.status)) return false
+  return e.code.startsWith('HTTP_') || !TILL_ERROR_CODE.test(e.code)
+}
 
 export const isLocal = (basket: Basket | null | undefined) => !!basket?.basketId.startsWith(LOCAL_BASKET_PREFIX)
 

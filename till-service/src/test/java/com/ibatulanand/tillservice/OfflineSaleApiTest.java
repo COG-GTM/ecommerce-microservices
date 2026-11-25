@@ -58,8 +58,8 @@ class OfflineSaleApiTest {
     }
 
     @Test
-    void replaysCashSaleWithIdempotencyKeyAtThePriceCharged() throws Exception {
-        JsonNode result = sync(sale("CASH", List.of(line("1001", 2, 140))), status().isOk());
+    void replaysCashSaleWithIdempotencyKeyAtTheCataloguePrice() throws Exception {
+        JsonNode result = sync(sale("CASH", List.of(line("1001", 2, 1))), status().isOk());
 
         ArgumentCaptor<Basket> basket = ArgumentCaptor.forClass(Basket.class);
         verify(services).placeSale(basket.capture(), eq("0417"), eq("CASH"), eq("offline-" + saleId));
@@ -67,11 +67,12 @@ class OfflineSaleApiTest {
         assertThat(basket.getValue().getTransactionNumber()).isEqualTo("0417-till-off-OFF1");
         assertThat(basket.getValue().getLines()).singleElement().satisfies(l -> {
             assertThat(l.getSkuCode()).isEqualTo("MOR-MILK-SS-4PT");
-            assertThat(l.getUnitPricePence()).isEqualTo(140);
+            assertThat(l.getName()).isEqualTo("Semi skimmed milk 4 pints");
+            assertThat(l.getUnitPricePence()).isEqualTo(155);
         });
         assertThat(result.get("orderNumber").asText()).isEqualTo("ORDER-OFF-1");
         assertThat(result.get("saleId").asText()).isEqualTo(saleId);
-        assertThat(result.get("totalPence").asInt()).isEqualTo(280);
+        assertThat(result.get("totalPence").asInt()).isEqualTo(310);
         assertThat(result.get("amountTenderedPence").asInt()).isEqualTo(500);
     }
 
@@ -87,11 +88,22 @@ class OfflineSaleApiTest {
     }
 
     @Test
-    void itemsMissingFromTheCatalogueKeepTheTillsCachedValues() throws Exception {
-        Map<String, Object> cached = Map.of("barcode", "7777", "skuCode", "MOR-CACHED", "name", "Cached item",
-                "quantity", 1, "unitPricePence", 250);
-        JsonNode result = sync(sale("CASH", List.of(cached)), status().isOk());
-        assertThat(result.get("totalPence").asInt()).isEqualTo(250);
+    void barcodeMissingFromTheCatalogueIsRejectedEvenWithTillSuppliedValues() throws Exception {
+        Map<String, Object> invented = Map.of("barcode", "7777", "skuCode", "MOR-INVENTED", "name", "Invented item",
+                "quantity", 1, "unitPricePence", 1);
+        JsonNode error = sync(sale("CASH", List.of(invented)), status().isUnprocessableEntity());
+        assertThat(error.get("error").asText()).isEqualTo("UNKNOWN_BARCODE");
+        verify(services, never()).placeSale(any(), anyString(), anyString(), anyString());
+    }
+
+    @Test
+    void cashCoveringTheTillsOfflineTotalIsAcceptedAfterAPriceRise() throws Exception {
+        Map<String, Object> sale = new java.util.HashMap<>(sale("CASH", List.of(line("1001", 2, 140))));
+        sale.put("totalPence", 280);
+        sale.put("amountTenderedPence", 300);
+        JsonNode result = sync(sale, status().isOk());
+        assertThat(result.get("totalPence").asInt()).isEqualTo(310);
+        assertThat(result.get("amountTenderedPence").asInt()).isEqualTo(300);
     }
 
     @Test
@@ -121,7 +133,7 @@ class OfflineSaleApiTest {
 
     @Test
     void rejectsCashBelowTheTotalAndNegativePrices() throws Exception {
-        JsonNode shortCash = sync(sale("CASH", List.of(line("1001", 3, 200))), status().isUnprocessableEntity());
+        JsonNode shortCash = sync(sale("CASH", List.of(line("1001", 4, 155))), status().isUnprocessableEntity());
         assertThat(shortCash.get("error").asText()).isEqualTo("INSUFFICIENT_TENDER");
         sync(sale("CASH", List.of(line("1001", 1, -50))), status().isBadRequest());
         verify(services, org.mockito.Mockito.never()).placeSale(any(), anyString(), anyString(), anyString());

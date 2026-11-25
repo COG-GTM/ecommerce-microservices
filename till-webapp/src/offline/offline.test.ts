@@ -81,3 +81,18 @@ describe('health', () => {
     expect(isUnreachable(new TillApiError(404, 'UNKNOWN_BARCODE', 'nope'))).toBe(false)
   })
 })
+
+describe('isUnreachable', () => {
+  it('treats network and gateway failures as offline', () => {
+    expect(isUnreachable(new TypeError('Failed to fetch'))).toBe(true)
+    expect(isUnreachable(new TillApiError(502, 'HTTP_502', 'Bad Gateway'))).toBe(true)
+    expect(isUnreachable(new TillApiError(503, 'Service Unavailable', 'gateway: no till-service instance'))).toBe(true)
+    expect(isUnreachable(new TillApiError(503, 'BACKEND_UNAVAILABLE', 'order-service is unavailable'))).toBe(true)
+  })
+
+  it('keeps the till online when the backend answers with its own error, even a 503', () => {
+    expect(isUnreachable(new TillApiError(503, 'MORE_CARD_UNAVAILABLE', 'More Card is not available on this till'))).toBe(false)
+    expect(isUnreachable(new TillApiError(422, 'UNKNOWN_BARCODE', 'No product'))).toBe(false)
+    expect(isUnreachable(new TillApiError(409, 'OUT_OF_STOCK', 'Out of stock'))).toBe(false)
+  })
+})

@@ -57,8 +57,9 @@ The demo story is a store estate moving off a legacy till application one capabi
 
 Base path through the gateway: `http://localhost:8181/api/till`. All money is **integer pence, GBP**. Online, clients never
 compute totals; they render `subtotalPence`, `savingsPence` and `totalPence` from the last response. The one exception
-is offline mode (MBA-3940): the webapp prices its local basket from the cached catalogue, and replay records those
-prices.
+is offline mode (MBA-3940): the webapp prices its local basket from the cached catalogue. Replay reprices every line
+from the live catalogue (the till's SKU, name and price are ignored, and unknown barcodes are rejected); the cash must
+cover the till's offline `totalPence`.
 
 | Method | Path | Body | Returns |
 | --- | --- | --- | --- |
@@ -76,7 +77,7 @@ prices.
 | POST | `/basket/member` | `{ basketId, cardNumber }` (More Card, seeded test cards `9826000000000001`/`…0002`) | `Basket` with `member`; 404 `UNKNOWN_CARD` leaves the basket's membership unchanged (non-member if no card was attached); seeded cards only under the `dev`/`till-demo` profile (otherwise 503 `MORE_CARD_UNAVAILABLE`) |
 | GET | `/refund/{reference}` | - | `RefundableSale` (reference: receipt `R-...`, transaction or order number) |
 | POST | `/refund` | `{ reference, tillId?, lines: [{ skuCode, quantity, lineId? }] }` (`lineId` picks one sale line, e.g. a weighed pack; without it the quantity comes off that SKU's lines in order) | `RefundResult` (`remaining` is null if the refund committed but the refreshed sale could not be read); `409 REFUND_EXCEEDS_SOLD` beyond what is left |
-| POST | `/offline-sales` | `{ saleId, tillId, transactionNumber, tenderType: CASH, lines: [{ barcode, skuCode?, name?, quantity, unitPricePence? }], amountTenderedPence }` | `{ saleId, orderNumber, transactionNumber, totalPence, amountTenderedPence }`; idempotent on `saleId` |
+| POST | `/offline-sales` | `{ saleId, tillId, transactionNumber, tenderType: CASH, lines: [{ barcode, quantity }], amountTenderedPence, totalPence }` | `{ saleId, orderNumber, transactionNumber, totalPence, amountTenderedPence }`; idempotent on `saleId` |
 
 `tillId` is optional (default `07`). Each till id has its own basket, which is how parallel E2E tests stay isolated.
 `terminalOutcome` drives the simulated PIN pad. A real terminal adapter ignores it. `TIMEOUT` waits

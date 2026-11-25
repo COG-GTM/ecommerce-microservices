@@ -77,6 +77,7 @@ public class OrderService {
         });
     }
 
+    /** One page of a till's orders in the order they were stored, after the order with id {@code afterId}. */
     @Transactional(readOnly = true)
     public Optional<Order> findByIdempotencyKey(String idempotencyKey) {
         if (idempotencyKey == null) {
@@ -96,12 +97,18 @@ public class OrderService {
     }
 
     @Transactional(readOnly = true)
-    public List<Order> findByTillId(String tillId) {
-        // The latest 200 orders, oldest first.
-        List<Order> orders = new java.util.ArrayList<>(orderRepository.findTop200ByTillIdOrderByIdDesc(tillId));
-        java.util.Collections.reverse(orders);
+    public List<Order> findByTillId(String tillId, long afterId, int limit) {
+        List<Order> orders = orderRepository.findByTillIdAndIdGreaterThanOrderByIdAsc(tillId, afterId,
+                org.springframework.data.domain.PageRequest.of(0, limit));
         orders.forEach(order -> order.getOrderLineItemsList().size());
         return orders;
+    }
+
+    /** The idempotency key already belongs to a different till sale, so this request is not a replay of it. */
+    public static class IdempotencyConflictException extends RuntimeException {
+        public IdempotencyConflictException(String idempotencyKey) {
+            super("Idempotency key " + idempotencyKey + " already belongs to a different sale");
+        }
     }
 
     /**
@@ -113,8 +120,13 @@ public class OrderService {
         if (idempotencyKey != null && !idempotencyKey.isBlank()) {
             Optional<Order> existing = orderRepository.findFirstByIdempotencyKey(idempotencyKey);
             if (existing.isPresent()) {
-                existing.get().getOrderLineItemsList().size();
-                return existing.get();
+                Order stored = existing.get();
+                if (!java.util.Objects.equals(stored.getTillId(), orderRequest.getTillId())
+                        || !java.util.Objects.equals(stored.getTransactionId(), orderRequest.getTransactionId())) {
+                    throw new IdempotencyConflictException(idempotencyKey);
+                }
+                stored.getOrderLineItemsList().size();
+                return stored;
             }
         }
         Order order = new Order();
