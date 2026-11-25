@@ -42,8 +42,8 @@ export function BasketPanel({ basket, selectedLineId, onSelect }: Props) {
                 aria-selected={line.lineId === selectedLineId}
                 onClick={() => onSelect(line.lineId)}
               >
-                <td className="item" data-testid="line-name">
-                  {line.name}
+                <td className="item">
+                  <span data-testid="line-name">{line.name}</span>
                   {line.vatCode && <span className="vat-code" data-testid="line-vat-code" title={`VAT code ${line.vatCode}`}>{line.vatCode}</span>}
                 </td>
                 <td className="num qty" data-testid="line-qty">{line.quantity}</td>
