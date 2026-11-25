@@ -7,6 +7,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -16,7 +18,9 @@ import java.util.List;
  * Seeds the products used by the till multi-buy and meal-deal promotions (MBA-3934, barcodes 393401-393407).
  * Not quick keys: they are scanned. Idempotent: upserts by barcode. Enabled with catalogue.seed.grocery=true.
  */
+// Runs before the grocery seed that the till readiness probe waits for, so promotion items are ready with it.
 @Component
+@Order(Ordered.HIGHEST_PRECEDENCE)
 @ConditionalOnProperty(name = "catalogue.seed.grocery", havingValue = "true")
 @RequiredArgsConstructor
 @Slf4j

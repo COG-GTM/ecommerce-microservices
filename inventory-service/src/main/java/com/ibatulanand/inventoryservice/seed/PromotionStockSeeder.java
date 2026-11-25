@@ -4,12 +4,16 @@ import com.ibatulanand.inventoryservice.model.Inventory;
 import com.ibatulanand.inventoryservice.repository.InventoryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
 /** Stock for the till promotion products (MBA-3934, barcodes 393401-393407 in product-service), when absent. */
+// Runs before the grocery seed that the till readiness probe waits for, so promotion items are ready with it.
 @Component
+@Order(Ordered.HIGHEST_PRECEDENCE)
 @RequiredArgsConstructor
 public class PromotionStockSeeder implements CommandLineRunner {
 
