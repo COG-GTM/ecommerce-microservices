@@ -25,7 +25,10 @@ import java.util.concurrent.TimeUnit;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@DataJpaTest(properties = "spring.datasource.url=jdbc:h2:mem:inventory;DB_CLOSE_DELAY=-1;LOCK_TIMEOUT=10000")
+@DataJpaTest(properties = {
+        "spring.datasource.url=jdbc:h2:mem:inventory;DB_CLOSE_DELAY=-1;LOCK_TIMEOUT=10000",
+        "spring.sql.init.mode=never"
+})
 @Import(InventoryService.class)
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 class InventoryServiceTest {
