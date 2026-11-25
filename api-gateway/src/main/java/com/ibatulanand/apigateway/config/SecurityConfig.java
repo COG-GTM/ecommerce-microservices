@@ -55,13 +55,16 @@ public class SecurityConfig {
             @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri}") String issuerUri,
             @Value("${gateway.security.allowed-clients}") List<String> allowedClients) {
         OAuth2TokenValidator<Jwt> validator = jwtValidator(issuerUri, allowedClients);
-        return new SupplierReactiveJwtDecoder(() -> {
-            NimbusReactiveJwtDecoder decoder = NimbusReactiveJwtDecoder.withIssuerLocation(issuerUri)
-                    .jwtProcessorCustomizer(new CompromisedSigningKeys(CompromisedSigningKeys.KNOWN)::apply)
-                    .build();
-            decoder.setJwtValidator(validator);
-            return decoder;
-        });
+        return new SupplierReactiveJwtDecoder(() -> jwtDecoder(NimbusReactiveJwtDecoder.withIssuerLocation(issuerUri),
+                new CompromisedSigningKeys(CompromisedSigningKeys.KNOWN), validator));
+    }
+
+    static NimbusReactiveJwtDecoder jwtDecoder(NimbusReactiveJwtDecoder.JwkSetUriReactiveJwtDecoderBuilder builder,
+                                               CompromisedSigningKeys compromisedKeys,
+                                               OAuth2TokenValidator<Jwt> validator) {
+        NimbusReactiveJwtDecoder decoder = builder.jwtProcessorCustomizer(compromisedKeys::apply).build();
+        decoder.setJwtValidator(validator);
+        return decoder;
     }
 
     static OAuth2TokenValidator<Jwt> jwtValidator(String issuerUri, List<String> allowedClients) {
