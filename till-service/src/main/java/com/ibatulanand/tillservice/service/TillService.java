@@ -48,6 +48,8 @@ public class TillService {
     private final PaymentTerminal terminal;
     private final BasketPricer pricer;
     private final TillProperties properties;
+    private static final int MAX_CARD_INPUT = 64;
+
     private final Optional<MoreCardDirectory> moreCards;
     private final MoreCardProperties moreCardProperties;
 
@@ -134,6 +136,9 @@ public class TillService {
 
     /** Attaches a More Card holder to the open transaction so member prices apply and points are earned. */
     public synchronized Basket attachMember(String basketId, String cardNumber) {
+        if (cardNumber.length() > MAX_CARD_INPUT) {
+            throw new TillException(HttpStatus.BAD_REQUEST, "INVALID_CARD", "More Card number is too long");
+        }
         Basket basket = openForChange(basketId);
         String card = cardNumber.replaceAll("\\s", "");
         MoreCardDirectory directory = moreCards.orElseThrow(() -> new TillException(HttpStatus.SERVICE_UNAVAILABLE,
