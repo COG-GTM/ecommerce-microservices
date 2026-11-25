@@ -177,7 +177,7 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
    docker compose up -d --build
    ```
    The six application images are built locally from the `Dockerfile` (no prebuilt application images are pulled). Third-party images are pinned to exact versions (the official MySQL and MongoDB images also by `sha256` digest).
-   MySQL and MongoDB cannot open data directories written by a newer major version, so if `./mysql_*` or `./mongo-data` were created by a newer release than the pinned one, remove them (or raise the pin) before starting.
+   MySQL and MongoDB data directories only move between supported versions: they cannot be opened by an older major, and older majors must be upgraded step by step (MySQL 8.4 -> 9.7 -> 26.10, MongoDB 7.0 -> 8.0 -> 9.0). If `./mysql_*` or `./mongo-data` were created by another major version, upgrade them through those steps or remove them (local demo data) before starting.
 
 
 3. Confirm that the containers are up and running:

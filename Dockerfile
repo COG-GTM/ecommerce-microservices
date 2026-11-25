@@ -15,13 +15,12 @@ COPY notification-service/pom.xml notification-service/
 COPY order-service/pom.xml order-service/
 COPY product-service/pom.xml product-service/
 COPY ${SERVICE}/src ${SERVICE}/src
-RUN --mount=type=cache,target=/root/.m2 \
-    mvn -B -q -pl "${SERVICE}" -am -DskipTests package \
+RUN mvn -B -q -pl "${SERVICE}" -am -DskipTests package \
     && cp "${SERVICE}"/target/"${SERVICE}"-*.jar /workspace/app.jar
 # Run from an exploded classpath (as Jib did) so threads on the common
 # ForkJoinPool, which use the system class loader, can load application classes.
 RUN mkdir /workspace/exploded && cd /workspace/exploded && jar xf /workspace/app.jar \
-    && main_class="$(sed -n 's/^Start-Class: *//p' META-INF/MANIFEST.MF | tr -d '\r')" \
+    && main_class="$(tr -d '\r' < META-INF/MANIFEST.MF | sed -e ':a' -e '$!N' -e 's/\n //' -e 'ta' -e 'P' -e 'D' | sed -n 's/^Start-Class: *//p')" \
     && test -n "${main_class}" \
     && printf -- '-cp /app/classes:/app/libs/*\n%s\n' "${main_class}" > /workspace/java.args
 
