@@ -172,13 +172,22 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
    cd ecommerce-microservices
    ```
 
-2. Start the containers:
+2. Configure database credentials. `docker-compose.yml` has no built-in database passwords and refuses to start until `.env` provides them. Generate a `.env` (gitignored) with a distinct random value for every secret:
+   ```shell
+   awk '!/^#/ && /CHANGE_ME/{c="openssl rand -hex 24"; c|getline v; close(c); sub(/CHANGE_ME/,v)}1' .env.example > .env
+   ```
+   - MySQL (3307, 3308) and MongoDB (27017) are published on `127.0.0.1` only (`DB_BIND_ADDRESS`).
+   - MongoDB requires authentication: a root user plus a `readWrite` user for `product-service`, created by `mongo-init/` on first start.
+   - Database init only runs on an empty data directory. If you started the stack before, remove `mysql_order/`, `mysql_inventory/` and `mongo-data/` so the new credentials take effect.
+   - `scripts/check-compose-db-security.sh` checks the rendered compose config for these settings.
+
+3. Start the containers:
    ```shell
    docker compose up -d
    ```
 
 
-3. Confirm that the containers are up and running:
+4. Confirm that the containers are up and running:
    ```shell
    docker ps
    ```
