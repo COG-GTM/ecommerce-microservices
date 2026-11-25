@@ -204,6 +204,7 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
 
 - **Getting Credentials from KeyCloak**
   - Access the KeyCloak Admin UI at http://localhost:8080/ and sign in with `KEYCLOAK_ADMIN_USERNAME` / `KEYCLOAK_ADMIN_PASSWORD` from your `.env`
+    (or the password you later set in the console)
     (Keycloak runs in production mode and is published on `127.0.0.1` only, so the console is not reachable from other machines)
   - Go to the Realm `spring-boot-microservices-realm`
   - Go to the Client `spring-cloud-client`
