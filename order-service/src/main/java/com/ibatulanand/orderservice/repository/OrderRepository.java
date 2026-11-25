@@ -8,6 +8,6 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     java.util.Optional<Order> findFirstByIdempotencyKey(String idempotencyKey);
 
-    java.util.List<Order> findByTillIdOrderByIdAsc(String tillId);
+    java.util.List<Order> findTop200ByTillIdOrderByIdDesc(String tillId);
 
 }
