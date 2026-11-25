@@ -51,8 +51,8 @@ export function SaleComplete({ result, onNewSale }: { result: TenderResult; onNe
               <div className="receipt-row">
                 <span>
                   {l.quantity} × {l.name}
-                  {l.vatCode && <span className="vat-code">{l.vatCode}</span>}
                   {l.pricedBy === 'WEIGHT' && l.weightGrams != null && ` ${formatKg(l.weightGrams)} @ ${formatPence(l.unitPricePence)}/kg`}
+                  {l.vatCode && <span className="vat-code">{l.vatCode}</span>}
                 </span>
                 <span>{formatPence(l.linePence)}</span>
               </div>

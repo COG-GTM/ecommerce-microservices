@@ -26,7 +26,7 @@ test.describe('MBA-3941 price feed', () => {
 
   test('legacy price file and price feed give the till identical prices for every seeded item', async ({ request }) => {
     const fromFile = legacyPrices()
-    expect(fromFile).toHaveLength(11)
+    expect(fromFile).toHaveLength(13)
     const published = await request.put(FEED, { data: { prices: fromFile.map(({ barcode, pricePence }) => ({ barcode, pricePence })) } })
     expect(published.status()).toBe(200)
     for (const item of fromFile) {
