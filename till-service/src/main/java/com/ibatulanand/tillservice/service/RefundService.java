@@ -84,11 +84,18 @@ public class RefundService {
         RefundOrder order = orders.refund(sale.orderNumber(), properties.storeNumber(), tillId, transactionNumber,
                 lines);
         int persistedPence = order.totalPence() == null ? refundPence : Math.abs(order.totalPence());
-        log.info("Till {} refunded {}p against order {} as {}", tillId, persistedPence, sale.orderNumber(),
-                order.orderNumber());
+        log.info("Till {} refunded {}p against order {} as {}", tillId.replaceAll("[\\r\\n]", "_"), persistedPence,
+                sale.orderNumber(), order.orderNumber());
+        RefundableSale remaining;
+        try {
+            remaining = lookup(sale.orderNumber());
+        } catch (RuntimeException e) {
+            // The refund is committed; never report it as failed because the refreshed view could not be read.
+            log.warn("Refund {} committed but the refreshed sale could not be read", order.orderNumber(), e);
+            remaining = null;
+        }
         return new RefundResult("REFUNDED", order.orderNumber(), sale.orderNumber(), transactionNumber, tillId,
-                properties.operatorName(), sale.tenderType(), persistedPence, refunded, lookup(sale.orderNumber()),
-                Instant.now());
+                properties.operatorName(), sale.tenderType(), persistedPence, refunded, remaining, Instant.now());
     }
 
     private RefundableSale withNames(RefundableSale sale) {

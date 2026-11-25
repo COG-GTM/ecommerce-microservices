@@ -46,14 +46,16 @@ export function RefundPanel({ tillId, onExit }: { tillId?: string; onExit: () =>
   const setQty = (skuCode: string, quantity: number) => setQuantities((q) => ({ ...q, [skuCode]: quantity }))
 
   const selected = sale ? sale.lines.filter((l) => (quantities[l.skuCode] ?? 0) > 0) : []
-  const refundPence = selected.reduce((sum, l) => sum + l.unitPricePence * quantities[l.skuCode], 0)
+  // order-service never pays out more than the sale took, so the preview is capped the same way.
+  const refundPence = Math.min(sale?.refundablePence ?? 0, selected.reduce((sum, l) => sum + l.unitPricePence * quantities[l.skuCode], 0))
 
   const submit = () =>
     sale &&
     run(async () => {
       const r = await tillApi.refund(sale.orderNumber, selected.map((l) => ({ skuCode: l.skuCode, quantity: quantities[l.skuCode] })), tillId)
       setResult(r)
-      setSale(r.remaining)
+      if (r.remaining) setSale(r.remaining)
+      else await tillApi.refundLookup(sale.orderNumber).then(setSale).catch(() => setSale(null))
       setQuantities({})
     })
 
@@ -62,7 +64,7 @@ export function RefundPanel({ tillId, onExit }: { tillId?: string; onExit: () =>
       <section className="panel refund refund-done" data-testid="refund-complete">
         <h2>Refund complete</h2>
         <div className="refund-amount" data-testid="refund-amount">−{formatPence(result.refundPence)}</div>
-        <p className="muted">Return to customer by {result.tenderType.toLowerCase()} · original order <span data-testid="refund-original-order">{result.originalOrderNumber}</span></p>
+        <p className="muted">Return to customer{result.tenderType ? ` by ${result.tenderType.toLowerCase()}` : ''} · original order <span data-testid="refund-original-order">{result.originalOrderNumber}</span></p>
         <p className="order-ref">Refund <span data-testid="refund-number">{result.refundNumber}</span> · {result.transactionNumber}</p>
         <ApiChip>POST /api/till/refund</ApiChip>
         <div className="row-buttons">
@@ -101,7 +103,7 @@ export function RefundPanel({ tillId, onExit }: { tillId?: string; onExit: () =>
         <>
           <div className="refund-sale" data-testid="refund-sale">
             <span>Order <strong data-testid="refund-sale-order">{sale.orderNumber}</strong></span>
-            <span>Paid {formatPence(sale.totalPence)} by {sale.tenderType.toLowerCase()}</span>
+            <span>Paid {formatPence(sale.totalPence)}{sale.tenderType ? ` by ${sale.tenderType.toLowerCase()}` : ''}</span>
             <span>Already refunded <strong data-testid="refund-already">{formatPence(sale.refundedPence)}</strong></span>
           </div>
           <table className="refund-table">

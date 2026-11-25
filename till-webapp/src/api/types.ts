@@ -103,7 +103,7 @@ export interface RefundableSale {
   transactionId: string
   storeNumber: string
   tillId: string
-  tenderType: TenderType
+  tenderType: TenderType | null
   totalPence: number
   refundedPence: number
   refundablePence: number
@@ -126,10 +126,11 @@ export interface RefundResult {
   transactionNumber: string
   tillId: string
   operatorName: string
-  tenderType: TenderType
+  tenderType: TenderType | null
   refundPence: number
   lines: RefundedLine[]
-  remaining: RefundableSale
+  /** null if the refund committed but the refreshed sale could not be read */
+  remaining: RefundableSale | null
   issuedAt: string
 }
 
