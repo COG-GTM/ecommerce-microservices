@@ -164,6 +164,7 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
 ### Prerequisites
 1. Docker and Docker Compose should be installed.
 2. Docker should be running.
+3. Docker Engine 28.0 or later: older engines let hosts on the same LAN reach ports published on `127.0.0.1`, so the database ports are not isolated there.
 
 ### Deployment
 
