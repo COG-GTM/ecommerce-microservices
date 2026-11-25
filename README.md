@@ -178,7 +178,7 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
    ```
    - MySQL (3307, 3308) and MongoDB (27017) are published on `127.0.0.1` only (`DB_BIND_ADDRESS`).
    - MongoDB requires authentication: a root user plus a `readWrite` user for `product-service`, created by `mongo-init/` on first start.
-   - To run `product-service` on the host against this MongoDB, load the credentials from `.env` instead of typing them (`set -a && . ./.env && set +a`); its default `spring.data.mongodb.uri` reads `MONGO_APP_USER` and `MONGO_APP_PASSWORD`.
+   - To run `product-service` on the host against this MongoDB, export only the app credentials from `.env` instead of typing them (`export MONGO_APP_USER="$(sed -n 's/^MONGO_APP_USER=//p' .env)" MONGO_APP_PASSWORD="$(sed -n 's/^MONGO_APP_PASSWORD=//p' .env)"`); its default `spring.data.mongodb.uri` reads `MONGO_APP_USER` and `MONGO_APP_PASSWORD`.
    - The command refuses to overwrite an existing `.env`: initialized databases keep the passwords they were created with, so do not regenerate it for a running stack.
    - Upgrading an existing stack: database init only runs on an empty data directory, so `mysql_order/`, `mysql_inventory/` and `mongo-data/` keep their old accounts. If the data is disposable, delete those directories before starting. Otherwise start only the databases (`docker compose up -d mysql-order mysql-inventory mongo`) and set the new credentials in place:
      - MySQL (`docker exec -it mysql-order mysql -uroot -p`, then the same for `mysql-inventory`): `CREATE USER` and `GRANT ALL ON order_service.*` (or `inventory_service.*`) for the new user, `DROP USER 'ibatulanand'@'%'` to remove the old login, and `ALTER USER` for `'root'@'%'` and `'root'@'localhost'`.
