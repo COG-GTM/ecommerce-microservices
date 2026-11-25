@@ -29,6 +29,7 @@
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <spring-cloud.version>2022.0.4</spring-cloud.version>
+        <container.image.prefix>ecommerce-microservices</container.image.prefix>
     </properties>
 
     <dependencyManagement>
@@ -70,10 +71,10 @@
                 <version>3.4.0</version>
                 <configuration>
                     <from>
-                        <image>eclipse-temurin:17.0.4.1_1-jre</image>
+                        <image>eclipse-temurin:17-jre-noble@sha256:ad806840ae514b83d3d8e3a00a5c1b7302fb0a6ae02bbbaf8a8bf1ffdf5367c6</image>
                     </from>
                     <to>
-                        <image>registry.hub.docker.com/ibatulanandjp/${project.artifactId}</image>
+                        <image>${container.image.prefix}/${project.artifactId}</image>
                     </to>
                 </configuration>
             </plugin>
