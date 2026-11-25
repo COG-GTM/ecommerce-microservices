@@ -13,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -44,7 +45,8 @@ public class RefundService {
         return summarise(resolveSale(reference));
     }
 
-    @Transactional
+    // READ_COMMITTED: refund history must be read after the sale lock is granted, not from a snapshot taken before it.
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public Order refund(String reference, RefundRequest request) {
         String orderNumber = resolveSale(reference).getOrderNumber();
         Order sale = orderRepository.findWithLockByOrderNumber(orderNumber).orElseThrow(() -> unknown(reference));
@@ -55,7 +57,7 @@ public class RefundService {
         Map<String, RefundableLine> bySku = new LinkedHashMap<>();
         summary.lines().forEach(l -> bySku.put(l.skuCode(), l));
 
-        Map<String, Integer> requested = new LinkedHashMap<>();
+        Map<String, Long> requested = new LinkedHashMap<>();
         for (RefundLineRequest line : request.lines()) {
             if (line == null || line.skuCode() == null || line.quantity() == null || line.quantity() < 1) {
                 throw new RefundException(HttpStatus.BAD_REQUEST, "INVALID_REFUND", "Refund quantities must be at least 1");
@@ -64,12 +66,12 @@ public class RefundService {
                 throw new RefundException(HttpStatus.BAD_REQUEST, "INVALID_REFUND",
                         line.skuCode() + " was not sold on order " + sale.getOrderNumber());
             }
-            requested.merge(line.skuCode(), line.quantity(), Integer::sum);
+            requested.merge(line.skuCode(), (long) line.quantity(), Long::sum);
         }
 
         List<OrderLineItems> refundLines = new ArrayList<>();
         int refundPence = 0;
-        for (Map.Entry<String, Integer> entry : requested.entrySet()) {
+        for (Map.Entry<String, Long> entry : requested.entrySet()) {
             RefundableLine available = bySku.get(entry.getKey());
             if (entry.getValue() > available.refundableQuantity()) {
                 throw new RefundException(HttpStatus.CONFLICT, "REFUND_EXCEEDS_SOLD",
@@ -79,9 +81,9 @@ public class RefundService {
             OrderLineItems item = new OrderLineItems();
             item.setSkuCode(entry.getKey());
             item.setPrice(BigDecimal.valueOf(available.unitPricePence(), 2));
-            item.setQuantity(-entry.getValue());
+            item.setQuantity(-entry.getValue().intValue());
             refundLines.add(item);
-            refundPence += available.unitPricePence() * entry.getValue();
+            refundPence += available.unitPricePence() * entry.getValue().intValue();
         }
         // Never refund more money than the sale took (e.g. if the sale had basket-level savings).
         refundPence = Math.min(refundPence, summary.refundablePence());
@@ -113,8 +115,13 @@ public class RefundService {
         String ref = reference.trim();
         Order order = orderRepository.findFirstByOrderNumber(ref).orElseGet(() -> {
             String transactionId = ref.regionMatches(true, 0, "R-", 0, 2) ? ref.substring(2) : ref;
-            return orderRepository.findByTransactionIdOrderByIdDesc(transactionId).stream()
-                    .filter(o -> !REFUND.equals(o.getOrderType())).findFirst().orElse(null);
+            List<Order> sales = orderRepository.findByTransactionIdOrderByIdDesc(transactionId).stream()
+                    .filter(o -> !REFUND.equals(o.getOrderType())).toList();
+            if (sales.size() > 1) {
+                throw new RefundException(HttpStatus.CONFLICT, "AMBIGUOUS_RECEIPT",
+                        "More than one sale has receipt " + ref + "; use the order number");
+            }
+            return sales.isEmpty() ? null : sales.get(0);
         });
         if (order == null) {
             throw unknown(reference);

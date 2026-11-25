@@ -128,6 +128,16 @@ class RefundServiceTest {
                 .isInstanceOfSatisfying(RefundException.class, e -> assertThat(e.getCode()).isEqualTo("NOT_REFUNDABLE"));
     }
 
+    @Test
+    void receiptSharedByTwoSalesIsAmbiguous() {
+        Order other = new Order();
+        other.setOrderNumber("SALE-2");
+        when(repository.findByTransactionIdOrderByIdDesc("0123-T1-0001")).thenReturn(List.of(other, sale));
+        assertThatThrownBy(() -> service.refundable("R-0123-T1-0001"))
+                .isInstanceOfSatisfying(RefundException.class, e -> assertThat(e.getCode()).isEqualTo("AMBIGUOUS_RECEIPT"));
+        assertThat(service.refundable("SALE-1").orderNumber()).isEqualTo("SALE-1");
+    }
+
     private static RefundRequest request(RefundLineRequest... lines) {
         return new RefundRequest("0123", "T2", "0123-T2-R0001", null, List.of(lines));
     }
