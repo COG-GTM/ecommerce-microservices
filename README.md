@@ -182,7 +182,7 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
    start `mysql-order`, then apply them with the data directory's **current** root password
    (re-running also updates the application account's password):
    ```shell
-   export MYSQL_ROOT_PASSWORD='<current root password>'
+   read -rs -p 'Current root password: ' MYSQL_ROOT_PASSWORD && export MYSQL_ROOT_PASSWORD
    docker compose exec -e MYSQL_ROOT_PASSWORD mysql-order bash -c \
      'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -uroot order_service < /docker-entrypoint-initdb.d/01-schema.sql \
       && /docker-entrypoint-initdb.d/02-app-user.sh'
