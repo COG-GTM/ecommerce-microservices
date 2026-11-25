@@ -30,6 +30,11 @@ public class OrderService {
     private final KafkaTemplate<String, OrderPlacedEvent> kafkaTemplate;
 
     public String placeOrder(OrderRequest orderRequest) {
+        // Age approvals are only recorded by the till sale route, after a till-side Challenge 25 decision.
+        orderRequest.getOrderLineItemsDtoList().forEach(line -> {
+            line.setMinimumAge(null);
+            line.setAgeApprovedBy(null);
+        });
         placeAndReturnOrder(orderRequest);
         return "Order Placed Successfully!";
     }
