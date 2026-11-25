@@ -26,7 +26,7 @@ public class OrderService {
     private final WebClient.Builder webClientBuilder;
     private final KafkaTemplate<String, OrderPlacedEvent> kafkaTemplate;
 
-    public String placeOrder(OrderRequest orderRequest) {
+    public String placeOrder(OrderRequest orderRequest, String accessToken) {
         Order order = new Order();
         order.setOrderNumber(UUID.randomUUID().toString());
 
@@ -44,6 +44,7 @@ public class OrderService {
         InventoryResponse[] inventoryResponseArray = webClientBuilder.build().get()
                 .uri("http://inventory-service/api/inventory",
                         uriBuilder -> uriBuilder.queryParam("skuCode", skuCodes).build())
+                .headers(headers -> headers.setBearerAuth(accessToken))
                 .retrieve()
                 .bodyToMono(InventoryResponse[].class)
                 .block();
