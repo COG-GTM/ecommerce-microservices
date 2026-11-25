@@ -209,6 +209,11 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
 
     > NOTE: For getting the access token from the keycloak container with the local machine, it is required to add a row with `127.0.0.1 keycloak` in the file: `C:\Windows\System32\drivers\etc\hosts` or `/etc/hosts`  
 
+- **Granting catalog write access** [Required for `POST /api/product`]
+  - Creating products requires the realm role `product-admin`; other authenticated callers can only read the catalog and get `403` on `POST`.
+  - In the KeyCloak Admin UI, go to the Client `spring-cloud-client` > 'Service account roles' > 'Assign role', and assign `product-admin` only to clients that should manage the catalog.
+  - If your KeyCloak instance kept a realm imported before this role existed (startup import skips existing realms), first create it under 'Realm roles' > 'Create role' with the name `product-admin`.
+
 - **Accessing API Endpoints**
   - **POST /api/product**
     - Method: POST
