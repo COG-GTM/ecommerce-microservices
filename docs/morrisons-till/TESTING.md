@@ -35,7 +35,8 @@ Useful variables: `TILL_SKIP_BUILD=1` reuses built jars, `TILL_WAIT_TIMEOUT` (se
 ### Auth
 
 The stack starts the gateway with `SPRING_PROFILES_ACTIVE=dev`, so `/api/till/**` needs no login and tests read orders
-and notifications with plain `GET`s. Every other route still needs a Keycloak JWT. The `api` spec asserts that
+and notifications with plain `GET`s. The product price feed (`/api/product/price-feed/**`, MBA-3941) is also public in
+`dev` so tests can publish prices. Every other route still needs a Keycloak JWT. The `api` spec asserts that
 `GET /api/product` returns 401. To run the fully secured path, use
 `TILL_GATEWAY_PROFILE=default make till-up`. The till routes then need a bearer token from the
 `spring-boot-microservices-realm` realm.

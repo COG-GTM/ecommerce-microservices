@@ -68,4 +68,8 @@ export class TillPage {
     await expect(this.page.getByTestId('sale-complete')).toBeVisible()
     return (await this.page.getByTestId('order-number').textContent())!.trim()
   }
+
+  async voidLine() {
+    await this.page.getByTestId('void-line').click()
+  }
 }

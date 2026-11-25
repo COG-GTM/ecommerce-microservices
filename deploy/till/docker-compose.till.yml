@@ -103,6 +103,8 @@ services:
       SERVER_PORT: "8080"
       SPRING_DATA_MONGODB_URI: mongodb://mongo:27017/product-service
       CATALOGUE_SEED_GROCERY: "true"
+      # legacy-file = nightly price-file import; price-feed = REST feed (legacy file retired)
+      PRICING_SOURCE: ${TILL_PRICING_SOURCE:-price-feed}
     depends_on:
       mongo: { condition: service_healthy }
       discovery-server: { condition: service_healthy }
