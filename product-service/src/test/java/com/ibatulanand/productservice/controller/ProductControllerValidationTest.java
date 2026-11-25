@@ -1,11 +1,17 @@
 package com.ibatulanand.productservice.controller;
 
 import com.ibatulanand.productservice.service.ProductService;
+import jakarta.servlet.ServletInputStream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+
+import java.io.BufferedReader;
+import java.util.Enumeration;
+import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -83,7 +89,8 @@ class ProductControllerValidationTest {
     @Test
     void rejectsFormPostWithoutReadingIt() throws Exception {
         mockMvc.perform(post("/api/product").contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                        .content("name=n&description=d&price=1"))
+                        .content("name=n&description=d&price=1")
+                        .with(request -> new UnreadableRequest(request)))
                 .andExpect(status().isUnsupportedMediaType());
         verify(productService, never()).createProduct(any());
     }
@@ -99,6 +106,43 @@ class ProductControllerValidationTest {
     void usesDefaultPaging() throws Exception {
         mockMvc.perform(get("/api/product")).andExpect(status().isOk());
         verify(productService).getAllProducts(0, ProductService.DEFAULT_PAGE_SIZE);
+    }
+
+    private static final class UnreadableRequest extends MockHttpServletRequest {
+        UnreadableRequest(MockHttpServletRequest original) {
+            super(original.getServletContext(), original.getMethod(), original.getRequestURI());
+            setContentType(original.getContentType());
+        }
+
+        @Override
+        public ServletInputStream getInputStream() {
+            throw new AssertionError("body was read");
+        }
+
+        @Override
+        public BufferedReader getReader() {
+            throw new AssertionError("body was read");
+        }
+
+        @Override
+        public String getParameter(String name) {
+            throw new AssertionError("parameters were parsed");
+        }
+
+        @Override
+        public Map<String, String[]> getParameterMap() {
+            throw new AssertionError("parameters were parsed");
+        }
+
+        @Override
+        public Enumeration<String> getParameterNames() {
+            throw new AssertionError("parameters were parsed");
+        }
+
+        @Override
+        public String[] getParameterValues(String name) {
+            throw new AssertionError("parameters were parsed");
+        }
     }
 
     private org.springframework.test.web.servlet.ResultActions postJson(String json) throws Exception {
