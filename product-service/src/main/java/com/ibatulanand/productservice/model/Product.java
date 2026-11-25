@@ -18,7 +18,7 @@ import java.math.BigDecimal;
 public class Product {
     @Id
     private String id;
-    @Indexed(unique = true, partialFilter = "{ 'skuCode': { '$type': 'string' } }")
+    @Indexed(unique = true, sparse = true)
     private String skuCode;
     private String name;
     private String description;
