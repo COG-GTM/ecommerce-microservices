@@ -49,8 +49,8 @@ public class PromotionPricingRule implements PricingRule {
                     .orElseThrow();
             int[] total = totals.computeIfAbsent(new Key(anchor, promotions.indexOf(application.promotion())),
                     k -> new int[2]);
-            total[0] += application.savingsPence();
-            total[1]++;
+            total[0] += application.savingsPence() * application.times();
+            total[1] += application.times();
         }
         List<Adjustment> adjustments = new ArrayList<>();
         totals.entrySet().stream()

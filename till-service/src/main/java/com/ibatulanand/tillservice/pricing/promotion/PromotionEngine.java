@@ -17,8 +17,8 @@ import java.util.Set;
  */
 public final class PromotionEngine {
 
-    /** One application of a promotion: the units it consumed (barcode to count) and what it saves. */
-    public record Application(Promotion promotion, Map<String, Integer> consumed, int savingsPence) {
+    /** A promotion applied {@code times} times; {@code consumed} and {@code savingsPence} are per application. */
+    public record Application(Promotion promotion, Map<String, Integer> consumed, int savingsPence, int times) {
     }
 
     static final int MAX_STATES = 20_000;
@@ -132,7 +132,7 @@ public final class PromotionEngine {
                 int total = option.savingsPence + rest.savingsPence;
                 if (total > best.savingsPence) {
                     List<Application> applications = new ArrayList<>();
-                    applications.add(application(option));
+                    applications.add(application(option, 1));
                     applications.addAll(rest.applications);
                     best = new Result(total, List.copyOf(applications));
                 }
@@ -154,8 +154,17 @@ public final class PromotionEngine {
                 if (top == null) {
                     return applications;
                 }
-                applications.add(application(top));
-                remaining = minus(remaining, top.take);
+                // Options never gain savings as units are used, so the top option stays top until it runs out.
+                int times = Integer.MAX_VALUE;
+                for (int i = 0; i < top.take.length; i++) {
+                    if (top.take[i] > 0) {
+                        times = Math.min(times, remaining[i] / top.take[i]);
+                    }
+                }
+                applications.add(application(top, times));
+                for (int i = 0; i < remaining.length; i++) {
+                    remaining[i] -= top.take[i] * times;
+                }
             }
         }
 
@@ -197,14 +206,14 @@ public final class PromotionEngine {
             }
         }
 
-        private Application application(Option option) {
+        private Application application(Option option, int times) {
             Map<String, Integer> consumed = new LinkedHashMap<>();
             for (int i = 0; i < option.take.length; i++) {
                 if (option.take[i] > 0) {
                     consumed.put(barcodes.get(i), option.take[i]);
                 }
             }
-            return new Application(option.promotion, Map.copyOf(consumed), option.savingsPence);
+            return new Application(option.promotion, Map.copyOf(consumed), option.savingsPence, times);
         }
 
         private static int[] minus(int[] state, int[] take) {
