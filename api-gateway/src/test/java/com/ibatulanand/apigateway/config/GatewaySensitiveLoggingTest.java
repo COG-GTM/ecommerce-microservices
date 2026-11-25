@@ -9,11 +9,18 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.Properties;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 class GatewaySensitiveLoggingTest {
+
+    private static final String GATEWAY_LOGGER = "org.springframework.cloud.gateway";
 
     private static final List<String> HEADER_LOGGING_LOGGERS = List.of(
             "org.springframework.cloud.gateway.filter.headers.observation.ObservedRequestHttpHeadersFilter",
@@ -21,9 +28,12 @@ class GatewaySensitiveLoggingTest {
 
     private static final List<String> VERBOSE_LEVELS = List.of("DEBUG", "TRACE", "ALL");
 
+    private static final Pattern COMPOSE_LOGGING_ENTRY = Pattern.compile(
+            "^-?\\s*[\"']?(LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_(?:CLOUD_GATEWAY|SECURITY)\\w*)\\s*[=:]\\s*[\"']?(\\w*)");
+
     @Test
     void headerObservationFiltersDoNotLogAtDebugOrTrace() throws IOException {
-        Properties properties = PropertiesLoaderUtils.loadProperties(new ClassPathResource("application.properties"));
+        Properties properties = applicationProperties();
 
         for (String logger : HEADER_LOGGING_LOGGERS) {
             assertThat(effectiveLevel(properties, logger))
@@ -33,19 +43,40 @@ class GatewaySensitiveLoggingTest {
     }
 
     @Test
-    void composeDoesNotRaiseGatewayOrSecurityLoggingToDebugOrTrace() throws IOException {
-        Path compose = Path.of("..", "docker-compose.yml");
-        if (!Files.exists(compose)) {
-            return;
-        }
+    void headerObservationFiltersStayQuietWhenGatewayLoggingIsRaised() throws IOException {
+        Properties properties = applicationProperties();
 
-        List<String> verboseLoggingOverrides = Files.readAllLines(compose).stream()
+        for (String verboseLevel : VERBOSE_LEVELS) {
+            properties.setProperty("logging.level." + GATEWAY_LOGGER, verboseLevel);
+            for (String logger : HEADER_LOGGING_LOGGERS) {
+                assertThat(effectiveLevel(properties, logger))
+                        .as("effective log level of %s with %s=%s", logger, GATEWAY_LOGGER, verboseLevel)
+                        .isNotIn(VERBOSE_LEVELS);
+            }
+        }
+    }
+
+    @Test
+    void composeDoesNotRaiseGatewayOrSecurityLoggingToDebugOrTrace() throws IOException {
+        Optional<Path> compose = Stream.of(Path.of("docker-compose.yml"), Path.of("..", "docker-compose.yml"))
+                .filter(path -> Files.isDirectory(path.toAbsolutePath().getParent().resolve("api-gateway")))
+                .filter(Files::exists)
+                .findFirst();
+        assumeTrue(compose.isPresent(), "repository docker-compose.yml not found next to api-gateway/");
+
+        List<String> verboseLoggingOverrides = Files.readAllLines(compose.get()).stream()
                 .map(String::trim)
-                .filter(line -> line.matches("-?\\s*LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_(CLOUD_GATEWAY|SECURITY)\\w*\\s*[=:].*"))
-                .filter(line -> VERBOSE_LEVELS.stream().anyMatch(level -> line.toUpperCase(Locale.ROOT).endsWith(level)))
+                .filter(line -> {
+                    Matcher matcher = COMPOSE_LOGGING_ENTRY.matcher(line);
+                    return matcher.find() && VERBOSE_LEVELS.contains(matcher.group(2).toUpperCase(Locale.ROOT));
+                })
                 .toList();
 
         assertThat(verboseLoggingOverrides).isEmpty();
+    }
+
+    private static Properties applicationProperties() throws IOException {
+        return PropertiesLoaderUtils.loadProperties(new ClassPathResource("application.properties"));
     }
 
     private static String effectiveLevel(Properties properties, String logger) {
