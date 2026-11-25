@@ -523,6 +523,9 @@ export default function App() {
                 onVoidSale={voidSale}
               />
             )}
+            {screen === 'complete' && result && message?.kind === 'error' && (
+              <p className="scan-msg error" data-testid="new-sale-error" role="alert">{message.text}</p>
+            )}
             {screen === 'complete' && result && <SaleComplete result={result} onNewSale={newSale} />}
             {screen === 'sell' && weighing && (
               <WeightDialog product={weighing} busy={busy} error={weightError} onConfirm={addWeighed} onCancel={() => {

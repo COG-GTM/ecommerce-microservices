@@ -17,6 +17,6 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     java.util.List<Order> findByOriginalOrderNumber(String originalOrderNumber);
 
-    java.util.List<Order> findByTillIdOrderByIdAsc(String tillId);
+    java.util.List<Order> findTop200ByTillIdOrderByIdDesc(String tillId);
 
 }

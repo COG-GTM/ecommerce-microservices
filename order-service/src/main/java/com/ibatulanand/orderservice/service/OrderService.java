@@ -97,7 +97,9 @@ public class OrderService {
 
     @Transactional(readOnly = true)
     public List<Order> findByTillId(String tillId) {
-        List<Order> orders = orderRepository.findByTillIdOrderByIdAsc(tillId);
+        // The latest 200 orders, oldest first.
+        List<Order> orders = new java.util.ArrayList<>(orderRepository.findTop200ByTillIdOrderByIdDesc(tillId));
+        java.util.Collections.reverse(orders);
         orders.forEach(order -> order.getOrderLineItemsList().size());
         return orders;
     }

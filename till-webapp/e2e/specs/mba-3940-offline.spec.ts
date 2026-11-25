@@ -18,6 +18,7 @@ test.describe('MBA-3940 offline resilience', () => {
 
     await offline.unblockBackend()
     await offline.expectOnline()
+    await expect(till.page.getByTestId('transaction-number')).not.toHaveAttribute('title', /-OFF/)
     await expect(till.lines).toHaveCount(0)
     await offlineBackend.expectOrdersForTill(till.tillId, 0)
   })
