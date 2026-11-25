@@ -32,6 +32,7 @@ export default function App() {
   const [tenderError, setTenderError] = useState<string | null>(null)
   const [result, setResult] = useState<TenderResult | null>(null)
   const [weighing, setWeighing] = useState<Product | null>(null)
+  const [weightError, setWeightError] = useState<string | null>(null)
 
   const showBasket = useCallback((next: Basket) => {
     setBasket(next)
@@ -109,11 +110,15 @@ export default function App() {
 
   const closeWeighing = () => {
     setWeighing(null)
+    setWeightError(null)
     requestAnimationFrame(() => document.querySelector<HTMLInputElement>('[data-testid="barcode-input"]')?.focus())
   }
 
   // A pending weight belongs to the sale it was keyed for; drop it if the basket is replaced (void elsewhere, restart).
-  useEffect(() => setWeighing(null), [basket?.basketId])
+  useEffect(() => {
+    setWeighing(null)
+    setWeightError(null)
+  }, [basket?.basketId])
 
   const addWeighed = (weightGrams: number) =>
     basket && weighing &&
@@ -122,7 +127,7 @@ export default function App() {
       showBasket(next)
       closeWeighing()
       setMessage({ kind: 'ok', text: `Added ${weighing.name} ${formatKg(weightGrams)}` })
-    }, (text) => setMessage({ kind: 'error', text }))
+    }, setWeightError)
 
   const changeQty = (delta: number) =>
     basket && selectedLine &&
@@ -222,7 +227,7 @@ export default function App() {
             )}
             {screen === 'complete' && result && <SaleComplete result={result} onNewSale={newSale} />}
             {screen === 'sell' && weighing && (
-              <WeightDialog product={weighing} busy={busy} onConfirm={addWeighed} onCancel={() => {
+              <WeightDialog product={weighing} busy={busy} error={weightError} onConfirm={addWeighed} onCancel={() => {
                 closeWeighing()
                 setMessage(null)
               }} />

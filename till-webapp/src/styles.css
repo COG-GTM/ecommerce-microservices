@@ -259,3 +259,9 @@ h1, h2, h3, p { margin: 0; }
 .weight-unit { font-size: 22px; font-weight: 700; }
 .weight-preview { min-height: 24px; font-weight: 600; color: var(--green); }
 .weight-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.weight-error {
+  color: var(--red);
+  font-weight: 600;
+  margin: 4px 0 8px;
+}

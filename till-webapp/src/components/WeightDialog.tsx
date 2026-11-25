@@ -8,12 +8,13 @@ const MAX_GRAMS = 30_000
 interface Props {
   product: Product
   busy: boolean
+  error: string | null
   onConfirm: (weightGrams: number) => void
   onCancel: () => void
 }
 
 /** Manual weight entry for a loose item without a label: weight in kg on the keypad, priced per kg. */
-export function WeightDialog({ product, busy, onConfirm, onCancel }: Props) {
+export function WeightDialog({ product, busy, error, onConfirm, onCancel }: Props) {
   const [kg, setKg] = useState('')
   const grams = parseKgToGrams(kg)
   const valid = grams !== null && grams <= MAX_GRAMS
@@ -70,6 +71,7 @@ export function WeightDialog({ product, busy, onConfirm, onCancel }: Props) {
         <div className="weight-preview" data-testid="weight-preview">
           {preview !== null ? `${kg} kg × ${formatPence(product.pricePence)}/kg = ${formatPence(preview)}` : '\u00a0'}
         </div>
+        {error && <div className="weight-error" role="alert" data-testid="weight-error">{error}</div>}
         <div className="keypad">
           {KEYS.map((key) => (
             <button key={key} type="button" className="key" data-testid={`weight-key-${key}`} onClick={() => onKey(key)}>
