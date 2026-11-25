@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import type { AgeDecision, BasketLine } from '../api/types'
 import { ApiChip } from './ApiChip'
 
@@ -10,9 +11,12 @@ interface Props {
 
 /** Challenge 25: the operator must confirm photo ID was seen, or refuse the item, before the sale can be paid. */
 export function AgeCheckPrompt({ line, busy, onDecide, onLater }: Props) {
+  const dialogRef = useRef<HTMLElement>(null)
+  // Take focus from the barcode field so further scanner keystrokes cannot add items behind the prompt.
+  useEffect(() => dialogRef.current?.focus(), [line.lineId])
   return (
     <div className="age-overlay">
-      <section className="age-prompt" role="dialog" aria-modal="true" aria-labelledby="age-title" data-testid="age-check-prompt">
+      <section ref={dialogRef} tabIndex={-1} className="age-prompt" role="dialog" aria-modal="true" aria-labelledby="age-title" data-testid="age-check-prompt">
         <div className="age-head">
           <span className="age-logo" aria-hidden="true">25</span>
           <div>
