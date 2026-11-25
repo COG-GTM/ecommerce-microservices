@@ -172,13 +172,14 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
    cd ecommerce-microservices
    ```
 
-2. Configure database credentials. `docker-compose.yml` has no built-in database passwords and refuses to start until `.env` provides them. Generate a `.env` (gitignored) with a distinct random value for every secret:
+2. Configure database credentials. `docker-compose.yml` has no built-in database passwords and refuses to start until `.env` provides them. Generate a `.env` (gitignored, readable only by you) with a distinct random value for every password:
    ```shell
-   awk '!/^#/ && /CHANGE_ME/{c="openssl rand -hex 24"; c|getline v; close(c); sub(/CHANGE_ME/,v)}1' .env.example > .env
+   (umask 077 && awk '!/^#/ && /_PASSWORD=$/{c="openssl rand -hex 24"; c|getline v; close(c); $0=$0 v}1' .env.example > .env)
    ```
    - MySQL (3307, 3308) and MongoDB (27017) are published on `127.0.0.1` only (`DB_BIND_ADDRESS`).
    - MongoDB requires authentication: a root user plus a `readWrite` user for `product-service`, created by `mongo-init/` on first start.
-   - Database init only runs on an empty data directory. If you started the stack before, remove `mysql_order/`, `mysql_inventory/` and `mongo-data/` so the new credentials take effect.
+   - To run `product-service` on the host against this MongoDB, export `SPRING_DATA_MONGODB_URI=mongodb://<MONGO_APP_USER>:<MONGO_APP_PASSWORD>@localhost:27017/product-service?authSource=product-service`.
+   - Upgrading an existing stack: database init only runs on an empty data directory, so `mysql_order/`, `mysql_inventory/` and `mongo-data/` keep their old accounts. Either set the new credentials in place (MySQL: `docker exec -it mysql-order mysql -uroot -p`, then `CREATE USER`/`GRANT` for the new user and `ALTER USER 'root'@'%'`/`'root'@'localhost'`; same for `mysql-inventory`. MongoDB: `docker exec -it mongo mongosh` and create the root user in `admin` and the app user in `product-service`, as in `mongo-init/create-app-user.js`), or, only if the data is disposable, delete those directories before starting.
    - `scripts/check-compose-db-security.sh` checks the rendered compose config for these settings.
 
 3. Start the containers:
@@ -310,3 +311,4 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
    ```shell
    docker compose down -v
    ```
+- Compose needs `.env` for every command, including `down`. If you upgraded the checkout before creating one, generate it first (step 2).
