@@ -41,10 +41,7 @@ public class OrderRateLimiter {
 
     public long retryAfterSeconds(String clientKey) {
         Window window = windows.get(clientKey);
-        if (window == null) {
-            return 0;
-        }
-        long remaining = window.start + windowMillis - clock.millis();
+        long remaining = window == null ? windowMillis : window.start + windowMillis - clock.millis();
         return Math.max(1, (remaining + 999) / 1000);
     }
 

@@ -1,6 +1,8 @@
 package com.ibatulanand.apigateway.ratelimit;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.convert.ApplicationConversionService;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
@@ -73,9 +75,41 @@ class OrderRateLimitFilterTest {
         assertThat(limiter.tryAcquire("c")).isTrue();
     }
 
+    @Test
+    void equivalentOrderPathsShareTheQuota() {
+        for (String path : new String[]{"/api/order", "/api/order/", "/api/order;x=1"}) {
+            placeOrder("mallory", path);
+        }
+        assertThat(placeOrder("mallory", "/api//order").getResponse().getStatusCode())
+                .isEqualTo(HttpStatus.TOO_MANY_REQUESTS);
+        assertThat(forwarded).hasValue(3);
+    }
+
+    @Test
+    void trackedClientCapTellsNewClientsToWaitForAWindow() {
+        OrderRateLimiter limiter = new OrderRateLimiter(5, Duration.ofMinutes(1), 1, clock);
+        assertThat(limiter.tryAcquire("a")).isTrue();
+        assertThat(limiter.tryAcquire("b")).isFalse();
+        assertThat(limiter.retryAfterSeconds("b")).isEqualTo(60);
+    }
+
+    @Test
+    void springCanCreateTheFilterFromProperties() {
+        try (AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext()) {
+            context.getBeanFactory().setConversionService(ApplicationConversionService.getSharedInstance());
+            context.register(OrderRateLimitFilter.class);
+            context.refresh();
+            assertThat(context.getBean(OrderRateLimitFilter.class)).isNotNull();
+        }
+    }
+
     private ServerWebExchange placeOrder(String user) {
+        return placeOrder(user, "/api/order");
+    }
+
+    private ServerWebExchange placeOrder(String user, String path) {
         Principal principal = () -> user;
-        ServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.post("/api/order"))
+        ServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.post(path))
                 .mutate().principal(Mono.just(principal)).build();
         filter.filter(exchange, chain).block();
         return exchange;
