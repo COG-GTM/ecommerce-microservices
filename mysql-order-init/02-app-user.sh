@@ -29,6 +29,6 @@ mysql --defaults-extra-file="$client_cnf" --protocol=socket <<SQL
 CREATE USER IF NOT EXISTS '${app_user}'@'%' IDENTIFIED BY '${sql_password}';
 ALTER USER '${app_user}'@'%' IDENTIFIED BY '${sql_password}';
 REVOKE ALL PRIVILEGES, GRANT OPTION FROM '${app_user}'@'%';
-GRANT SELECT, INSERT, UPDATE, DELETE ON \`order_service\`.* TO '${app_user}'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE ON \`order\\_service\`.* TO '${app_user}'@'%';
 FLUSH PRIVILEGES;
 SQL
