@@ -1,6 +1,7 @@
 package com.ibatulanand.notificationservice;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.common.errors.SerializationException;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
@@ -19,14 +20,16 @@ public class NotificationServiceApplication {
         SpringApplication.run(NotificationServiceApplication.class, args);
     }
 
-    // Logs skipped records by position only: decode exceptions embed the raw payload bytes.
+    // Exception messages may embed the record payload; only OrderPlacedEventDeserializer's are payload-free.
     @Bean
     public DefaultErrorHandler kafkaErrorHandler() {
-        return new DefaultErrorHandler((record, exception) -> log.error(
-                "Skipping notification record {}-{}@{} after {} (cause: {})",
-                record.topic(), record.partition(), record.offset(),
-                exception.getClass().getName(),
-                NestedExceptionUtils.getMostSpecificCause(exception).getClass().getName()));
+        return new DefaultErrorHandler((record, exception) -> {
+            Throwable cause = NestedExceptionUtils.getMostSpecificCause(exception);
+            log.error("Skipping notification record {}-{}@{} after {} (cause: {})",
+                    record.topic(), record.partition(), record.offset(),
+                    exception.getClass().getName(),
+                    cause instanceof SerializationException ? cause.getMessage() : cause.getClass().getName());
+        });
     }
 
     @KafkaListener(topics = "notificationTopic")
