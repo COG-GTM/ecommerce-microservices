@@ -3,6 +3,12 @@ package com.ibatulanand.productservice.dto;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
@@ -12,7 +18,16 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ProductRequest {
+    @NotBlank
+    @Pattern(regexp = "^[A-Za-z0-9_.-]{1,64}$")
+    private String skuCode;
+    @NotBlank
+    @Size(max = 200)
     private String name;
+    @Size(max = 1000)
     private String description;
+    @NotNull
+    @DecimalMin(value = "0.00", inclusive = false)
+    @Digits(integer = 17, fraction = 2)
     private BigDecimal price;
 }

@@ -6,7 +6,10 @@ import com.ibatulanand.productservice.model.Product;
 import com.ibatulanand.productservice.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DuplicateKeyException;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -18,13 +21,22 @@ public class ProductService {
     private final ProductRepository productRepository;
 
     public void createProduct(ProductRequest productRequest) {
+        if (productRepository.existsBySkuCode(productRequest.getSkuCode())) {
+            throw duplicateSku();
+        }
+
         Product product = Product.builder()
+                .skuCode(productRequest.getSkuCode())
                 .name(productRequest.getName())
                 .description(productRequest.getDescription())
                 .price(productRequest.getPrice())
                 .build();
 
-        productRepository.save(product);
+        try {
+            productRepository.save(product);
+        } catch (DuplicateKeyException e) {
+            throw duplicateSku();
+        }
         log.info("Product {} is saved", product.getId());
     }
 
@@ -33,9 +45,20 @@ public class ProductService {
         return products.stream().map(this::mapToProductResponse).toList();
     }
 
+    public List<ProductResponse> getProductsBySkuCodes(List<String> skuCodes) {
+        return productRepository.findBySkuCodeIn(skuCodes).stream()
+                .map(this::mapToProductResponse)
+                .toList();
+    }
+
+    private static ResponseStatusException duplicateSku() {
+        return new ResponseStatusException(HttpStatus.CONFLICT, "A product with this skuCode already exists");
+    }
+
     private ProductResponse mapToProductResponse(Product product) {
         return ProductResponse.builder()
                 .id(product.getId())
+                .skuCode(product.getSkuCode())
                 .name(product.getName())
                 .description(product.getDescription())
                 .price(product.getPrice())

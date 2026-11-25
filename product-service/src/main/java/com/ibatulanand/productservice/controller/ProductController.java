@@ -3,6 +3,7 @@ package com.ibatulanand.productservice.controller;
 import com.ibatulanand.productservice.dto.ProductRequest;
 import com.ibatulanand.productservice.dto.ProductResponse;
 import com.ibatulanand.productservice.service.ProductService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -18,7 +19,7 @@ public class ProductController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public void createProduct(@RequestBody ProductRequest productRequest) {
+    public void createProduct(@Valid @RequestBody ProductRequest productRequest) {
         productService.createProduct(productRequest);
     }
 
@@ -26,5 +27,12 @@ public class ProductController {
     @ResponseStatus(HttpStatus.OK)
     public List<ProductResponse> getAllProducts() {
         return productService.getAllProducts();
+    }
+
+    // http://localhost:8080/api/product?skuCode=iphone_15&skuCode=iphone_15_pro
+    @GetMapping(params = "skuCode")
+    @ResponseStatus(HttpStatus.OK)
+    public List<ProductResponse> getProductsBySkuCodes(@RequestParam List<String> skuCode) {
+        return productService.getProductsBySkuCodes(skuCode);
     }
 }
