@@ -242,7 +242,7 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
       {
          "orderLineItemsDtoList": [
            {
-              "skuCode": "iphone_15_pro",
+              "skuCode": "iphone_15",
               "price": 2000,
               "quantity": 1
             }
@@ -253,6 +253,7 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
       ![Postman](docs/images/outputs/order_api_post_postman.png)
       ![Zipkin](docs/images/outputs/order_api_post_zipkin.png)
       ![Notification Service Logs](docs/images/outputs/order_api_post_notification_service_docker_logs.png)
+    - Responses: `201` order placed, `400` invalid body, `409` SKU out of stock (e.g. `iphone_15_pro`, seeded with zero stock), `429` more than 10 orders per minute from one client, `503` inventory service unavailable.
 
 ### Components UI
 
