@@ -217,16 +217,28 @@ export default function App() {
       : await tillApi.updateLine(basket.basketId, selectedLine.lineId, selectedLine.quantity + delta)),
     (text) => setMessage({ kind: 'error', text }))
 
+  /** The carried server basket's lines were sold or voided offline, so reconnect voids it too, even after a reload. */
+  const abandonCarriedBasket = (local: Basket) => {
+    if (carriedRef.current?.local === local.basketId) offlineStore.setAbandonedBasket(carriedRef.current.server)
+  }
+
   const voidLine = () =>
     basket && selectedLine &&
     run(async () => {
-      showBasket(isLocal(basket) ? voidLocalLine(basket, selectedLine.lineId) : await tillApi.voidLine(basket.basketId, selectedLine.lineId))
+      if (isLocal(basket)) {
+        const next = voidLocalLine(basket, selectedLine.lineId)
+        if (next.lines.length === 0) abandonCarriedBasket(basket)
+        showBasket(next)
+      } else {
+        showBasket(await tillApi.voidLine(basket.basketId, selectedLine.lineId))
+      }
       setMessage({ kind: 'ok', text: `Voided ${selectedLine.name}` })
     }, (text) => setMessage({ kind: 'error', text }))
 
   const voidSale = () =>
     basket &&
     run(async () => {
+      if (isLocal(basket)) abandonCarriedBasket(basket)
       showBasket(isLocal(basket) && session ? newOfflineBasket(session) : await tillApi.voidSale(basket.basketId))
       setMessage({ kind: 'ok', text: 'Sale voided' })
     }, (text) => setMessage({ kind: 'error', text }))
@@ -259,7 +271,7 @@ export default function App() {
       if (isLocal(basket) && session) {
         const { sale, result: r } = completeOffline(basket, session, amountTenderedPence, newOfflineBasket(session))
         offlineStore.enqueue(sale)
-        if (carriedRef.current?.local === basket.basketId) offlineStore.setAbandonedBasket(carriedRef.current.server)
+        abandonCarriedBasket(basket)
         setQueued(offlineStore.queue().length)
         applyTender(r)
         if (!offline) void flushQueue()
