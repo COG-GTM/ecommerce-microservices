@@ -9,6 +9,10 @@ test.describe('cash tender', () => {
     await expect(page.getByTestId('take-cash')).toBeDisabled()
     await page.getByTestId('cash-5').click()
     await expect(page.getByTestId('cash-received')).toHaveText('£5.00')
+    await page.getByTestId('cash-10').click()
+    await expect(page.getByTestId('cash-received')).toHaveText('£15.00')
+    await page.getByTestId('cash-key-C').click()
+    await page.getByTestId('cash-5').click()
     await expect(page.getByTestId('change-due')).toHaveText('£3.45')
     await page.getByTestId('take-cash').click()
 

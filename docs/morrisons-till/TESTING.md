@@ -7,7 +7,7 @@ Everything runs locally. This repo has no GitHub CI.
 - Docker with Compose v2 (tested on Docker 29).
 - JDK 17 for the Maven build. `scripts/till/mvn.sh` finds it, or set `TILL_JAVA_HOME`. Lombok in this repo does not
   compile on JDK 21.
-- Maven 3.8+, Node 20+.
+- Maven 3.8+, Node 20.19+ or 22.12+ (Vite 8's supported range).
 - Docker 29 and Testcontainers: the BOM is pinned to Testcontainers `1.21.3`. Also set `api.version=1.44` in
   `~/.docker-java.properties`, otherwise MySQL Testcontainers tests cannot talk to the daemon.
 

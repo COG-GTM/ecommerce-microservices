@@ -100,7 +100,7 @@ export function TenderPanel(props: Props) {
             <div className="cash-received" data-testid="cash-received">{formatPence(cashPence)}</div>
             <div className="notes">
               {NOTES.map((n) => (
-                <button key={n} type="button" className="btn outline note" data-testid={`cash-${n / 100}`} onClick={() => setCashPence(n)}>
+                <button key={n} type="button" className="btn outline note" data-testid={`cash-${n / 100}`} onClick={() => setCashPence((value) => value + n)}>
                   £{n / 100}
                 </button>
               ))}

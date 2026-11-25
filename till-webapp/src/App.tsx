@@ -40,12 +40,20 @@ export default function App() {
       const s = await tillApi.session(TILL_ID)
       setSession(s)
       setConnected(s.backendConnected)
+      // Recover after a failed first load or a till-service restart (the open basket id changes).
+      setBasket((current) => {
+        if (current?.basketId !== s.basketId && current?.status !== 'COMPLETED') {
+          tillApi.basket(s.basketId).then(showBasket).catch(() => setConnected(false))
+          tillApi.quickKeys().then(setQuickKeys).catch(() => setConnected(false))
+        }
+        return current
+      })
       return s
     } catch {
       setConnected(false)
       return null
     }
-  }, [])
+  }, [showBasket])
 
   useEffect(() => {
     let cancelled = false
@@ -125,14 +133,14 @@ export default function App() {
     run(async () => {
       setDeclineMessage(null)
       setTenderError(null)
-      applyTender(await tillApi.tender(basket.basketId, type, { terminalOutcome: outcome }))
+      applyTender(await tillApi.tender(basket.basketId, type, { terminalOutcome: outcome, expectedTotalPence: basket.totalPence }))
     }, setTenderError)
 
   const payByCash = (amountTenderedPence: number) =>
     basket &&
     run(async () => {
       setTenderError(null)
-      applyTender(await tillApi.tender(basket.basketId, 'CASH', { amountTenderedPence }))
+      applyTender(await tillApi.tender(basket.basketId, 'CASH', { amountTenderedPence, expectedTotalPence: basket.totalPence }))
     }, setTenderError)
 
   const newSale = () =>

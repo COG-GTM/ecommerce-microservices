@@ -14,6 +14,9 @@ fi
 echo "==> Starting containers"
 "${COMPOSE[@]}" up -d --build --wait --wait-timeout "${TILL_WAIT_TIMEOUT:-420}"
 
+if [[ "${TILL_GATEWAY_PROFILE:-dev}" != "dev" ]]; then
+  echo "==> Secured gateway profile: containers healthy; /api/till/** needs a JWT, skipping anonymous readiness probe"
+else
 echo "==> Waiting for till API via gateway (Eureka registration + catalogue seed)"
 deadline=$((SECONDS + ${TILL_WAIT_TIMEOUT:-420}))
 until curl -fs "$GATEWAY/api/till/session?tillId=healthcheck" | grep -q '"backendConnected":true' \
@@ -26,6 +29,7 @@ until curl -fs "$GATEWAY/api/till/session?tillId=healthcheck" | grep -q '"backen
   fi
   sleep 3
 done
+fi
 
 cat <<MSG
 ==> Morrisons till stack is up

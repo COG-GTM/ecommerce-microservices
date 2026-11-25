@@ -59,4 +59,13 @@ test('tender: empty basket 422, short cash 422, declined keeps basket, approved 
 test('secured path: non-till routes still require a JWT', async ({ request }) => {
   expect((await request.get('/api/product')).status()).toBe(401)
   expect((await request.post('/api/order', { data: {} })).status()).toBe(401)
+  expect([401, 403]).toContain((await request.post('/api/order/sale', { data: {} })).status())
+})
+
+test('tender rejects a stale displayed total', async ({ request }) => {
+  const { basketId } = await newBasket(request)
+  await request.post('/api/till/basket/lines', { data: { basketId, barcode: '1001' } })
+  const stale = await request.post('/api/till/basket/tender', { data: { basketId, tenderType: 'CARD', terminalOutcome: 'APPROVED', expectedTotalPence: 100 } })
+  expect(stale.status()).toBe(409)
+  expect(await stale.json()).toMatchObject({ error: 'TOTAL_CHANGED' })
 })

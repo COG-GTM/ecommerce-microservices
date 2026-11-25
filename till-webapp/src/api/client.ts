@@ -39,6 +39,6 @@ export const tillApi = {
   voidLine: (basketId: string, lineId: string) =>
     request<Basket>('/basket/lines/' + lineId + '?basketId=' + basketId, { method: 'DELETE' }),
   voidSale: (basketId: string) => request<Basket>('/basket/void', json('POST', { basketId })),
-  tender: (basketId: string, tenderType: TenderType, options: { amountTenderedPence?: number; terminalOutcome?: 'APPROVED' | 'DECLINED' } = {}) =>
+  tender: (basketId: string, tenderType: TenderType, options: { amountTenderedPence?: number; terminalOutcome?: 'APPROVED' | 'DECLINED'; expectedTotalPence?: number } = {}) =>
     request<TenderResult>('/basket/tender', json('POST', { basketId, tenderType, ...options })),
 }
