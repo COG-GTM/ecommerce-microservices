@@ -87,22 +87,23 @@ compute totals; they render `subtotalPence`, `savingsPence` and `totalPence` fro
 
 // Basket
 { "basketId": "b0c1…", "tillId": "07", "transactionNumber": "0417-07-0001", "status": "OPEN", "currency": "GBP",
-  "lines": [ { "lineId": "l-1", "barcode": "1004", "skuCode": "MOR-BANANA-5", "name": "Bananas x5",
-               "quantity": 2, "unitPricePence": 95, "linePence": 190 } ],
-  "adjustments": [ { "code": "MULTIBUY", "label": "…", "amountPence": -50, "lineId": "l-1" } ],
-  "lastLineId": "l-1", "itemCount": 2, "subtotalPence": 190, "savingsPence": 0, "totalPence": 190, "orderNumber": null }
+  "lines": [ { "lineId": "l-1", "barcode": "393407", "skuCode": "MOR-YOGHURT-GREEK-500", "name": "Greek style yoghurt 500g",
+               "quantity": 3, "unitPricePence": 150, "linePence": 450 } ],
+  "adjustments": [ { "code": "MULTIBUY", "label": "Greek yoghurt 3 for £3.50", "amountPence": -100, "lineId": "l-1",
+                     "lineIds": ["l-1"] } ],
+  "lastLineId": "l-1", "itemCount": 3, "subtotalPence": 450, "savingsPence": 100, "totalPence": 350, "orderNumber": null }
 
 // TenderResult
 { "status": "APPROVED", "tenderType": "CARD", "basket": { /* Basket, status COMPLETED */ },
-  "orderNumber": "8df1…", "amountTenderedPence": 190, "changeDuePence": 0, "authCode": "419508",
+  "orderNumber": "8df1…", "amountTenderedPence": 350, "changeDuePence": 0, "authCode": "419508",
   "declineReason": null, "receipt": { /* Receipt */ }, "nextBasketId": "c2d3…" }
 // Declined: status DECLINED, basket still OPEN with all lines, orderNumber/receipt null, nextBasketId = same basket.
 
 // Receipt
 { "receiptNumber": "R-0417-07-0001", "storeNumber": "0417", "storeName": "Bradford Demo", "tillId": "07",
   "operatorName": "Demo Operator", "transactionNumber": "0417-07-0001", "orderNumber": "8df1…",
-  "lines": [ /* BasketLine */ ], "subtotalPence": 190, "savingsPence": 0, "totalPence": 190,
-  "tenderType": "CARD", "amountTenderedPence": 190, "changeDuePence": 0, "authCode": "419508", "issuedAt": "2026-11-25T14:36:16Z" }
+  "lines": [ /* BasketLine */ ], "subtotalPence": 450, "savingsPence": 100, "totalPence": 350,
+  "tenderType": "CARD", "amountTenderedPence": 350, "changeDuePence": 0, "authCode": "419508", "issuedAt": "2026-11-25T14:36:16Z" }
 
 // Error (any 4xx/5xx)
 { "error": "UNKNOWN_BARCODE", "message": "No product for barcode 9999" }
@@ -131,6 +132,19 @@ Error codes: `UNKNOWN_BARCODE` / `UNKNOWN_BASKET` / `UNKNOWN_LINE` (404), `OUT_O
 | 1006 | MOR-CHEDDAR-MAT-400 | Mature cheddar 400g | 350 |
 | 1007 | MOR-CHICKEN-BF-600 | Chicken breast fillets 600g | 475 |
 | 1008 | MOR-CARROT-1KG | Carrots 1kg | 65 |
+
+Promotion products (MBA-3934; scan only, not quick keys). Offers are set in till-service `till.promotions.*`: Greek
+yoghurt 3 for £3.50, still water/cola 2 for £2.00, and a £3.50 meal deal (sandwich + crisps/fruit + water/cola).
+
+| Barcode | SKU | Item | Pence |
+| --- | --- | --- | --- |
+| 393401 | MOR-SANDWICH-CHKBAC | Chicken and bacon sandwich | 300 |
+| 393402 | MOR-SANDWICH-EGGMAYO | Egg mayo sandwich | 250 |
+| 393403 | MOR-CRISPS-SALTED-30G | Ready salted crisps 30g | 85 |
+| 393404 | MOR-FRUIT-POT | Fruit pot | 120 |
+| 393405 | MOR-WATER-STILL-500 | Still water 500ml | 90 |
+| 393406 | MOR-COLA-500 | Cola 500ml | 135 |
+| 393407 | MOR-YOGHURT-GREEK-500 | Greek style yoghurt 500g | 150 |
 
 ## Extension points for the till tickets
 

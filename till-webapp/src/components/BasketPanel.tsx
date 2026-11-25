@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react'
-import type { Basket } from '../api/types'
+import { Fragment, useEffect, useRef } from 'react'
+import type { Adjustment, Basket } from '../api/types'
 import { formatPence } from '../money'
 import { ApiChip } from './ApiChip'
 
@@ -12,10 +12,18 @@ interface Props {
 export function BasketPanel({ basket, selectedLineId, onSelect }: Props) {
   const lines = basket?.lines ?? []
   const count = basket?.itemCount ?? 0
+  const savingsByLine = new Map<string, Adjustment[]>()
+  for (const a of basket?.adjustments ?? []) {
+    if (a.lineId && a.amountPence < 0) savingsByLine.set(a.lineId, [...(savingsByLine.get(a.lineId) ?? []), a])
+  }
   const scrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    scrollRef.current?.querySelector('tr.selected')?.scrollIntoView({ block: 'nearest' })
+    const selected = scrollRef.current?.querySelector('tr.selected')
+    let lastRow = selected
+    while (lastRow?.nextElementSibling?.classList.contains('saving-line')) lastRow = lastRow.nextElementSibling
+    if (lastRow !== selected) lastRow?.scrollIntoView({ block: 'nearest' })
+    selected?.scrollIntoView({ block: 'nearest' })
   }, [selectedLineId, basket])
   return (
     <section className="panel basket" aria-label="Basket">
@@ -33,8 +41,8 @@ export function BasketPanel({ basket, selectedLineId, onSelect }: Props) {
           </thead>
           <tbody>
             {lines.map((line) => (
+              <Fragment key={line.lineId}>
               <tr
-                key={line.lineId}
                 data-testid="basket-line"
                 data-barcode={line.barcode}
                 className={line.lineId === selectedLineId ? 'selected' : undefined}
@@ -46,6 +54,13 @@ export function BasketPanel({ basket, selectedLineId, onSelect }: Props) {
                 <td className="num each" data-testid="line-each">{formatPence(line.unitPricePence)}</td>
                 <td className="num total" data-testid="line-total">{formatPence(line.linePence)}</td>
               </tr>
+              {savingsByLine.get(line.lineId)?.map((saving) => (
+                <tr key={`${saving.code}-${saving.label}`} className="saving-line" data-testid="saving-line" data-code={saving.code}>
+                  <td className="item" colSpan={3} data-testid="saving-label">{saving.label}</td>
+                  <td className="num total" data-testid="saving-amount">-{formatPence(-saving.amountPence)}</td>
+                </tr>
+              ))}
+              </Fragment>
             ))}
           </tbody>
         </table>

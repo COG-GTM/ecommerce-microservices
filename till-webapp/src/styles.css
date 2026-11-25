@@ -64,7 +64,7 @@ h1, h2, h3, p { margin: 0; }
 
 /* Basket */
 .basket { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
-.basket-scroll { flex: 1; min-height: 0; overflow: auto; }
+.basket-scroll { flex: 1; min-height: 0; overflow: auto; scroll-padding-top: 48px; }
 .basket-table { width: 100%; border-collapse: collapse; }
 .basket-table th {
   text-align: left; font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #34413b;
@@ -79,6 +79,9 @@ h1, h2, h3, p { margin: 0; }
 .basket-table tr { cursor: pointer; }
 .basket-table tr.selected td { background: var(--yellow-tint); }
 .basket-table tr.selected td:first-child { box-shadow: inset 5px 0 0 var(--yellow); }
+.basket-table tr.saving-line { cursor: default; }
+.basket-table tr.saving-line td { padding-top: 8px; padding-bottom: 12px; color: var(--green); font-weight: 600; font-size: 0.85em; }
+.basket-table tr.saving-line td.item { padding-left: 48px; }
 .empty { padding: 32px 24px; color: var(--muted); }
 .totals { background: #f6f8f6; border-top: 1px solid var(--line); padding: 18px 24px 22px; }
 .totals .row { display: flex; justify-content: space-between; font-size: 18px; padding: 4px 0; color: #34413b; }
