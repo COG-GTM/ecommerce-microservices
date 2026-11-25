@@ -22,6 +22,11 @@ export function SaleComplete({ result, onNewSale }: { result: TenderResult; onNe
           <div className="give-change-amount">{formatPence(result.changeDuePence)}</div>
         </div>
       )}
+      {receipt?.moreCard && (
+        <p className="points-earned" data-testid="points-earned">
+          {receipt.moreCard.pointsEarned} More Card points earned
+        </p>
+      )}
       <p className="order-ref">Order <span data-testid="order-number">{result.orderNumber}</span></p>
       <ApiChip>POST /api/till/basket/tender → receipt</ApiChip>
       <div className="row-buttons">
@@ -47,6 +52,13 @@ export function SaleComplete({ result, onNewSale }: { result: TenderResult; onNe
           {receipt.changeDuePence > 0 && <div className="receipt-row"><span>Change</span><span>{formatPence(receipt.changeDuePence)}</span></div>}
           {receipt.authCode && <div className="receipt-row"><span>Auth code</span><span>{receipt.authCode}</span></div>}
           <VatSummary bands={receipt.vatSummary ?? []} testId="receipt-vat-summary" />
+          {receipt.moreCard && (
+            <div className="receipt-more-card" data-testid="receipt-more-card">
+              <div className="receipt-row rule"><span>More Card ····{receipt.moreCard.cardLast4}</span><span>{receipt.moreCard.memberName}</span></div>
+              <div className="receipt-row"><span>Points earned</span><span data-testid="receipt-points">{receipt.moreCard.pointsEarned}</span></div>
+              <div className="receipt-row"><span>Points balance</span><span data-testid="receipt-points-balance">{receipt.moreCard.pointsBalance}</span></div>
+            </div>
+          )}
           <div className="receipt-foot">{receipt.receiptNumber} · {new Date(receipt.issuedAt).toLocaleString('en-GB')}</div>
         </div>
       )}

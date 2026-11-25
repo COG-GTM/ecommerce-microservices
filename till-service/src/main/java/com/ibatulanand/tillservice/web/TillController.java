@@ -4,6 +4,7 @@ import com.ibatulanand.tillservice.domain.Basket;
 import com.ibatulanand.tillservice.domain.CatalogueItem;
 import com.ibatulanand.tillservice.service.TillService;
 import com.ibatulanand.tillservice.web.TillDtos.AddLineRequest;
+import com.ibatulanand.tillservice.web.TillDtos.AttachMemberRequest;
 import com.ibatulanand.tillservice.web.TillDtos.TenderRequest;
 import com.ibatulanand.tillservice.web.TillDtos.TenderResult;
 import com.ibatulanand.tillservice.web.TillDtos.TillSession;
@@ -91,5 +92,10 @@ public class TillController {
     @PostMapping("/basket/tender")
     public TenderResult tender(@Valid @RequestBody TenderRequest request) {
         return tillService.tender(request);
+    }
+
+    @PostMapping("/basket/member")
+    public Basket attachMember(@Valid @RequestBody AttachMemberRequest request) {
+        return tillService.attachMember(request.basketId(), request.cardNumber());
     }
 }

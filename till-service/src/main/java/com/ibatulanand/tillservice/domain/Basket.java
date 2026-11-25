@@ -1,5 +1,7 @@
 package com.ibatulanand.tillservice.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.ibatulanand.tillservice.loyalty.MoreCardMember;
 import lombok.Data;
 
 import java.util.ArrayList;
@@ -26,4 +28,8 @@ public class Basket {
     /** VAT breakdown per rate band; grossPence across bands sums to totalPence. */
     private List<VatBand> vatSummary = new ArrayList<>();
     private String orderNumber;
+    /** More Card holder attached to this transaction, or null for a non-member sale. */
+    private MoreCardMember member;
+    @JsonIgnore
+    private String memberCardNumber;
 }

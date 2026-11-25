@@ -7,8 +7,12 @@ import com.ibatulanand.tillservice.config.TillProperties;
 import com.ibatulanand.tillservice.domain.Basket;
 import com.ibatulanand.tillservice.domain.BasketLine;
 import com.ibatulanand.tillservice.domain.CatalogueItem;
+import com.ibatulanand.tillservice.loyalty.MoreCardDirectory;
+import com.ibatulanand.tillservice.loyalty.MoreCardMember;
+import com.ibatulanand.tillservice.loyalty.MoreCardProperties;
 import com.ibatulanand.tillservice.payment.PaymentTerminal;
 import com.ibatulanand.tillservice.pricing.BasketPricer;
+import com.ibatulanand.tillservice.web.TillDtos.MoreCardReceipt;
 import com.ibatulanand.tillservice.web.TillDtos.Operator;
 import com.ibatulanand.tillservice.web.TillDtos.Receipt;
 import com.ibatulanand.tillservice.web.TillDtos.TenderRequest;
@@ -43,6 +47,8 @@ public class TillService {
     private final PaymentTerminal terminal;
     private final BasketPricer pricer;
     private final TillProperties properties;
+    private final MoreCardDirectory moreCards;
+    private final MoreCardProperties moreCardProperties;
 
     static final int MAX_TILLS = 10_000;
 
@@ -52,13 +58,16 @@ public class TillService {
     private final Map<String, AtomicInteger> transactionCounters = new ConcurrentHashMap<>();
 
     public TillService(CatalogueClient catalogue, StockClient stock, OrderClient orders, PaymentTerminal terminal,
-                       BasketPricer pricer, TillProperties properties) {
+                       BasketPricer pricer, TillProperties properties, MoreCardDirectory moreCards,
+                       MoreCardProperties moreCardProperties) {
         this.catalogue = catalogue;
         this.stock = stock;
         this.orders = orders;
         this.terminal = terminal;
         this.pricer = pricer;
         this.properties = properties;
+        this.moreCards = moreCards;
+        this.moreCardProperties = moreCardProperties;
     }
 
     public TillSession session(String requestedTillId, Map<String, String> services) {
@@ -123,6 +132,21 @@ public class TillService {
         return pricer.price(basket);
     }
 
+    /** Attaches a More Card holder to the open transaction so member prices apply and points are earned. */
+    public synchronized Basket attachMember(String basketId, String cardNumber) {
+        Basket basket = openForChange(basketId);
+        String card = cardNumber.replaceAll("\\s", "");
+        MoreCardMember member = moreCards.find(card).orElseThrow(() -> new TillException(HttpStatus.NOT_FOUND,
+                "UNKNOWN_CARD", basket.getMember() == null
+                        ? "More Card not recognised. Continuing as non-member."
+                        : "More Card not recognised. Keeping " + basket.getMember().name() + "'s card."));
+        basket.setMember(member);
+        basket.setMemberCardNumber(card);
+        log.info("Till {} attached More Card ending {} to transaction {}", basket.getTillId(), member.cardLast4(),
+                basket.getTransactionNumber());
+        return pricer.price(basket);
+    }
+
     /** Voids the whole sale and returns the next open basket for the same till. */
     public synchronized Basket voidSale(String basketId) {
         Basket basket = openForChange(basketId);
@@ -166,6 +190,7 @@ public class TillService {
             authCode = auth.authCode();
         }
         String orderNumber = orders.placeSale(basket, properties.storeNumber(), tenderType);
+        MoreCardReceipt moreCard = awardPoints(basket);
         basket.setOrderNumber(orderNumber);
         basket.setStatus(Basket.Status.COMPLETED);
         openBasketByTill.remove(basket.getTillId(), basket.getBasketId());
@@ -175,11 +200,21 @@ public class TillService {
         Receipt receipt = new Receipt("R-" + basket.getTransactionNumber(), properties.storeNumber(),
                 properties.storeName(), basket.getTillId(), properties.operatorName(), basket.getTransactionNumber(),
                 orderNumber, List.copyOf(basket.getLines()), basket.getSubtotalPence(), basket.getSavingsPence(),
-                total, tenderType, tendered, change, authCode, Instant.now(), basket.getVatSummary());
+                total, tenderType, tendered, change, authCode, Instant.now(), basket.getVatSummary(), moreCard);
         log.info("Till {} completed transaction {} as order {} ({}p {})", basket.getTillId(),
                 basket.getTransactionNumber(), orderNumber, total, tenderType);
         return new TenderResult("APPROVED", tenderType, basket, orderNumber, tendered, change, authCode, null,
                 receipt, next.getBasketId());
+    }
+
+    private MoreCardReceipt awardPoints(Basket basket) {
+        if (basket.getMemberCardNumber() == null) {
+            return null;
+        }
+        int points = moreCardProperties.pointsFor(basket.getTotalPence());
+        MoreCardMember member = moreCards.award(basket.getMemberCardNumber(), points);
+        basket.setMember(member);
+        return new MoreCardReceipt(member.cardLast4(), member.name(), points, member.pointsBalance());
     }
 
     private String tillId(String requested) {
