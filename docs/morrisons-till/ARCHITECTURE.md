@@ -83,14 +83,15 @@ compute totals; they render `subtotalPence`, `savingsPence` and `totalPence` fro
   "services": { "product-service": "UP", "inventory-service": "UP", "order-service": "UP" } }
 
 // Product
-{ "barcode": "1001", "skuCode": "MOR-MILK-SS-4PT", "name": "Semi skimmed milk 4 pints", "pricePence": 155, "quickKey": true }
+{ "barcode": "1001", "skuCode": "MOR-MILK-SS-4PT", "name": "Semi skimmed milk 4 pints", "pricePence": 155, "quickKey": true, "vatCode": "Z" }
 
 // Basket
 { "basketId": "b0c1…", "tillId": "07", "transactionNumber": "0417-07-0001", "status": "OPEN", "currency": "GBP",
   "lines": [ { "lineId": "l-1", "barcode": "1004", "skuCode": "MOR-BANANA-5", "name": "Bananas x5",
-               "quantity": 2, "unitPricePence": 95, "linePence": 190 } ],
+               "quantity": 2, "unitPricePence": 95, "linePence": 190, "vatCode": "Z" } ],
   "adjustments": [ { "code": "MULTIBUY", "label": "…", "amountPence": -50, "lineId": "l-1" } ],
-  "lastLineId": "l-1", "itemCount": 2, "subtotalPence": 190, "savingsPence": 0, "totalPence": 190, "orderNumber": null }
+  "lastLineId": "l-1", "itemCount": 2, "subtotalPence": 190, "savingsPence": 0, "totalPence": 190,
+  "vatSummary": [ { "code": "Z", "ratePercent": 0, "netPence": 190, "vatPence": 0, "grossPence": 190 } ], "orderNumber": null }
 
 // TenderResult
 { "status": "APPROVED", "tenderType": "CARD", "basket": { /* Basket, status COMPLETED */ },
@@ -102,7 +103,8 @@ compute totals; they render `subtotalPence`, `savingsPence` and `totalPence` fro
 { "receiptNumber": "R-0417-07-0001", "storeNumber": "0417", "storeName": "Bradford Demo", "tillId": "07",
   "operatorName": "Demo Operator", "transactionNumber": "0417-07-0001", "orderNumber": "8df1…",
   "lines": [ /* BasketLine */ ], "subtotalPence": 190, "savingsPence": 0, "totalPence": 190,
-  "tenderType": "CARD", "amountTenderedPence": 190, "changeDuePence": 0, "authCode": "419508", "issuedAt": "2026-11-25T14:36:16Z" }
+  "tenderType": "CARD", "amountTenderedPence": 190, "changeDuePence": 0, "authCode": "419508", "issuedAt": "2026-11-25T14:36:16Z",
+  "vatSummary": [ /* VatBand, same as the basket */ ] }
 
 // Error (any 4xx/5xx)
 { "error": "UNKNOWN_BARCODE", "message": "No product for barcode 9999" }
