@@ -213,10 +213,14 @@ public class TillService {
         pricer.price(basket);
         int tendered = request.amountTenderedPence() == null ? basket.getTotalPence() : request.amountTenderedPence();
         String orderNumber = orders.placeSale(basket, properties.storeNumber(), "CASH", "offline-" + request.saleId());
-        log.info("Till {} synced offline sale {} as order {} ({}p)", basket.getTillId(), request.saleId(), orderNumber,
-                basket.getTotalPence());
+        log.info("Till {} synced offline sale {} as order {} ({}p)", loggable(basket.getTillId()),
+                loggable(request.saleId()), orderNumber, basket.getTotalPence());
         return new OfflineSaleResult(request.saleId(), orderNumber, basket.getTransactionNumber(),
                 basket.getTotalPence(), tendered);
+    }
+
+    private static String loggable(String value) {
+        return value.replaceAll("[\\r\\n\\t]", "_");
     }
 
     private String tillId(String requested) {
