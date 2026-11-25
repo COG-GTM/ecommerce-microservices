@@ -6,14 +6,14 @@ services:
     container_name: mysql-order
     image: mysql:latest
     environment:
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ORDER_ROOT_PASSWORD:?set in .env (see .env.example)}
       MYSQL_DATABASE: order_service
-      MYSQL_USER: ibatulanand
-      MYSQL_PASSWORD: password
+      MYSQL_USER: ${MYSQL_ORDER_USER:?set in .env (see .env.example)}
+      MYSQL_PASSWORD: ${MYSQL_ORDER_PASSWORD:?set in .env (see .env.example)}
     volumes:
       - ./mysql_order:/var/lib/mysql
     ports:
-      - "3307:3306"
+      - "${DB_BIND_ADDRESS:-127.0.0.1}:3307:3306"
     restart: always
 
   # MySQL Config for inventory service
@@ -21,14 +21,14 @@ services:
     container_name: mysql-inventory
     image: mysql:latest
     environment:
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: ${MYSQL_INVENTORY_ROOT_PASSWORD:?set in .env (see .env.example)}
       MYSQL_DATABASE: inventory_service
-      MYSQL_USER: ibatulanand
-      MYSQL_PASSWORD: password
+      MYSQL_USER: ${MYSQL_INVENTORY_USER:?set in .env (see .env.example)}
+      MYSQL_PASSWORD: ${MYSQL_INVENTORY_PASSWORD:?set in .env (see .env.example)}
     volumes:
       - ./mysql_inventory:/var/lib/mysql
     ports:
-      - "3308:3306"
+      - "${DB_BIND_ADDRESS:-127.0.0.1}:3308:3306"
     restart: always
 
   # MongoDB Config for product service
@@ -36,12 +36,19 @@ services:
     container_name: mongo
     image: mongo:latest
     restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:?set in .env (see .env.example)}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?set in .env (see .env.example)}
+      MONGO_APP_DATABASE: product-service
+      MONGO_APP_USER: ${MONGO_APP_USER:?set in .env (see .env.example)}
+      MONGO_APP_PASSWORD: ${MONGO_APP_PASSWORD:?set in .env (see .env.example)}
     ports:
-      - "27017:27017"
+      - "${DB_BIND_ADDRESS:-127.0.0.1}:27017:27017"
     expose:
       - "27017"
     volumes:
       - ./mongo-data:/data/db
+      - ./mongo-init/:/docker-entrypoint-initdb.d/:ro
 
 
   # Keycloak Config (MySQL Database)
@@ -152,7 +159,7 @@ services:
     image: ibatulanandjp/product-service:latest
     pull_policy: always
     environment:
-      - SPRING_DATA_MONGODB_URI=mongodb://mongo:27017/product-service
+      - SPRING_DATA_MONGODB_URI=mongodb://${MONGO_APP_USER:?set in .env (see .env.example)}:${MONGO_APP_PASSWORD:?set in .env (see .env.example)}@mongo:27017/product-service?authSource=product-service
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
       - SERVER_PORT=8080
       - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
@@ -169,8 +176,8 @@ services:
     pull_policy: always
     environment:
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-order:3306/order_service?allowPublicKeyRetrieval=true&useSSL=false
-      - SPRING_DATASOURCE_USERNAME=ibatulanand
-      - SPRING_DATASOURCE_PASSWORD=password
+      - SPRING_DATASOURCE_USERNAME=${MYSQL_ORDER_USER:?set in .env (see .env.example)}
+      - SPRING_DATASOURCE_PASSWORD=${MYSQL_ORDER_PASSWORD:?set in .env (see .env.example)}
       - SERVER_PORT=8080
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
       - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
@@ -189,8 +196,8 @@ services:
     pull_policy: always
     environment:
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-inventory:3306/inventory_service?allowPublicKeyRetrieval=true&useSSL=false
-      - SPRING_DATASOURCE_USERNAME=ibatulanand
-      - SPRING_DATASOURCE_PASSWORD=password
+      - SPRING_DATASOURCE_USERNAME=${MYSQL_INVENTORY_USER:?set in .env (see .env.example)}
+      - SPRING_DATASOURCE_PASSWORD=${MYSQL_INVENTORY_PASSWORD:?set in .env (see .env.example)}
       - SERVER_PORT=8080
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
       - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans

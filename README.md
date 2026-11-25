@@ -164,6 +164,7 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
 ### Prerequisites
 1. Docker and Docker Compose should be installed.
 2. Docker should be running.
+3. Docker Engine 28.0 or later: older engines let hosts on the same LAN reach ports published on `127.0.0.1`, so the database ports are not isolated there.
 
 ### Deployment
 
@@ -172,13 +173,27 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
    cd ecommerce-microservices
    ```
 
-2. Start the containers:
+2. Configure database credentials. `docker-compose.yml` has no built-in database passwords and refuses to start until `.env` provides them. Generate a `.env` (gitignored, readable only by you) with a distinct random value for every password:
+   ```shell
+   (umask 077 && set -C && command -v openssl >/dev/null && awk '!/^#/ && /_PASSWORD=$/{c="openssl rand -hex 24"; c|getline v; close(c); $0=$0 v}1' .env.example > .env)
+   ```
+   - MySQL (3307, 3308) and MongoDB (27017) are published on `127.0.0.1` only (`DB_BIND_ADDRESS`).
+   - MongoDB requires authentication: a root user plus a `readWrite` user for `product-service`, created by `mongo-init/` on first start.
+   - To run `product-service` on the host against this MongoDB, export only the app credentials, read from the running `mongo` container so they match what Compose resolved (`export MONGO_APP_USER="$(docker exec mongo printenv MONGO_APP_USER)" MONGO_APP_PASSWORD="$(docker exec mongo printenv MONGO_APP_PASSWORD)"`); its default `spring.data.mongodb.uri` reads `MONGO_APP_USER` and `MONGO_APP_PASSWORD`.
+   - The command refuses to overwrite an existing `.env`: initialized databases keep the passwords they were created with, so do not regenerate it for a running stack.
+   - Upgrading an existing stack: database init only runs on an empty data directory, so `mysql_order/`, `mysql_inventory/` and `mongo-data/` keep their old accounts. If the data is disposable, delete those directories before starting. Otherwise stop the old stack (`docker compose stop`, which keeps the Kafka and Prometheus volumes) and fix each database offline, in a container with no network, so nothing can use the old logins while you work:
+     - MySQL, for `mysql_order/` (then the same for `mysql_inventory/` with `inventory_service`): `docker run -d --rm --name db-rotate --network none -v "$PWD/mysql_order:/var/lib/mysql" mysql:latest`, then `docker exec -it db-rotate mysql -uroot -p` with the old root password. `CREATE USER` and `GRANT ALL ON order_service.*` for the new app user, `ALTER USER` for `'root'@'%'` and `'root'@'localhost'` followed by `ALTER USER ... DISCARD OLD PASSWORD` for both (so no secondary password survives), and `DROP USER 'ibatulanand'@'%'`. The old root password was public, so also review `SELECT user, host FROM mysql.user;` and the triggers, events and routines outside the built-in schemas (`SELECT trigger_schema, trigger_name, definer FROM information_schema.triggers WHERE trigger_schema NOT IN ('sys', 'mysql', 'information_schema', 'performance_schema');`, likewise `information_schema.events` / `routines`) and drop anything you did not create. Then `docker stop db-rotate`.
+     - MongoDB: `docker run -d --rm --name db-rotate --network none --env-file .env -e MONGO_APP_DATABASE=product-service -v "$PWD/mongo-data:/data/db" -v "$PWD/mongo-init:/mongo-init:ro" mongo:latest` (no auth; `.env` only provides the values the scripts below read, so it must be the generated, unquoted file and these variables must not be overridden in your shell, or Compose will later use different values). List users and custom roles (`docker exec db-rotate mongosh --quiet --eval 'printjson(db.getSiblingDB("admin").system.users.find({}, {user: 1, db: 1}).toArray()); printjson(db.getSiblingDB("admin").system.roles.find({}, {role: 1, db: 1}).toArray())'`) and remove each with `dropUser` / `dropRole`, since anyone could create them while MongoDB had no auth. Then create the root user (`docker exec db-rotate mongosh admin --quiet --eval 'db.createUser({user: process.env.MONGO_ROOT_USER, pwd: process.env.MONGO_ROOT_PASSWORD, roles: ["root"]})'`) and the app user (`docker exec db-rotate mongosh --quiet /mongo-init/create-app-user.js`), and `docker stop db-rotate`.
+     - Then `docker compose up -d`.
+   - `scripts/check-compose-db-security.sh` checks the rendered compose config for these settings.
+
+3. Start the containers:
    ```shell
    docker compose up -d
    ```
 
 
-3. Confirm that the containers are up and running:
+4. Confirm that the containers are up and running:
    ```shell
    docker ps
    ```
@@ -301,3 +316,4 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
    ```shell
    docker compose down -v
    ```
+- Compose needs `.env` for every command, including `down`. If you upgraded the checkout before creating one, generate it first (step 2).
