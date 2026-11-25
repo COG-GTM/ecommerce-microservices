@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -61,8 +62,7 @@ public class InventoryService {
      */
     @Transactional
     public void reserve(List<StockReservationItem> items) {
-        // Fixed SKU order so concurrent multi-item reservations lock rows in the same order
-        Map<String, Integer> requested = new TreeMap<>(aggregate(items));
+        Map<String, Integer> requested = inLockOrder(aggregate(items));
         List<String> unavailable = new ArrayList<>();
         requested.forEach((skuCode, quantity) -> {
             boolean reserved = inventoryRepository.findBySkuCodeOrderByIdAsc(skuCode).stream()
@@ -81,7 +81,7 @@ public class InventoryService {
      */
     @Transactional
     public void release(List<StockReservationItem> items) {
-        Map<String, Integer> requested = new TreeMap<>(aggregate(items));
+        Map<String, Integer> requested = inLockOrder(aggregate(items));
         requested.forEach((skuCode, quantity) -> {
             List<Inventory> rows = inventoryRepository.findBySkuCodeOrderByIdAsc(skuCode);
             if (rows.isEmpty()) {
@@ -89,6 +89,16 @@ public class InventoryService {
             }
             inventoryRepository.increment(rows.get(0).getId(), quantity);
         });
+    }
+
+    /**
+     * Orders SKUs the same way for every request, ignoring case first because the MySQL
+     * collation matches SKUs case-insensitively, so concurrent reservations lock rows in the same order.
+     */
+    private static Map<String, Integer> inLockOrder(Map<String, Integer> requested) {
+        Map<String, Integer> ordered = new TreeMap<>(String.CASE_INSENSITIVE_ORDER.thenComparing(Comparator.naturalOrder()));
+        ordered.putAll(requested);
+        return ordered;
     }
 
     private static Map<String, Integer> aggregate(List<StockReservationItem> items) {
