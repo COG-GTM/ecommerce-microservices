@@ -62,25 +62,34 @@ class NotificationPoisonRecordTest {
 
     @Test
     void malformedRecordsDoNotBlockLaterOrderNotifications(CapturedOutput output) throws Exception {
-        String plainText = "ord-" + UUID.randomUUID();
-        String noTypeHeader = "ord-" + UUID.randomUUID();
-        String wrongShape = "ord-" + UUID.randomUUID();
-        String spoofedType = "ord-" + UUID.randomUUID();
-        String tombstone = "ord-" + UUID.randomUUID();
+        String payloadMarker = "poison-" + UUID.randomUUID();
+        String afterPlainText = "ord-" + UUID.randomUUID();
+        String afterWrongShape = "ord-" + UUID.randomUUID();
+        String spoofedHeader = "ord-" + UUID.randomUUID();
+        String afterTombstone = "ord-" + UUID.randomUUID();
+        String afterMissingOrderNumber = "ord-" + UUID.randomUUID();
 
-        send("this is not json");
-        send(event(plainText));
-        send("{\"orderNumber\":{\"nested\":true}}");
-        send(event(wrongShape));
-        sendWithTypeHeader("{\"orderNumber\":\"x\"}", "java.util.ArrayList");
-        send(event(spoofedType));
+        send("this is not json " + payloadMarker);
+        send(event(afterPlainText));
+        send("{\"orderNumber\":{\"nested\":\"" + payloadMarker + "\"}}");
+        send(event(afterWrongShape));
+        sendWithTypeHeader(event(spoofedHeader), "java.util.ArrayList");
         send(null);
-        send(event(tombstone));
-        send(event(noTypeHeader));
+        send(event(afterTombstone));
+        send("{}");
+        send(event(afterMissingOrderNumber));
 
-        for (String orderNumber : new String[]{plainText, wrongShape, spoofedType, tombstone, noTypeHeader}) {
+        for (String orderNumber : new String[]{
+                afterPlainText, afterWrongShape, spoofedHeader, afterTombstone, afterMissingOrderNumber}) {
             awaitTrue(() -> output.getOut().contains("Received Notification for Order - " + orderNumber));
         }
+        assertThat(output.getOut())
+                .contains("Skipping notification record " + TOPIC + "-0@0 after")
+                .contains("Skipping notification record " + TOPIC + "-0@2 after")
+                .doesNotContain(payloadMarker)
+                .doesNotContain("Received Notification for Order - null");
+        assertThat(countOccurrences(output.getOut(), "Skipping notification record without an order number"))
+                .isEqualTo(2);
     }
 
     @Test
@@ -90,6 +99,14 @@ class NotificationPoisonRecordTest {
         sendWithTypeHeader(event(orderNumber), "event");
 
         awaitTrue(() -> output.getOut().contains("Received Notification for Order - " + orderNumber));
+    }
+
+    private static int countOccurrences(String text, String needle) {
+        int count = 0;
+        for (int i = text.indexOf(needle); i >= 0; i = text.indexOf(needle, i + needle.length())) {
+            count++;
+        }
+        return count;
     }
 
     private static String event(String orderNumber) {
