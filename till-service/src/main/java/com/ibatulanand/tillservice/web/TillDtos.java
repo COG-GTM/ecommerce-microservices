@@ -72,7 +72,7 @@ public final class TillDtos {
     public record MoreCardReceipt(String cardLast4, String memberName, int pointsEarned, int pointsBalance) {
     }
 
-    public record AttachMemberRequest(@NotBlank String basketId, @NotBlank @Size(max = 32) String cardNumber) {
+    public record AttachMemberRequest(@NotBlank String basketId, @NotBlank String cardNumber) {
     }
 
     /** A line of a sale the till completed while offline; name/sku/price are the till's cached catalogue values. */

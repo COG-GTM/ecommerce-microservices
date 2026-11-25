@@ -147,9 +147,11 @@ class MoreCardApiTest {
         attach(MEMBER_CARD, status().isConflict());
         call(post("/api/till/basket/member").contentType(MediaType.APPLICATION_JSON)
                 .content(json.writeValueAsString(Map.of("basketId", basketId, "cardNumber", ""))), status().isBadRequest());
-        call(post("/api/till/basket/member").contentType(MediaType.APPLICATION_JSON)
-                .content(json.writeValueAsString(Map.of("basketId", basketId, "cardNumber", "9".repeat(33)))),
+        JsonNode tooLong = call(post("/api/till/basket/member").contentType(MediaType.APPLICATION_JSON)
+                .content(json.writeValueAsString(Map.of("basketId", basketId, "cardNumber", "9".repeat(65)))),
                 status().isBadRequest());
+        assertThat(tooLong.get("error").asText()).isEqualTo("INVALID_CARD");
+        assertThat(tooLong.get("message").asText()).doesNotContain("9999");
     }
 
     private JsonNode attach(String card, ResultMatcher expected) throws Exception {
