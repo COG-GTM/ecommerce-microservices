@@ -96,13 +96,17 @@ class OrderControllerValidationTest {
     }
 
     @Test
-    void reportsValidationErrorsForPlainTextClients() throws Exception {
-        MvcResult result = mockMvc.perform(post("/api/order").contentType(MediaType.APPLICATION_JSON)
-                        .accept(MediaType.TEXT_PLAIN).content(itemsBody(OrderRequest.MAX_LINE_ITEMS + 1)))
-                .andExpect(status().isBadRequest())
-                .andReturn();
+    void reportsValidationErrorsAsPlainTextForAnyAcceptType() throws Exception {
+        for (MediaType accept : new MediaType[]{MediaType.TEXT_PLAIN, MediaType.APPLICATION_JSON, MediaType.ALL}) {
+            MvcResult result = mockMvc.perform(post("/api/order").contentType(MediaType.APPLICATION_JSON)
+                            .accept(accept).content(itemsBody(OrderRequest.MAX_LINE_ITEMS + 1)))
+                    .andExpect(status().isBadRequest())
+                    .andReturn();
 
-        assertThat(result.getResponse().getContentAsString()).startsWith("orderLineItemsDtoList: ");
+            assertThat(MediaType.parseMediaType(result.getResponse().getContentType()).isCompatibleWith(MediaType.TEXT_PLAIN))
+                    .as("Content-Type for Accept %s", accept).isTrue();
+            assertThat(result.getResponse().getContentAsString()).startsWith("orderLineItemsDtoList: ");
+        }
     }
 
     private org.springframework.test.web.servlet.ResultActions postOrder(String body) throws Exception {

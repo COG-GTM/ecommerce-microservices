@@ -7,6 +7,8 @@ import io.github.resilience4j.retry.annotation.Retry;
 import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
@@ -32,11 +34,11 @@ public class OrderController {
 
     /** Reports field names and messages only; the default resolver would log every rejected value at WARN. */
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public String handleInvalidOrder(MethodArgumentNotValidException exception) {
-        return exception.getFieldErrors().stream()
+    public ResponseEntity<String> handleInvalidOrder(MethodArgumentNotValidException exception) {
+        String errors = exception.getFieldErrors().stream()
                 .map(error -> error.getField() + ": " + error.getDefaultMessage())
                 .collect(Collectors.joining("; "));
+        return ResponseEntity.badRequest().contentType(MediaType.TEXT_PLAIN).body(errors);
     }
 
     public CompletableFuture<String> fallbackMethod(OrderRequest orderRequest, RuntimeException runtimeException) {
