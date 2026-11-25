@@ -38,6 +38,12 @@ export interface Adjustment {
   lineId: string | null
 }
 
+export interface MoreCardMember {
+  cardLast4: string
+  name: string
+  pointsBalance: number
+}
+
 export interface Basket {
   basketId: string
   tillId: string
@@ -52,6 +58,7 @@ export interface Basket {
   savingsPence: number
   totalPence: number
   orderNumber: string | null
+  member: MoreCardMember | null
 }
 
 export type TenderType = 'CARD' | 'CONTACTLESS' | 'CASH'
@@ -73,6 +80,14 @@ export interface Receipt {
   changeDuePence: number
   authCode: string | null
   issuedAt: string
+  moreCard: MoreCardReceipt | null
+}
+
+export interface MoreCardReceipt {
+  cardLast4: string
+  memberName: string
+  pointsEarned: number
+  pointsBalance: number
 }
 
 export interface TenderResult {

@@ -38,6 +38,8 @@ export const tillApi = {
     request<Basket>('/basket/lines/' + lineId, json('PATCH', { basketId, quantity })),
   voidLine: (basketId: string, lineId: string) =>
     request<Basket>('/basket/lines/' + lineId + '?basketId=' + basketId, { method: 'DELETE' }),
+  attachMember: (basketId: string, cardNumber: string) =>
+    request<Basket>('/basket/member', json('POST', { basketId, cardNumber })),
   voidSale: (basketId: string) => request<Basket>('/basket/void', json('POST', { basketId })),
   tender: (basketId: string, tenderType: TenderType, options: { amountTenderedPence?: number; terminalOutcome?: 'APPROVED' | 'DECLINED'; expectedTotalPence?: number } = {}) =>
     request<TenderResult>('/basket/tender', json('POST', { basketId, tenderType, ...options })),
