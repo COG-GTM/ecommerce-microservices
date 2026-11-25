@@ -25,10 +25,16 @@ client_cnf=$(mktemp)
 trap 'rm -f "$client_cnf"' EXIT
 printf '[client]\nuser=root\npassword="%s"\n' "$cnf_password" > "$client_cnf"
 
+# Escape '_' so the grant is not a wildcard, unless partial_revokes (MySQL 8+) makes names literal.
+db_grant='order\_service'
+if [[ "$(mysql --defaults-extra-file="$client_cnf" --protocol=socket -N -e "SHOW GLOBAL VARIABLES LIKE 'partial_revokes'" | cut -f2)" == "ON" ]]; then
+    db_grant='order_service'
+fi
+
 mysql --defaults-extra-file="$client_cnf" --protocol=socket <<SQL
 CREATE USER IF NOT EXISTS '${app_user}'@'%' IDENTIFIED BY '${sql_password}';
 ALTER USER '${app_user}'@'%' IDENTIFIED BY '${sql_password}';
 REVOKE ALL PRIVILEGES, GRANT OPTION FROM '${app_user}'@'%';
-GRANT SELECT, INSERT, UPDATE, DELETE ON \`order\\_service\`.* TO '${app_user}'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE ON \`${db_grant}\`.* TO '${app_user}'@'%';
 FLUSH PRIVILEGES;
 SQL
