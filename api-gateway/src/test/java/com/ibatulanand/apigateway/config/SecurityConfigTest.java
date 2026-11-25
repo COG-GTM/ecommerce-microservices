@@ -62,6 +62,10 @@ class SecurityConfigTest {
         webTestClient.get().uri("/api/product").exchange().expectStatus().isUnauthorized();
         webTestClient.get().uri("/api/product").headers(h -> h.setBearerAuth("customer-token"))
                 .exchange().expectStatus().isOk();
+        webTestClient.head().uri("/api/product").headers(h -> h.setBearerAuth("customer-token"))
+                .exchange().expectStatus().isOk();
+        webTestClient.options().uri("/api/product").headers(h -> h.setBearerAuth("customer-token"))
+                .exchange().expectStatus().isOk();
     }
 
     private WebTestClient.ResponseSpec postProduct(String token) {

@@ -24,6 +24,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/prometheus").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/product", "/api/product/**").authenticated()
+                        .requestMatchers(HttpMethod.HEAD, "/api/product", "/api/product/**").authenticated()
+                        .requestMatchers(HttpMethod.OPTIONS, "/api/product", "/api/product/**").authenticated()
                         .requestMatchers("/api/product", "/api/product/**").hasRole(PRODUCT_ADMIN_ROLE)
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2

@@ -21,6 +21,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.head;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -72,6 +74,10 @@ class ProductControllerSecurityTest {
 
         mockMvc.perform(get("/api/product")).andExpect(status().isUnauthorized());
         mockMvc.perform(get("/api/product").header("Authorization", "Bearer customer-token"))
+                .andExpect(status().isOk());
+        mockMvc.perform(head("/api/product").header("Authorization", "Bearer customer-token"))
+                .andExpect(status().isOk());
+        mockMvc.perform(options("/api/product").header("Authorization", "Bearer customer-token"))
                 .andExpect(status().isOk());
     }
 
