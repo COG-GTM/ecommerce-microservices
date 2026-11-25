@@ -23,13 +23,16 @@ public class NotificationServiceApplication {
     // Exception messages may embed the record payload; only OrderPlacedEventDeserializer's are payload-free.
     @Bean
     public DefaultErrorHandler kafkaErrorHandler() {
-        return new DefaultErrorHandler((record, exception) -> {
+        DefaultErrorHandler handler = new DefaultErrorHandler((record, exception) -> {
             Throwable cause = NestedExceptionUtils.getMostSpecificCause(exception);
             log.error("Skipping notification record {}-{}@{} after {} (cause: {})",
                     record.topic(), record.partition(), record.offset(),
                     exception.getClass().getName(),
                     cause instanceof SerializationException ? cause.getMessage() : cause.getClass().getName());
         });
+        // Keep the rest of the poll in memory; seeking back would re-fetch and re-decode it after every bad record.
+        handler.setSeekAfterError(false);
+        return handler;
     }
 
     @KafkaListener(topics = "notificationTopic")
