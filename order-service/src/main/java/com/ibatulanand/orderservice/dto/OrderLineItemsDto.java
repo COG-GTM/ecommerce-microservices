@@ -1,5 +1,6 @@
 package com.ibatulanand.orderservice.dto;
 
+import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.Max;
@@ -25,6 +26,7 @@ public class OrderLineItemsDto {
 
     @NotNull
     @DecimalMin("0.00")
+    @DecimalMax("9999999999.99")
     @Digits(integer = 10, fraction = 2)
     private BigDecimal price;
 

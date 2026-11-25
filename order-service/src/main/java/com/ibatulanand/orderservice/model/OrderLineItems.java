@@ -1,6 +1,7 @@
 package com.ibatulanand.orderservice.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
 import lombok.AllArgsConstructor;
@@ -22,6 +23,7 @@ public class OrderLineItems {
     private Long id;
     private String skuCode;
     @DecimalMin("0.00")
+    @DecimalMax("9999999999.99")
     @Digits(integer = 10, fraction = 2)
     @Column(precision = 12, scale = 2)
     private BigDecimal price;
