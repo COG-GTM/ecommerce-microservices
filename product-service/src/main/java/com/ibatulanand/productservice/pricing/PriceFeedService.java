@@ -18,8 +18,10 @@ import java.util.Objects;
 public class PriceFeedService {
 
     static final int MAX_PRICE_PENCE = 9_999_999;
+    static final int MAX_BATCH_SIZE = 10_000;
 
-    public record PriceUpdate(String barcode, Integer pricePence) {
+    /** {@code pricePence} is a {@link Number} so fractional values are rejected rather than truncated by Jackson. */
+    public record PriceUpdate(String barcode, Number pricePence) {
     }
 
     public record PriceSnapshot(PriceSource source, List<PriceRecord> prices) {
@@ -62,19 +64,24 @@ public class PriceFeedService {
         if (updates == null || updates.isEmpty()) {
             throw new PricingException(HttpStatus.BAD_REQUEST, "INVALID_PRICE", "No prices in the feed");
         }
+        if (updates.size() > MAX_BATCH_SIZE) {
+            throw new PricingException(HttpStatus.BAD_REQUEST, "BATCH_TOO_LARGE",
+                    "A feed batch holds at most " + MAX_BATCH_SIZE + " prices");
+        }
         List<Product> products = new ArrayList<>();
         for (PriceUpdate update : updates) {
             if (update == null || update.barcode() == null || update.barcode().isBlank()) {
                 throw new PricingException(HttpStatus.BAD_REQUEST, "INVALID_PRICE", "Every price needs a barcode");
             }
-            Integer pence = update.pricePence();
-            if (pence == null || pence <= 0 || pence > MAX_PRICE_PENCE) {
+            Number raw = update.pricePence();
+            boolean whole = raw instanceof Integer || raw instanceof Long;
+            if (!whole || raw.longValue() <= 0 || raw.longValue() > MAX_PRICE_PENCE) {
                 throw new PricingException(HttpStatus.BAD_REQUEST, "INVALID_PRICE",
                         "Price for " + update.barcode() + " must be 1-" + MAX_PRICE_PENCE + " pence");
             }
             Product product = productRepository.findFirstByBarcode(update.barcode()).orElseThrow(() ->
                     new PricingException(HttpStatus.NOT_FOUND, "UNKNOWN_BARCODE", "No product for barcode " + update.barcode()));
-            products.add(withPrice(product, pence));
+            products.add(withPrice(product, raw.intValue()));
         }
         productRepository.saveAll(products);
         log.info("Price feed applied {} prices", products.size());

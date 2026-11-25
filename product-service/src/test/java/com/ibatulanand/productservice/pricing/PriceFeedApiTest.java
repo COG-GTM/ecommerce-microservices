@@ -60,6 +60,7 @@ class PriceFeedApiTest {
         publish("{\"prices\":[{\"barcode\":\"394103\",\"pricePence\":120},{\"barcode\":\"0000\",\"pricePence\":1}]}", 404);
         publish("{\"prices\":[{\"barcode\":\"394103\",\"pricePence\":0}]}", 400);
         publish("{\"prices\":[]}", 400);
+        publish("{\"prices\":[{\"barcode\":\"394103\",\"pricePence\":119.9}]}", 400);
         mockMvc.perform(get("/api/product/barcode/394103")).andExpect(jsonPath("$.pricePence").value(99));
     }
 
