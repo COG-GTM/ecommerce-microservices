@@ -19,7 +19,7 @@ public class Order {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String orderNumber;
-    @Column(unique = true, length = 64)
+    @Column(unique = true, length = 64, columnDefinition = "varchar(64) character set ascii collate ascii_bin")
     private String idempotencyKey;
     @Column(length = 64)
     private String requestFingerprint;
