@@ -209,6 +209,13 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
 
     > NOTE: For getting the access token from the keycloak container with the local machine, it is required to add a row with `127.0.0.1 keycloak` in the file: `C:\Windows\System32\drivers\etc\hosts` or `/etc/hosts`  
 
+- **Granting catalog write access** [Required for `POST /api/product`]
+  - Creating products requires the realm role `product-admin`; other authenticated callers can only read the catalog and get `403` on `POST`.
+  - Use a dedicated confidential client for catalog management rather than the shared `spring-cloud-client`, whose secret is published in `realms/spring-boot-microservices-realm.json`. If you do reuse `spring-cloud-client`, regenerate its secret ('Credentials' > 'Regenerate') before granting the role.
+  - Create the client with 'Client authentication' and 'Service accounts roles' enabled, then go to that client > 'Service account roles' > 'Assign role', and assign `product-admin`.
+  - In Postman, set Client ID / Client Secret to that client's values (or the regenerated secret), then click "Get New Access Token" again; roles are copied into the token when it is issued. Use this token only for catalog writes, and keep using the regular `spring-cloud-client` token for other endpoints such as `/api/order`.
+  - If your KeyCloak instance kept a realm imported before this role existed (startup import skips existing realms), first create it under 'Realm roles' > 'Create role' with the name `product-admin`.
+
 - **Accessing API Endpoints**
   - **POST /api/product**
     - Method: POST
