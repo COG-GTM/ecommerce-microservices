@@ -192,7 +192,8 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
    Then rotate root to the value in `.env`:
    `ALTER USER 'root'@'%' IDENTIFIED BY '<new root password>';` (repeat for `'root'@'localhost'`).
    Unless `ORDER_DB_APP_USER` is `ibatulanand`, also remove the old shared login:
-   `DROP USER IF EXISTS 'ibatulanand'@'%';`
+   `DROP USER IF EXISTS 'ibatulanand'@'%';`. Likewise, after renaming `ORDER_DB_APP_USER`, drop the
+   previous name: `DROP USER IF EXISTS '<previous app user>'@'%';`
    To run `order-service` on the host against this database, set `SPRING_DATASOURCE_USERNAME`,
    `SPRING_DATASOURCE_PASSWORD` and `SPRING_DATASOURCE_URL=jdbc:mysql://localhost:3307/order_service`.
 
