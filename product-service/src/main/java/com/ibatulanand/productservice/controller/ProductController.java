@@ -18,7 +18,7 @@ public class ProductController {
 
     private final ProductService productService;
 
-    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(consumes = {MediaType.APPLICATION_JSON_VALUE, "application/*+json"})
     @ResponseStatus(HttpStatus.CREATED)
     public void createProduct(@Valid @RequestBody ProductRequest productRequest) {
         productService.createProduct(productRequest);

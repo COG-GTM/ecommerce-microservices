@@ -73,6 +73,14 @@ class ProductControllerValidationTest {
     }
 
     @Test
+    void acceptsJsonSuffixMediaTypes() throws Exception {
+        mockMvc.perform(post("/api/product").contentType("application/vnd.product+json")
+                        .content(body("Iphone 15", "Apple Iphone 15", "1500.00")))
+                .andExpect(status().isCreated());
+        verify(productService).createProduct(any());
+    }
+
+    @Test
     void rejectsFormPostWithoutReadingIt() throws Exception {
         mockMvc.perform(post("/api/product").contentType(MediaType.APPLICATION_FORM_URLENCODED)
                         .content("name=n&description=d&price=1"))
