@@ -21,4 +21,8 @@ public class OrderLineItems {
     private String skuCode;
     private BigDecimal price;
     private Integer quantity;
+    /** What the customer actually paid for the whole line after savings, in pence; null on rows written before refunds. */
+    private Integer paidPence;
+    /** Product name as printed on the receipt. */
+    private String name;
 }

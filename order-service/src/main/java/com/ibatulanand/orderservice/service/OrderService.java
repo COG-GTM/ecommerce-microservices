@@ -90,6 +90,8 @@ public class OrderService {
         orderLineItems.setPrice(orderLineItemsDto.getPrice());
         orderLineItems.setQuantity(orderLineItemsDto.getQuantity());
         orderLineItems.setSkuCode(orderLineItemsDto.getSkuCode());
+        orderLineItems.setPaidPence(orderLineItemsDto.getPaidPence());
+        orderLineItems.setName(orderLineItemsDto.getName());
         return orderLineItems;
     }
 }

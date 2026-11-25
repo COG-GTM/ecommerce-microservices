@@ -4,7 +4,9 @@ import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.ibatulanand.tillservice.config.TillProperties;
 import com.ibatulanand.tillservice.domain.Basket;
+import com.ibatulanand.tillservice.domain.BasketLine;
 import com.ibatulanand.tillservice.domain.CatalogueItem;
+import com.ibatulanand.tillservice.pricing.LinePayments;
 import com.ibatulanand.tillservice.web.RefundDtos.RefundLineRequest;
 import com.ibatulanand.tillservice.web.RefundDtos.RefundOrder;
 import com.ibatulanand.tillservice.web.RefundDtos.RefundableSale;
@@ -17,6 +19,7 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -93,11 +96,9 @@ public class HttpServiceClients implements CatalogueClient, StockClient, OrderCl
 
     @Override
     public String placeSale(Basket basket, String storeNumber, String tenderType) {
+        Map<String, Integer> paid = LinePayments.allocate(basket);
         List<Map<String, Object>> lines = basket.getLines().stream()
-                .map(l -> Map.<String, Object>of(
-                        "skuCode", l.getSkuCode(),
-                        "price", BigDecimal.valueOf(l.getUnitPricePence(), 2),
-                        "quantity", l.getQuantity()))
+                .map(l -> saleLine(l, paid.getOrDefault(l.getLineId(), l.getLinePence())))
                 .toList();
         Map<String, Object> body = Map.of(
                 "orderLineItemsDtoList", lines,
@@ -123,6 +124,16 @@ public class HttpServiceClients implements CatalogueClient, StockClient, OrderCl
         } catch (RuntimeException e) {
             throw unavailable("order-service", e);
         }
+    }
+
+    private static Map<String, Object> saleLine(BasketLine line, int paidPence) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("skuCode", line.getSkuCode());
+        body.put("price", BigDecimal.valueOf(line.getUnitPricePence(), 2));
+        body.put("quantity", line.getQuantity());
+        body.put("paidPence", paidPence);
+        body.put("name", line.getName());
+        return body;
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

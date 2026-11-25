@@ -18,11 +18,21 @@ public final class RefundDtos {
 
     /** One line of a completed sale as seen in Refund mode (order-service's view, enriched with the product name). */
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record RefundableLine(String skuCode, String name, int unitPricePence, int soldQuantity,
+    /** paidPence is what the customer paid for all soldQuantity units, after savings; refunds pay back a share of it. */
+    public record RefundableLine(String skuCode, String name, int unitPricePence, int paidPence, int soldQuantity,
                                  int refundedQuantity, int refundableQuantity) {
         public RefundableLine withName(String productName) {
-            return new RefundableLine(skuCode, productName, unitPricePence, soldQuantity, refundedQuantity,
+            return new RefundableLine(skuCode, productName, unitPricePence, paidPence, soldQuantity, refundedQuantity,
                     refundableQuantity);
+        }
+
+        /** Same split as order-service: an even share of paidPence, the leftover pennies going to the last units. */
+        public int refundPenceFor(int quantity) {
+            return share(refundedQuantity + quantity) - share(refundedQuantity);
+        }
+
+        private int share(int units) {
+            return soldQuantity == 0 ? 0 : (int) ((long) paidPence * Math.min(units, soldQuantity) / soldQuantity);
         }
     }
 

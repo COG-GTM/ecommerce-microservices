@@ -92,6 +92,8 @@ export interface RefundableLine {
   skuCode: string
   name: string
   unitPricePence: number
+  /** what the customer paid for all soldQuantity units, after savings */
+  paidPence: number
   soldQuantity: number
   refundedQuantity: number
   refundableQuantity: number
