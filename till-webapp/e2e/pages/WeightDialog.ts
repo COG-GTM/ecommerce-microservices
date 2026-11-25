@@ -38,6 +38,12 @@ export class WeightDialog {
     return this.page.getByTestId('barcode-input')
   }
 
+  /** Reprints the receipt on the sale-complete screen and returns it. */
+  async reprintReceipt() {
+    await this.page.getByTestId('reprint-receipt').click()
+    return this.page.getByTestId('receipt')
+  }
+
   get qtyPlus() {
     return this.page.getByTestId('qty-plus')
   }

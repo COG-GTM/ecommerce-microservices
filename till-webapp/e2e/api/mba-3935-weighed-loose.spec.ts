@@ -36,5 +36,9 @@ test.describe('MBA-3935 weighed and loose items API', () => {
     expect(approved).toMatchObject({ status: 'APPROVED', receipt: { totalPence: 448 } })
     const order = await (await request.get(`/api/order/${approved.orderNumber}`)).json()
     expect(order.totalPence).toBe(448)
+    expect(order.lines).toEqual(expect.arrayContaining([
+      expect.objectContaining({ skuCode: 'MOR-DELI-HAM-KG', quantity: 1, price: 3.49 }),
+      expect.objectContaining({ skuCode: 'MOR-TOMATO-LOOSE-KG', quantity: 1, price: 0.99 }),
+    ]))
   })
 })
