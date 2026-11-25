@@ -33,6 +33,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 /** The health check gives up on a stalled link instead of waiting for the browser's own timeout. */
 const HEALTH_CHECK_TIMEOUT_MS = 4_000
+/** A stalled replay is abandoned and retried on the next poll instead of holding the queue. */
+const SYNC_TIMEOUT_MS = 15_000
 
 const json = (method: string, body: unknown): RequestInit => ({ method, body: JSON.stringify(body) })
 
@@ -62,5 +64,5 @@ export const tillApi = {
   refundLookup: (reference: string) => request<RefundableSale>('/refund/' + encodeURIComponent(reference)),
   refund: (reference: string, lines: { skuCode: string; quantity: number }[], tillId?: string) =>
     request<RefundResult>('/refund', json('POST', { reference, lines, tillId })),
-  syncOfflineSale: (sale: OfflineSale) => request<OfflineSaleResult>('/offline-sales', json('POST', sale)),
+  syncOfflineSale: (sale: OfflineSale) => request<OfflineSaleResult>('/offline-sales', { ...json('POST', sale), signal: AbortSignal.timeout(SYNC_TIMEOUT_MS) }),
 }

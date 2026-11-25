@@ -22,6 +22,23 @@ export class OfflineTill {
     await this.page.context().setOffline(false)
   }
 
+  /** Fails every till API call while the page itself still loads, as when only the gateway is down. */
+  async blockBackend() {
+    await this.page.route('**/api/**', (route) => route.abort('connectionrefused'))
+  }
+
+  async unblockBackend() {
+    await this.page.unroute('**/api/**')
+  }
+
+  async reload() {
+    await this.page.reload()
+  }
+
+  async voidSale() {
+    await this.page.getByTestId('void-sale').click()
+  }
+
   async expectOffline(timeout = 20_000) {
     await expect(this.till.backendStatus).toHaveText(/Offline/, { timeout })
   }

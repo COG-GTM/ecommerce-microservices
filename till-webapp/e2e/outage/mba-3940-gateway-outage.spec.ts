@@ -9,6 +9,7 @@ test('gateway outage mid-shift: cash sale is queued and synced exactly once @out
   test.setTimeout(300_000)
   await till.open()
   await till.quickKey('1001')
+  await expect(till.total).toHaveText('£1.55')
 
   stack.stopGateway()
   await offline.expectOffline()

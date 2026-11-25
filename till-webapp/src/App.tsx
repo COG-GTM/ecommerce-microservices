@@ -128,6 +128,7 @@ export default function App() {
           const ack = await tillApi.syncOfflineSale(sale)
           if (!ack?.orderNumber) throw new Error('no order number in the sync response')
           offlineStore.remove(sale.saleId)
+          setResult((r) => (r && isLocal(r.basket) && r.basket.basketId.endsWith(sale.saleId) ? { ...r, orderNumber: ack.orderNumber } : r))
           synced++
         } catch (e) {
           if (isUnreachable(e)) break
@@ -431,31 +432,41 @@ export default function App() {
       applyTender(await tillApi.tender(basket.basketId, 'CASH', { amountTenderedPence, partialPayment, expectedTotalPence: basket.totalPence, expectedBalanceDuePence: basket.balanceDuePence }))
     }, tenderFailed)
 
+  /** The next server basket; after a till-service restart the id changed, so the session's current basket. */
+  const nextServerBasket = async (basketId: string) => {
+    try {
+      return await tillApi.basket(basketId)
+    } catch (e) {
+      if (!(e instanceof TillApiError) || e.code !== 'UNKNOWN_BASKET') throw e
+      return tillApi.basket((await tillApi.session(TILL_ID)).basketId)
+    }
+  }
+
+  // The receipt stays up until the next basket is in hand, so a failure leaves the cashier able to retry.
   const newSale = () =>
     result &&
     run(async () => {
-      setResult(null)
-      setMessage(null)
-      setScreen('sell')
-      if (!isLocal(result.basket)) {
-        try {
-          showBasket(await tillApi.basket(result.nextBasketId))
-        } catch (e) {
-          if (isUnreachable(e) && session) {
-            markOffline()
-            showBasket(newOfflineBasket(session))
-            return
-          }
-          if (!(e instanceof TillApiError) || e.code !== 'UNKNOWN_BASKET') throw e
-          // till-service restarted since the sale, so the next basket id changed: open the session's current basket.
-          const s = await tillApi.session(TILL_ID)
-          showBasket(await tillApi.basket(s.basketId))
-        }
-        await loadSession()
-      } else if (session) {
-        showBasket(newOfflineBasket(session))
-        if (!offline) await loadSession()
+      const openSell = (next: Basket) => {
+        setResult(null)
+        setMessage(null)
+        setScreen('sell')
+        showBasket(next)
       }
+      if (isLocal(result.basket)) {
+        if (!session) return
+        openSell(newOfflineBasket(session))
+        if (!offline) await loadSession()
+        return
+      }
+      try {
+        openSell(await nextServerBasket(result.nextBasketId))
+      } catch (e) {
+        if (!isUnreachable(e) || !session) throw e
+        markOffline()
+        openSell(newOfflineBasket(session))
+        return
+      }
+      await loadSession()
     }, (text) => setMessage({ kind: 'error', text }))
 
   const resetTenderState = () => {
