@@ -55,6 +55,18 @@ class OrderServiceTest {
     }
 
     @Test
+    void keepsCommittedOrderWhenKafkaSendFails() {
+        when(kafkaTemplate.send(eq("notificationTopic"), any(OrderPlacedEvent.class)))
+                .thenThrow(new IllegalStateException("broker unavailable"));
+
+        assertThat(orderService.placeOrder(order(line("iphone_15", 1)))).isEqualTo("Order Placed Successfully!");
+
+        verify(orderRepository).saveAndFlush(any(Order.class));
+        assertThat(inventoryRequests).extracting(r -> r.url().getPath())
+                .containsExactly("/api/inventory/reservations");
+    }
+
+    @Test
     void placesOrderAfterReservingStock() {
         String result = orderService.placeOrder(order(line("iphone_15", 2), line("iphone_15", 3)));
 

@@ -56,8 +56,12 @@ public class OrderService {
             throw e;
         }
 
-        // Send order to the kafka topic
-        kafkaTemplate.send("notificationTopic", new OrderPlacedEvent(order.getOrderNumber()));
+        // Send order to the kafka topic; the order is already committed, so a failure must not trigger a retry
+        try {
+            kafkaTemplate.send("notificationTopic", new OrderPlacedEvent(order.getOrderNumber()));
+        } catch (RuntimeException e) {
+            log.error("Failed to publish OrderPlacedEvent for order {}", order.getOrderNumber(), e);
+        }
 
         return "Order Placed Successfully!";
     }
