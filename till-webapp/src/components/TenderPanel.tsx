@@ -50,7 +50,7 @@ export function TenderPanel(props: Props) {
     return () => {
       current = false
     }
-  }, [method, basketId, cashPence, paidPence])
+  }, [method, basketId, cashPence, paidPence, balanceDuePence])
 
   const choose = (type: TenderType) => {
     setMethod(type)
@@ -59,7 +59,7 @@ export function TenderPanel(props: Props) {
   }
   const onCashKey = (key: string) =>
     setCashPence((value) => (key === 'C' ? 0 : Math.min(Number(String(value) + key), 99_999_99)))
-  const liveQuote = quote && quote.amountTenderedPence === cashPence && quote.paidPence === paidPence ? quote : null
+  const liveQuote = quote && quote.amountTenderedPence === cashPence && quote.paidPence === paidPence && quote.balanceDuePence === balanceDuePence ? quote : null
   const covers = cashPence >= balanceDuePence
 
   return (
