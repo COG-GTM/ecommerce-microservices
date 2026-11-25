@@ -19,6 +19,26 @@ export class WeightDialog {
     for (const key of kg) await this.page.getByTestId(`weight-key-${key}`).click()
   }
 
+  /** Submits the weight and leaves the dialog open, for weights the till rejects. */
+  async submitRejected() {
+    await this.page.getByTestId('weight-confirm').click()
+    await expect(this.error).toBeVisible()
+    await expect(this.root).toBeVisible()
+  }
+
+  get input() {
+    return this.page.getByTestId('weight-input')
+  }
+
+  get error() {
+    return this.page.getByTestId('weight-error')
+  }
+
+  /** The control holding keyboard focus inside the dialog (none when focus escaped). */
+  get focusedControl() {
+    return this.root.locator(':focus')
+  }
+
   async confirm() {
     await this.page.getByTestId('weight-confirm').click()
     await expect(this.root).toBeHidden()

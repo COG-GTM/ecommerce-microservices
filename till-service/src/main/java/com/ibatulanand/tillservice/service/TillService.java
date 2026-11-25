@@ -134,10 +134,10 @@ public class TillService {
      */
     public synchronized Basket addLine(String basketId, String barcode, int quantity, Integer weightGrams) {
         Basket basket = openForLineChange(basketId);
-        // A catalogued barcode wins over the price-label reading of the same digits.
-        Optional<CatalogueItem> exact = EmbeddedPriceBarcode.isCandidate(barcode)
-                ? catalogue.findByBarcode(barcode) : Optional.empty();
-        Optional<EmbeddedPriceBarcode> label = exact.isPresent() ? Optional.empty() : EmbeddedPriceBarcode.parse(barcode);
+        // Check digit first; then a catalogued barcode wins over the price-label reading of the same digits.
+        Optional<EmbeddedPriceBarcode> parsed = EmbeddedPriceBarcode.parse(barcode);
+        Optional<CatalogueItem> exact = parsed.isPresent() ? catalogue.findByBarcode(barcode) : Optional.empty();
+        Optional<EmbeddedPriceBarcode> label = exact.isPresent() ? Optional.empty() : parsed;
         CatalogueItem item = exact.orElseGet(() -> product(label.map(EmbeddedPriceBarcode::plu).orElse(barcode)));
         if (label.isEmpty() && item.soldByWeight() && weightGrams == null) {
             throw new TillException(HttpStatus.UNPROCESSABLE_ENTITY, "WEIGHT_REQUIRED",

@@ -125,6 +125,7 @@ class WeighedItemsApiTest {
     void weightIsValidated() throws Exception {
         add(Map.of("barcode", "2201", "weightGrams", 0), status().isBadRequest());
         add(Map.of("barcode", "2201", "weightGrams", 30_001), status().isBadRequest());
+        add(Map.of("barcode", "2201", "weightGrams", 30_000.9), status().isBadRequest());
         assertThat(add(Map.of("barcode", "1001", "weightGrams", 500), status().isBadRequest()).get("error").asText())
                 .isEqualTo("NOT_SOLD_BY_WEIGHT");
     }
@@ -147,10 +148,20 @@ class WeighedItemsApiTest {
     }
 
     @Test
+    void cataloguedPrefix2BarcodeStillNeedsAValidCheckDigit() throws Exception {
+        String bad = "212345678901" + (EmbeddedPriceBarcode.checkDigit("212345678901") + 1) % 10;
+        when(services.findByBarcode(bad)).thenReturn(Optional.of(
+                new CatalogueItem(bad, "MOR-GIFT-CARD", "Gift card", 1000, false)));
+        assertThat(add(Map.of("barcode", bad), status().isUnprocessableEntity()).get("error").asText())
+                .isEqualTo("INVALID_CHECK_DIGIT");
+    }
+
+    @Test
     void cataloguedPrefix2BarcodeIsSoldAsTheCatalogueItem() throws Exception {
-        CatalogueItem gift = new CatalogueItem("2123456789012", "MOR-GIFT-CARD", "Gift card", 1000, false);
-        when(services.findByBarcode("2123456789012")).thenReturn(Optional.of(gift));
-        JsonNode line = add(Map.of("barcode", "2123456789012"), status().isCreated()).get("lines").get(0);
+        String barcode = "212345678901" + EmbeddedPriceBarcode.checkDigit("212345678901");
+        CatalogueItem gift = new CatalogueItem(barcode, "MOR-GIFT-CARD", "Gift card", 1000, false);
+        when(services.findByBarcode(barcode)).thenReturn(Optional.of(gift));
+        JsonNode line = add(Map.of("barcode", barcode), status().isCreated()).get("lines").get(0);
         assertThat(line.get("pricedBy").asText()).isEqualTo("EACH");
         assertThat(line.get("linePence").asInt()).isEqualTo(1000);
     }

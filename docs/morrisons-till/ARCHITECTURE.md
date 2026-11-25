@@ -30,8 +30,8 @@ Changes to existing services are additive:
 
 | Service | Change |
 | --- | --- |
-| product-service | `barcode`, `skuCode`, `pricePence`, `quickKey` on `Product`; `GET /api/product/barcode/{barcode}`, `GET /api/product?quickkey=true`; `vatCode`; `GroceryCatalogueSeeder` (8 quick keys plus 2 barcode-only VAT items, `catalogue.seed.grocery=true`) |
-| inventory-service | seeds the 8 grocery SKUs and 2 VAT demo SKUs (500 each) when absent |
+| product-service | `barcode`, `skuCode`, `pricePence`, `quickKey` on `Product`; `GET /api/product/barcode/{barcode}`, `GET /api/product?quickkey=true`; `vatCode`; `GroceryCatalogueSeeder` (8 quick keys plus 2 barcode-only VAT items and 3 weighed, `catalogue.seed.grocery=true`); `soldByWeight` on `Product` |
+| inventory-service | seeds the 11 grocery SKUs and 2 VAT demo SKUs (500 each) when absent |
 | order-service | `POST /api/order/sale` (synchronous, returns the order; idempotent on `idempotencyKey`), `GET /api/order/{orderNumber}`, `GET /api/order/transaction/{transactionId}`; till metadata (`channel`, `storeNumber`, `tillId`, `transactionId`, `tenderType`, `totalPence`) on order and on the Kafka `OrderPlacedEvent` |
 | notification-service | records consumed events in a bounded `NotificationLog`; `GET /api/notification`, `GET /api/notification/{orderNumber}` |
 | api-gateway | routes `/api/till/**` and `/api/notification/**`; `dev` profile makes `/api/till/**` public and `GET /api/order/**`, `GET /api/notification/**` readable for tests. Everything else still requires a Keycloak JWT. |
@@ -139,8 +139,12 @@ Weighed and loose items (MBA-3935): a product with `soldByWeight: true` has `pri
 `pricedBy` (`EACH` | `WEIGHT` | `LABEL`) and `weightGrams` (WEIGHT only; `unitPricePence` is then per kg and
 `linePence` = weight × price, half-up to the penny). Price-embedded labels are prefix-2 EAN-13 `2 IIIIII PPPPP C`
 (item/PLU, price in pence, check digit), e.g. `2002101003490` = PLU 2101 at £3.49. Weighed and labelled lines are
-quantity 1. Errors: `INVALID_CHECK_DIGIT`, `WEIGHT_REQUIRED` (UI prompts for kg), `WEIGHT_TOO_LOW`,
-`QUANTITY_NOT_ALLOWED` (422); `NOT_SOLD_BY_WEIGHT` (422 for a label on a unit-priced item, 400 for a weight).
+quantity 1: an add with any other `quantity` (omitted means 1), or a `PATCH .../lines/{lineId}` that changes it,
+returns `QUANTITY_NOT_ALLOWED` (a quantity below 1 is `INVALID_REQUEST`, 400, for every line).
+`weightGrams` must be a whole number 1-30000 (400 `INVALID_REQUEST` otherwise). The check digit is validated first; a prefix-2 barcode that is itself
+catalogued sells as that product. Errors: `INVALID_CHECK_DIGIT`, `INVALID_LABEL_PRICE` (zero-price label),
+`WEIGHT_REQUIRED` (UI prompts for kg), `WEIGHT_TOO_LOW`, `QUANTITY_NOT_ALLOWED` (422); `NOT_SOLD_BY_WEIGHT` (422 for
+a label on a unit-priced item, 400 for a weight).
 
 ### Downstream calls made by till-service
 
@@ -164,6 +168,9 @@ quantity 1. Errors: `INVALID_CHECK_DIGIT`, `WEIGHT_REQUIRED` (UI prompts for kg)
 | 1008 | MOR-CARROT-1KG | Carrots 1kg | 65 | Z |
 | 4001 | MOR-CHOC-BAR-100 | Milk chocolate bar 100g (barcode only) | 120 | S |
 | 4002 | MOR-WASHUP-500 | Washing up liquid 500ml (barcode only) | 135 | S |
+| 2101 | MOR-DELI-HAM-KG | Deli honey roast ham (labelled) | 1290 per kg | Z |
+| 2201 | MOR-TOMATO-LOOSE-KG | Loose tomatoes | 220 per kg | Z |
+| 2202 | MOR-ONION-LOOSE-KG | Loose brown onions | 99 per kg | Z |
 
 ## UK VAT (MBA-3932)
 

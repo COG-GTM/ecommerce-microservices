@@ -315,3 +315,9 @@ h1, h2, h3, p { margin: 0; }
 .refund-total { font-size: 32px; font-weight: 800; }
 .refund-done { align-items: center; text-align: center; justify-content: center; }
 .refund-amount { font-size: 56px; font-weight: 800; color: var(--red); }
+
+.weight-error {
+  color: var(--red);
+  font-weight: 600;
+  margin: 4px 0 8px;
+}
