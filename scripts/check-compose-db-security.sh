@@ -9,9 +9,15 @@ if env -i PATH="$PATH" HOME="$HOME" docker compose --env-file /dev/null config >
   exit 1
 fi
 
+if env -i PATH="$PATH" HOME="$HOME" docker compose --env-file .env.example config >/dev/null 2>&1; then
+  echo "FAIL: compose config renders from the unmodified .env.example (placeholder passwords accepted)"
+  exit 1
+fi
+
+# Fill the template's empty passwords and drop DB_BIND_ADDRESS so the compose default is what gets checked.
 env_file=$(mktemp)
 trap 'rm -f "$env_file"' EXIT
-sed 's/CHANGE_ME/check-placeholder-secret/' .env.example > "$env_file"
+sed -e 's/_PASSWORD=$/_PASSWORD=check-placeholder-secret/' -e '/^DB_BIND_ADDRESS=/d' .env.example > "$env_file"
 
 env -i PATH="$PATH" HOME="$HOME" docker compose --env-file "$env_file" config --format json | python3 -c '
 import json, sys
