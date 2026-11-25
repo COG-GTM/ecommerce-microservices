@@ -113,6 +113,8 @@ class MoreCardApiTest {
         JsonNode second = tender().get("receipt").get("moreCard");
         assertThat(second.get("pointsEarned").asInt()).isEqualTo(20);
         assertThat(second.get("pointsBalance").asInt()).isEqualTo(balance + 20);
+        assertThat(call(get("/api/till/basket/" + basketId), status().isOk()).get("member").get("pointsBalance").asInt())
+                .isEqualTo(balance + 20);
     }
 
     @Test
@@ -125,6 +127,15 @@ class MoreCardApiTest {
         assertThat(basket.get("member").isNull()).isTrue();
         assertThat(basket.get("totalPence").asInt()).isEqualTo(505);
         assertThat(tender().get("status").asText()).isEqualTo("APPROVED");
+    }
+
+    @Test
+    void unknownCardAfterAMemberCardKeepsTheFirstCard() throws Exception {
+        attach(MEMBER_CARD, status().isOk());
+        JsonNode error = attach("9826999999999999", status().isNotFound());
+        assertThat(error.get("message").asText()).isEqualTo("More Card not recognised. Keeping Test Member Two's card.");
+        assertThat(call(get("/api/till/basket/" + basketId), status().isOk()).get("member").get("cardLast4").asText())
+                .isEqualTo("0002");
     }
 
     @Test
