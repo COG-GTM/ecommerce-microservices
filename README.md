@@ -172,7 +172,7 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
    cd ecommerce-microservices
    ```
 
-2. Set the Eureka registry credentials (required; the discovery server and every client authenticate with HTTP Basic). Use a long random, URL-safe password because it is embedded in the clients' `defaultZone` URL:
+2. Set the Eureka registry credentials (required; the discovery server and every client authenticate with HTTP Basic). Both values may only contain `A-Z`, `a-z`, `0-9`, `.`, `_`, `~` and `-` because clients embed them in the `defaultZone` URL; the discovery server refuses to start otherwise. Use a long random password:
    ```shell
    export EUREKA_USERNAME=eureka
    export EUREKA_PASSWORD="$(openssl rand -hex 32)"
@@ -304,7 +304,7 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
 
 ## Environment Cleanup
 
-- To completely stop and remove the containers and other resources (network, volume, etc.), run the following command:
+- To completely stop and remove the containers and other resources (network, volume, etc.), run the following command (with `EUREKA_USERNAME` and `EUREKA_PASSWORD` still exported, since Compose checks them for every command):
    ```shell
    docker compose down -v
    ```
