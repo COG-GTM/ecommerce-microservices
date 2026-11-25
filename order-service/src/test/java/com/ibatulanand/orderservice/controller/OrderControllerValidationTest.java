@@ -49,6 +49,9 @@ class OrderControllerValidationTest {
         MethodArgumentNotValidException error = (MethodArgumentNotValidException) result.getResolvedException();
         assertThat(error.getErrorCount()).isEqualTo(1);
         assertThat(error.getFieldError().getField()).isEqualTo("orderLineItemsDtoList");
+        assertThat(result.getResponse().getContentAsString())
+                .contains("orderLineItemsDtoList")
+                .doesNotContain("OrderLineItemsDto(");
         verifyNoInteractions(orderService);
     }
 
@@ -82,6 +85,13 @@ class OrderControllerValidationTest {
     void rejectsOverlongSkuCode() throws Exception {
         String sku = "x".repeat(51);
         postOrder("{\"orderLineItemsDtoList\":[" + item(sku) + "]}").andExpect(status().isBadRequest());
+        verifyNoInteractions(orderService);
+    }
+
+    @Test
+    void rejectsSkuCodeNeedingUrlEncoding() throws Exception {
+        postOrder("{\"orderLineItemsDtoList\":[" + item("iphone 15") + "]}").andExpect(status().isBadRequest());
+        postOrder("{\"orderLineItemsDtoList\":[" + item("\u00fc".repeat(50)) + "]}").andExpect(status().isBadRequest());
         verifyNoInteractions(orderService);
     }
 
