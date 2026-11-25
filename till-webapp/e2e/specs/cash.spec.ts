@@ -1,0 +1,36 @@
+import { expect, test } from '../fixtures/till'
+
+test.describe('cash tender', () => {
+  test('cash £5 note gives change and persists the order', async ({ till, backend, page }) => {
+    await till.open()
+    await till.quickKey('1001')
+    await till.pay()
+    await page.getByTestId('tender-cash').click()
+    await expect(page.getByTestId('take-cash')).toBeDisabled()
+    await page.getByTestId('cash-5').click()
+    await expect(page.getByTestId('cash-received')).toHaveText('£5.00')
+    await expect(page.getByTestId('change-due')).toHaveText('£3.45')
+    await page.getByTestId('take-cash').click()
+
+    const orderNumber = await till.orderNumber()
+    await expect(page.getByTestId('give-change')).toContainText('£3.45')
+    const order = await backend.order(orderNumber)
+    expect(order).toMatchObject({ tenderType: 'CASH', totalPence: 155 })
+    await backend.notification(orderNumber)
+  })
+
+  test('cash keyed on the keypad and exact', async ({ till, page }) => {
+    await till.open()
+    await till.quickKey('1005')
+    await till.quickKey('1008')
+    await till.pay()
+    await page.getByTestId('tender-cash').click()
+    for (const key of ['2', '00']) await page.getByTestId(`cash-key-${key}`).click()
+    await expect(page.getByTestId('cash-received')).toHaveText('£2.00')
+    await expect(page.getByTestId('change-due')).toHaveText('—')
+    await page.getByTestId('cash-exact').click()
+    await expect(page.getByTestId('change-due')).toHaveText('£0.00')
+    await page.getByTestId('take-cash').click()
+    await expect(page.getByTestId('sale-complete')).toContainText('Paid by cash · £2.25')
+  })
+})

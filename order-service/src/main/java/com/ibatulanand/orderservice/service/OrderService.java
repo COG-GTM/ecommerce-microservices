@@ -15,6 +15,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -27,8 +28,27 @@ public class OrderService {
     private final KafkaTemplate<String, OrderPlacedEvent> kafkaTemplate;
 
     public String placeOrder(OrderRequest orderRequest) {
+        placeAndReturnOrder(orderRequest);
+        return "Order Placed Successfully!";
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<Order> findByOrderNumber(String orderNumber) {
+        return orderRepository.findFirstByOrderNumber(orderNumber).map(order -> {
+            order.getOrderLineItemsList().size();
+            return order;
+        });
+    }
+
+    public Order placeAndReturnOrder(OrderRequest orderRequest) {
         Order order = new Order();
         order.setOrderNumber(UUID.randomUUID().toString());
+        order.setChannel(orderRequest.getChannel());
+        order.setStoreNumber(orderRequest.getStoreNumber());
+        order.setTillId(orderRequest.getTillId());
+        order.setTransactionId(orderRequest.getTransactionId());
+        order.setTenderType(orderRequest.getTenderType());
+        order.setTotalPence(orderRequest.getTotalPence());
 
         List<OrderLineItems> orderLineItems = orderRequest.getOrderLineItemsDtoList()
                 .stream()
@@ -55,9 +75,10 @@ public class OrderService {
             orderRepository.save(order);
 
             // Send order to the kafka topic
-            kafkaTemplate.send("notificationTopic", new OrderPlacedEvent(order.getOrderNumber()));
+            kafkaTemplate.send("notificationTopic", new OrderPlacedEvent(order.getOrderNumber(),
+                    order.getChannel(), order.getStoreNumber(), order.getTillId(), order.getTotalPence()));
 
-            return "Order Placed Successfully!";
+            return order;
         } else {
             throw new IllegalArgumentException("Product is not in stock, please try again later");
         }

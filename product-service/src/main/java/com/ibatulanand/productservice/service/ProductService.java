@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -33,12 +34,24 @@ public class ProductService {
         return products.stream().map(this::mapToProductResponse).toList();
     }
 
+    public Optional<ProductResponse> getProductByBarcode(String barcode) {
+        return productRepository.findFirstByBarcode(barcode).map(this::mapToProductResponse);
+    }
+
+    public List<ProductResponse> getQuickKeyProducts() {
+        return productRepository.findByQuickKeyTrueOrderByBarcodeAsc().stream().map(this::mapToProductResponse).toList();
+    }
+
     private ProductResponse mapToProductResponse(Product product) {
         return ProductResponse.builder()
                 .id(product.getId())
                 .name(product.getName())
                 .description(product.getDescription())
                 .price(product.getPrice())
+                .barcode(product.getBarcode())
+                .skuCode(product.getSkuCode())
+                .pricePence(product.getPricePence())
+                .quickKey(product.getQuickKey())
                 .build();
     }
 }

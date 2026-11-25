@@ -19,6 +19,12 @@ public class Order {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String orderNumber;
+    private String channel;
+    private String storeNumber;
+    private String tillId;
+    private String transactionId;
+    private String tenderType;
+    private Integer totalPence;
     @OneToMany(cascade = CascadeType.ALL)
     private List<OrderLineItems> orderLineItemsList;
 }

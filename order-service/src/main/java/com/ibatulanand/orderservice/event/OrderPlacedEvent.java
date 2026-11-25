@@ -9,4 +9,12 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class OrderPlacedEvent {
     private String orderNumber;
+    private String channel;
+    private String storeNumber;
+    private String tillId;
+    private Integer totalPence;
+
+    public OrderPlacedEvent(String orderNumber) {
+        this.orderNumber = orderNumber;
+    }
 }
