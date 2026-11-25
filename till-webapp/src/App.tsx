@@ -10,6 +10,7 @@ import { TenderPanel } from './components/TenderPanel'
 import {
   OfflineStore,
   addLocalLine,
+  MAX_OFFLINE_LINES,
   completeOffline,
   isHealthy,
   isLocal,
@@ -192,6 +193,9 @@ export default function App() {
       if (isLocal(basket)) {
         const product = offlineStore.catalogue()[barcode]
         if (!product) throw new TillApiError(404, 'NOT_CACHED', `Item ${barcode} is not available offline`)
+        if (basket.lines.length >= MAX_OFFLINE_LINES && !basket.lines.some((l) => l.barcode === product.barcode)) {
+          throw new TillApiError(422, 'BASKET_FULL', `An offline sale holds at most ${MAX_OFFLINE_LINES} different items`)
+        }
         showBasket(addLocalLine(basket, product))
         setMessage({ kind: 'ok', text: `Added ${product.name}` })
         return

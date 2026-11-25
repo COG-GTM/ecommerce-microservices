@@ -3,6 +3,8 @@ import { TillApiError } from '../api/client'
 import type { Basket, BasketLine, Product, TenderResult, TillSession } from '../api/types'
 
 export const LOCAL_BASKET_PREFIX = 'offline-'
+/** Matches the till-service limit on lines in one replayed offline sale. */
+export const MAX_OFFLINE_LINES = 200
 
 export interface OfflineSale {
   saleId: string
