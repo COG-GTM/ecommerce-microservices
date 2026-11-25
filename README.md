@@ -179,9 +179,11 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
    The order database is initialised from `mysql-order-init/`: the schema is created by root, and the
    service connects as `ORDER_DB_APP_USER`, which only has `SELECT`/`INSERT`/`UPDATE`/`DELETE` on
    `order_service`. These scripts only run on an empty `./mysql_order` directory. For an existing one,
-   start `mysql-order`, then apply them with the data directory's **current** root password
-   (re-running also updates the application account's password):
+   apply them with the data directory's **current** root password. Re-run the same commands after
+   changing `ORDER_DB_APP_USER`/`ORDER_DB_APP_PASSWORD` in `.env`, or if first initialisation stopped
+   on a missing or invalid value; `up -d` recreates the container so it picks up the new `.env`:
    ```shell
+   docker compose up -d mysql-order
    read -rs -p 'Current root password: ' MYSQL_ROOT_PASSWORD && export MYSQL_ROOT_PASSWORD
    docker compose exec -e MYSQL_ROOT_PASSWORD mysql-order bash -c \
      'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -uroot order_service < /docker-entrypoint-initdb.d/01-schema.sql \
