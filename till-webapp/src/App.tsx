@@ -278,10 +278,15 @@ export default function App() {
         try {
           showBasket(await tillApi.basket(result.nextBasketId))
         } catch (e) {
-          if (!isUnreachable(e) || !session) throw e
-          markOffline()
-          showBasket(newOfflineBasket(session))
-          return
+          if (isUnreachable(e) && session) {
+            markOffline()
+            showBasket(newOfflineBasket(session))
+            return
+          }
+          if (!(e instanceof TillApiError) || e.code !== 'UNKNOWN_BASKET') throw e
+          // till-service restarted since the sale, so the next basket id changed: open the session's current basket.
+          const s = await tillApi.session(TILL_ID)
+          showBasket(await tillApi.basket(s.basketId))
         }
         await loadSession()
       } else if (session) {
