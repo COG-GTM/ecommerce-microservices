@@ -137,11 +137,13 @@ public class TillService {
             line = new BasketLine(UUID.randomUUID().toString(), barcode, item.skuCode(), item.name(), 1,
                     label.get().pricePence(), 0, BasketLine.PricedBy.LABEL, null);
             line.setVatCode(item.vatCode());
+            applyAgeRestriction(line, item);
             basket.getLines().add(line);
         } else if (weightGrams != null) {
             line = new BasketLine(UUID.randomUUID().toString(), item.barcode(), item.skuCode(), item.name(), 1,
                     item.pricePence(), 0, BasketLine.PricedBy.WEIGHT, weightGrams);
             line.setVatCode(item.vatCode());
+            applyAgeRestriction(line, item);
             basket.getLines().add(line);
         } else {
             line = basket.getLines().stream()
@@ -151,6 +153,7 @@ public class TillService {
                 line = new BasketLine(UUID.randomUUID().toString(), item.barcode(), item.skuCode(), item.name(),
                         0, item.pricePence(), 0);
                 line.setVatCode(item.vatCode());
+            applyAgeRestriction(line, item);
                 basket.getLines().add(line);
             }
             line.setQuantity(line.getQuantity() + quantity);
@@ -195,6 +198,43 @@ public class TillService {
         return pricer.price(basket);
     }
 
+    /**
+     * Challenge 25 decision for an age-restricted line: APPROVED records the till's signed-in operator as the approver;
+     * REFUSED removes the line from the basket.
+     */
+    private static void applyAgeRestriction(BasketLine line, CatalogueItem item) {
+        if (item.ageRestricted()) {
+            line.setMinimumAge(item.minimumAge());
+            line.setAgeCheck(BasketLine.AgeCheck.PENDING);
+        }
+    }
+
+    public synchronized Basket ageCheck(String basketId, String lineId, String decision) {
+        Basket basket = openForChange(basketId);
+        BasketLine line = line(basket, lineId);
+        if (line.getAgeCheck() == null) {
+            throw new TillException(HttpStatus.UNPROCESSABLE_ENTITY, "NOT_AGE_RESTRICTED",
+                    line.getName() + " is not age restricted");
+        }
+        switch (decision.toUpperCase()) {
+            case "APPROVED" -> {
+                line.setAgeCheck(BasketLine.AgeCheck.APPROVED);
+                line.setAgeApprovedBy(properties.operatorId());
+                basket.setLastLineId(lineId);
+                log.info("Till {} age check approved by {} for {} on transaction {}", basket.getTillId(),
+                        line.getAgeApprovedBy(), line.getSkuCode(), basket.getTransactionNumber());
+                return pricer.price(basket);
+            }
+            case "REFUSED" -> {
+                log.info("Till {} age check refused for {} on transaction {}", basket.getTillId(), line.getSkuCode(),
+                        basket.getTransactionNumber());
+                return voidLine(basketId, lineId);
+            }
+            default -> throw new TillException(HttpStatus.BAD_REQUEST, "INVALID_AGE_DECISION",
+                    "Age check decision must be APPROVED or REFUSED");
+        }
+    }
+
     /** Voids the whole sale and returns the next open basket for the same till. */
     public synchronized Basket voidSale(String basketId) {
         Basket basket = openForChange(basketId);
@@ -213,6 +253,10 @@ public class TillService {
         }
         if (basket.getLines().isEmpty()) {
             throw new TillException(HttpStatus.UNPROCESSABLE_ENTITY, "EMPTY_BASKET", "Basket has no items");
+        }
+        if (basket.getPendingAgeChecks() > 0) {
+            throw new TillException(HttpStatus.CONFLICT, "AGE_CHECK_REQUIRED",
+                    "Approve or refuse age-restricted items before taking payment");
         }
         pricer.price(basket);
         int total = basket.getTotalPence();

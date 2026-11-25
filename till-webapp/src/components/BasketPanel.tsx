@@ -55,6 +55,11 @@ export function BasketPanel({ basket, selectedLineId, onSelect }: Props) {
                     </span>
                   )}
                   {line.pricedBy === 'LABEL' && <span className="line-detail" data-testid="line-label">Price-embedded label</span>}
+                  {line.ageCheck && (
+                    <span className={'age-badge ' + line.ageCheck.toLowerCase()} data-testid="line-age">
+                      {line.ageCheck === 'APPROVED' ? `ID checked · ${line.ageApprovedBy}` : `Challenge 25 · ${line.minimumAge}+`}
+                    </span>
+                  )}
                 </td>
                 <td className="num qty" data-testid="line-qty">{line.quantity}</td>
                 <td className="num each" data-testid="line-each">

@@ -28,4 +28,6 @@ public class Product {
     private String vatCode;
     /** Sold loose by weight; pricePence is then the price per kg. */
     private Boolean soldByWeight;
+    /** Minimum customer age to buy this item (Challenge 25 prompt at the till); null when unrestricted. */
+    private Integer minimumAge;
 }

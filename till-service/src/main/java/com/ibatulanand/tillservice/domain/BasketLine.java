@@ -25,15 +25,24 @@ public class BasketLine {
     private Integer weightGrams;
     /** UK VAT code of the item: Z (0%) or S (20%). */
     private String vatCode;
+    /** Minimum customer age for an age-restricted line; null when unrestricted. */
+    private Integer minimumAge;
+    /** PENDING until the operator confirms ID was seen (APPROVED); null for unrestricted lines. */
+    private AgeCheck ageCheck;
+    /** Operator id that approved the Challenge 25 check. */
+    private String ageApprovedBy;
+
+    public enum AgeCheck { PENDING, APPROVED }
+
 
     public BasketLine(String lineId, String barcode, String skuCode, String name, int quantity, int unitPricePence,
                       int linePence) {
-        this(lineId, barcode, skuCode, name, quantity, unitPricePence, linePence, PricedBy.EACH, null, null);
+        this(lineId, barcode, skuCode, name, quantity, unitPricePence, linePence, PricedBy.EACH, null, null, null, null, null);
     }
 
     public BasketLine(String lineId, String barcode, String skuCode, String name, int quantity, int unitPricePence,
                       int linePence, PricedBy pricedBy, Integer weightGrams) {
-        this(lineId, barcode, skuCode, name, quantity, unitPricePence, linePence, pricedBy, weightGrams, null);
+        this(lineId, barcode, skuCode, name, quantity, unitPricePence, linePence, pricedBy, weightGrams, null, null, null, null);
     }
 
     /** quantity x the price of one unit, where one unit of a WEIGHT line is its weight at the per-kg price (half up). */

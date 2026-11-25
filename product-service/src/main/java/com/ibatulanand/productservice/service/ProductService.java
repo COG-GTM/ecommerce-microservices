@@ -54,6 +54,7 @@ public class ProductService {
                 .quickKey(product.getQuickKey())
                 .vatCode(product.getVatCode())
                 .soldByWeight(product.getSoldByWeight())
+                .minimumAge(product.getMinimumAge())
                 .build();
     }
 }

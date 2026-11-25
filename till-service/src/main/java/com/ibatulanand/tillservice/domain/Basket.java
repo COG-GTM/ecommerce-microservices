@@ -32,4 +32,9 @@ public class Basket {
     private MoreCardMember member;
     @JsonIgnore
     private String memberCardNumber;
+
+    /** Age-restricted lines still waiting for a Challenge 25 decision; payment is blocked while this is above 0. */
+    public int getPendingAgeChecks() {
+        return (int) lines.stream().filter(l -> l.getAgeCheck() == BasketLine.AgeCheck.PENDING).count();
+    }
 }

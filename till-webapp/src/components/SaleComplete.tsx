@@ -43,13 +43,16 @@ export function SaleComplete({ result, onNewSale }: { result: TenderResult; onNe
             <span>Txn {receipt.transactionNumber}</span>
           </div>
           {receipt.lines.map((l) => (
-            <div className="receipt-row" key={l.lineId}>
-              <span>
-                {l.quantity} × {l.name}
-                {l.vatCode && <span className="vat-code">{l.vatCode}</span>}
-                {l.pricedBy === 'WEIGHT' && l.weightGrams != null && ` ${formatKg(l.weightGrams)} @ ${formatPence(l.unitPricePence)}/kg`}
-              </span>
-              <span>{formatPence(l.linePence)}</span>
+            <div key={l.lineId}>
+              <div className="receipt-row">
+                <span>
+                  {l.quantity} × {l.name}
+                  {l.vatCode && <span className="vat-code">{l.vatCode}</span>}
+                  {l.pricedBy === 'WEIGHT' && l.weightGrams != null && ` ${formatKg(l.weightGrams)} @ ${formatPence(l.unitPricePence)}/kg`}
+                </span>
+                <span>{formatPence(l.linePence)}</span>
+              </div>
+              {l.ageApprovedBy && <div className="receipt-row age-note"><span>Age verified by {l.ageApprovedBy}</span></div>}
             </div>
           ))}
           <div className="receipt-row rule"><span>Subtotal</span><span>{formatPence(receipt.subtotalPence)}</span></div>

@@ -21,4 +21,7 @@ public class OrderLineItems {
     private String skuCode;
     private BigDecimal price;
     private Integer quantity;
+    /** Age-restricted line: minimum age and the operator who approved the Challenge 25 check. */
+    private Integer minimumAge;
+    private String ageApprovedBy;
 }

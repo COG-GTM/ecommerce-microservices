@@ -22,6 +22,7 @@ export interface Product {
   quickKey: boolean
   vatCode: VatCode
   soldByWeight?: boolean
+  minimumAge?: number | null
 }
 
 /** UK VAT code: Z = zero-rated (0%), S = standard-rated (20%). */
@@ -48,7 +49,14 @@ export interface BasketLine {
   vatCode: VatCode | null
   pricedBy: 'EACH' | 'WEIGHT' | 'LABEL'
   weightGrams: number | null
+  /** Set on age-restricted lines; payment is blocked while any line is PENDING. */
+  minimumAge?: number | null
+  ageCheck?: AgeCheck | null
+  ageApprovedBy?: string | null
 }
+
+export type AgeCheck = 'PENDING' | 'APPROVED'
+export type AgeDecision = 'APPROVED' | 'REFUSED'
 
 export interface Adjustment {
   code: string
@@ -79,6 +87,7 @@ export interface Basket {
   vatSummary: VatBand[]
   orderNumber: string | null
   member: MoreCardMember | null
+  pendingAgeChecks?: number
 }
 
 export type TenderType = 'CARD' | 'CONTACTLESS' | 'CASH'

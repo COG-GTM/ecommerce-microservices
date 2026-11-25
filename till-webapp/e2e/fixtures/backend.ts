@@ -9,7 +9,7 @@ export interface OrderView {
   tillId: string
   tenderType: string
   totalPence: number
-  lines: { skuCode: string; price: number; quantity: number }[]
+  lines: { skuCode: string; price: number; quantity: number; minimumAge?: number | null; ageApprovedBy?: string | null }[]
 }
 
 /** Read-side helpers that assert on the real downstream services through the API gateway. */

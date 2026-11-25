@@ -67,6 +67,7 @@ compute totals; they render `subtotalPence`, `savingsPence` and `totalPence` fro
 | POST | `/basket/lines` | `{ basketId, barcode, quantity?, weightGrams? }` | `Basket` (same barcode again increments the line; weighed items and price-embedded labels always add a new line) |
 | PATCH | `/basket/lines/{lineId}` | `{ basketId, quantity }` | `Basket` |
 | DELETE | `/basket/lines/{lineId}?basketId=` | - | `Basket` (void line) |
+| POST | `/basket/lines/{lineId}/age-check` | `{ basketId, decision: APPROVED\|REFUSED }` | `Basket` (Challenge 25: APPROVED records the till operator as `ageApprovedBy`; REFUSED voids the line) |
 | POST | `/basket/void` | `{ basketId }` | new empty `Basket` (void sale) |
 | POST | `/basket/tender` | `{ basketId, tenderType: CARD\|CONTACTLESS\|CASH, amountTenderedPence?, terminalOutcome?: APPROVED\|DECLINED }` | `TenderResult` |
 | POST | `/basket/member` | `{ basketId, cardNumber }` (More Card, seeded test cards `9826000000000001`/`…0002`) | `Basket` with `member`; 404 `UNKNOWN_CARD` leaves the sale non-member |
@@ -113,6 +114,9 @@ compute totals; they render `subtotalPence`, `savingsPence` and `totalPence` fro
 
 Error codes: `UNKNOWN_BARCODE` / `UNKNOWN_BASKET` / `UNKNOWN_LINE` (404), `OUT_OF_STOCK` / `BASKET_CLOSED` (409),
 `EMPTY_BASKET` / `INSUFFICIENT_TENDER` (422), `UNSUPPORTED_TENDER` / validation (400).
+Age-restricted items (`Product.minimumAge` set): the line gets `minimumAge` and `ageCheck: PENDING`, and the basket
+reports `pendingAgeChecks`. `tender` returns `AGE_CHECK_REQUIRED` (409) until each such line is decided via `age-check`;
+`INVALID_AGE_DECISION` (400), `NOT_AGE_RESTRICTED` (422).
 
 Weighed and loose items (MBA-3935): a product with `soldByWeight: true` has `pricePence` per kg. Lines carry
 `pricedBy` (`EACH` | `WEIGHT` | `LABEL`) and `weightGrams` (WEIGHT only; `unitPricePence` is then per kg and

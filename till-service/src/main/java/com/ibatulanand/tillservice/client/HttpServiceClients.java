@@ -15,6 +15,7 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -28,10 +29,12 @@ public class HttpServiceClients implements CatalogueClient, StockClient, OrderCl
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     record ProductDto(String barcode, String skuCode, String name, Integer pricePence, Boolean quickKey,
-                      String vatCode, Boolean soldByWeight) {
+                      String vatCode, Boolean soldByWeight,
+                      Integer minimumAge) {
         CatalogueItem toItem() {
             return new CatalogueItem(barcode, skuCode, name, pricePence == null ? 0 : pricePence,
-                    Boolean.TRUE.equals(quickKey), vatCode, Boolean.TRUE.equals(soldByWeight));
+                    Boolean.TRUE.equals(quickKey), vatCode, Boolean.TRUE.equals(soldByWeight),
+                    minimumAge);
         }
     }
 
@@ -93,11 +96,7 @@ public class HttpServiceClients implements CatalogueClient, StockClient, OrderCl
     @Override
     public String placeSale(Basket basket, String storeNumber, String tenderType) {
         List<Map<String, Object>> lines = basket.getLines().stream()
-                .map(l -> Map.<String, Object>of(
-                        "skuCode", l.getSkuCode(),
-                        "price", BigDecimal.valueOf(l.getPricedBy() == BasketLine.PricedBy.EACH
-                                ? l.getUnitPricePence() : l.getLinePence() / Math.max(1, l.getQuantity()), 2),
-                        "quantity", l.getQuantity()))
+                .map(HttpServiceClients::saleLine)
                 .toList();
         Map<String, Object> body = Map.of(
                 "orderLineItemsDtoList", lines,
@@ -123,6 +122,19 @@ public class HttpServiceClients implements CatalogueClient, StockClient, OrderCl
         } catch (RuntimeException e) {
             throw unavailable("order-service", e);
         }
+    }
+
+    private static Map<String, Object> saleLine(BasketLine line) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("skuCode", line.getSkuCode());
+        body.put("price", BigDecimal.valueOf(line.getPricedBy() == BasketLine.PricedBy.EACH
+                ? line.getUnitPricePence() : line.getLinePence() / Math.max(1, line.getQuantity()), 2));
+        body.put("quantity", line.getQuantity());
+        if (line.getMinimumAge() != null) {
+            body.put("minimumAge", line.getMinimumAge());
+            body.put("ageApprovedBy", line.getAgeApprovedBy());
+        }
+        return body;
     }
 
     private static TillException unavailable(String service, RuntimeException cause) {
