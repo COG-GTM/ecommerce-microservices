@@ -96,7 +96,8 @@ public class RefundService {
         refund.setStoreNumber(request.storeNumber() != null ? request.storeNumber() : sale.getStoreNumber());
         refund.setTillId(request.tillId() != null ? request.tillId() : sale.getTillId());
         refund.setTransactionId(request.transactionId());
-        refund.setTenderType(request.tenderType() != null ? request.tenderType() : sale.getTenderType());
+        // Money goes back the way it was taken.
+        refund.setTenderType(sale.getTenderType());
         refund.setTotalPence(-refundPence);
         refund.setOrderLineItemsList(refundLines);
         orderRepository.save(refund);
@@ -138,6 +139,8 @@ public class RefundService {
         for (OrderLineItems line : lines(sale)) {
             int[] entry = soldBySku.computeIfAbsent(line.getSkuCode(), k -> new int[]{0, toPence(line.getPrice())});
             entry[0] += line.getQuantity() == null ? 0 : line.getQuantity();
+            // A SKU sold on lines at different prices refunds at the lowest of them.
+            entry[1] = Math.min(entry[1], toPence(line.getPrice()));
         }
         List<Order> refunds = orderRepository.findByOriginalOrderNumber(sale.getOrderNumber());
         Map<String, Integer> refundedBySku = new LinkedHashMap<>();
