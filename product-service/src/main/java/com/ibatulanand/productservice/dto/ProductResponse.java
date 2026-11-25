@@ -20,4 +20,6 @@ public class ProductResponse {
     private String skuCode;
     private Integer pricePence;
     private Boolean quickKey;
+    /** Sold loose by weight; pricePence is then the price per kg. */
+    private Boolean soldByWeight;
 }

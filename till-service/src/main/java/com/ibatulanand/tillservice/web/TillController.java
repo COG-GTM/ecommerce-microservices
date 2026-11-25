@@ -70,7 +70,7 @@ public class TillController {
     @ResponseStatus(HttpStatus.CREATED)
     public Basket addLine(@Valid @RequestBody AddLineRequest request) {
         return tillService.addLine(request.basketId(), request.barcode(),
-                request.quantity() == null ? 1 : request.quantity());
+                request.quantity() == null ? 1 : request.quantity(), request.weightGrams());
     }
 
     @PatchMapping("/basket/lines/{lineId}")

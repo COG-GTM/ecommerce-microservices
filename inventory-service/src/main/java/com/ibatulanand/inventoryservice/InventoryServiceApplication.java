@@ -41,6 +41,8 @@ public class InventoryServiceApplication {
 
     static final List<String> GROCERY_SKUS = List.of(
             "MOR-MILK-SS-4PT", "MOR-BREAD-WM-800", "MOR-EGGS-FR-6", "MOR-BANANA-5",
-            "MOR-OJ-1L", "MOR-CHEDDAR-MAT-400", "MOR-CHICKEN-BF-600", "MOR-CARROT-1KG");
+            "MOR-OJ-1L", "MOR-CHEDDAR-MAT-400", "MOR-CHICKEN-BF-600", "MOR-CARROT-1KG",
+            // weighed and counter items (PLUs 2101-2299)
+            "MOR-DELI-HAM-KG", "MOR-TOMATO-LOOSE-KG", "MOR-ONION-LOOSE-KG");
 
 }

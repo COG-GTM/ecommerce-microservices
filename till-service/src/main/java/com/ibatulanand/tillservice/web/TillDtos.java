@@ -2,6 +2,7 @@ package com.ibatulanand.tillservice.web;
 
 import com.ibatulanand.tillservice.domain.Basket;
 import com.ibatulanand.tillservice.domain.BasketLine;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 
@@ -11,6 +12,9 @@ import java.util.Map;
 
 /** Request/response shapes of the /api/till contract (see docs/morrisons-till/ARCHITECTURE.md). */
 public final class TillDtos {
+
+    /** Largest weight the till scale accepts (30 kg). */
+    public static final int MAX_WEIGHT_GRAMS = 30_000;
 
     private TillDtos() {
     }
@@ -23,7 +27,12 @@ public final class TillDtos {
                               Map<String, String> services) {
     }
 
-    public record AddLineRequest(@NotBlank String basketId, @NotBlank String barcode, @Min(1) Integer quantity) {
+    public record AddLineRequest(@NotBlank String basketId, @NotBlank String barcode, @Min(1) Integer quantity,
+                                 @Min(1) @Max(MAX_WEIGHT_GRAMS) Integer weightGrams) {
+
+        public AddLineRequest(String basketId, String barcode, Integer quantity) {
+            this(basketId, barcode, quantity, null);
+        }
     }
 
     public record UpdateLineRequest(@NotBlank String basketId, @Min(1) int quantity) {

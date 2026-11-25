@@ -32,8 +32,8 @@ export const tillApi = {
   quickKeys: () => request<Product[]>('/products?quickkey=true'),
   product: (barcode: string) => request<Product>('/products/' + encodeURIComponent(barcode)),
   basket: (basketId: string) => request<Basket>('/basket/' + basketId),
-  addLine: (basketId: string, barcode: string, quantity = 1) =>
-    request<Basket>('/basket/lines', json('POST', { basketId, barcode, quantity })),
+  addLine: (basketId: string, barcode: string, quantity = 1, weightGrams?: number) =>
+    request<Basket>('/basket/lines', json('POST', { basketId, barcode, quantity, weightGrams })),
   updateLine: (basketId: string, lineId: string, quantity: number) =>
     request<Basket>('/basket/lines/' + lineId, json('PATCH', { basketId, quantity })),
   voidLine: (basketId: string, lineId: string) =>
