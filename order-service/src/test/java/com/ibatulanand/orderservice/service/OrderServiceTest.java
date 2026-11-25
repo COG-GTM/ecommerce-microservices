@@ -14,7 +14,10 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.reactive.ClientHttpConnector;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.mock.http.client.reactive.MockClientHttpRequest;
+import org.springframework.mock.http.client.reactive.MockClientHttpResponse;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.reactive.function.client.ClientRequest;
@@ -23,6 +26,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -94,6 +98,31 @@ class OrderServiceTest {
         assertEquals(1, requests.size(), "only the catalog lookup should have been made");
         verify(orderRepository, never()).saveAndFlush(any());
         verify(kafkaTemplate, never()).send(anyString(), any(OrderPlacedEvent.class));
+    }
+
+    @Test
+    void readsCatalogResponsesLargerThanDefaultBuffer() {
+        String description = "\u4e2d".repeat(1000);
+        StringBuilder catalog = new StringBuilder("[");
+        for (int i = 0; i < 100; i++) {
+            catalog.append("{\"skuCode\":\"sku").append(i).append("\",\"description\":\"")
+                    .append(description).append("\",\"price\":10},");
+        }
+        catalog.append("{\"skuCode\":\"iphone_15\",\"price\":1500.00}]");
+        assertTrue(catalog.toString().getBytes(StandardCharsets.UTF_8).length > 256 * 1024);
+        ClientHttpConnector connector = (method, uri, requestCallback) ->
+                requestCallback.apply(new MockClientHttpRequest(method, uri)).then(Mono.fromCallable(() -> {
+                    if (!"/api/product".equals(uri.getPath())) {
+                        return new MockClientHttpResponse(HttpStatus.NO_CONTENT);
+                    }
+                    MockClientHttpResponse response = new MockClientHttpResponse(HttpStatus.OK);
+                    response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
+                    response.setBody(catalog.toString());
+                    return response;
+                }));
+        OrderService service = new OrderService(orderRepository, WebClient.builder().clientConnector(connector), kafkaTemplate);
+
+        assertEquals("Order Placed Successfully!", service.placeOrder(request(line("iphone_15", 1))));
     }
 
     @Test
