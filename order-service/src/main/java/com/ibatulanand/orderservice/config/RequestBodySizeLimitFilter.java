@@ -8,6 +8,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletRequestWrapper;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
@@ -24,13 +26,14 @@ import java.util.Set;
 
 /**
  * Rejects request bodies larger than {@code order.request.max-body-size} with 413, including
- * chunked bodies that carry no Content-Length, before they reach JSON binding.
+ * chunked bodies that carry no Content-Length, before they reach JSON or form binding.
  */
 @Component
+@Order(Ordered.HIGHEST_PRECEDENCE)
 public class RequestBodySizeLimitFilter extends OncePerRequestFilter {
 
     private static final Set<String> BODY_METHODS = Set.of(
-            HttpMethod.POST.name(), HttpMethod.PUT.name(), HttpMethod.PATCH.name());
+            HttpMethod.POST.name(), HttpMethod.PUT.name(), HttpMethod.PATCH.name(), HttpMethod.DELETE.name());
 
     private final long maxBodyBytes;
 
