@@ -35,6 +35,8 @@ public class SecurityConfig {
                                 .permitAll()
                                 .pathMatchers(HttpMethod.GET, "/api/product")
                                 .hasRole(PRODUCT_READ)
+                                .pathMatchers(HttpMethod.HEAD, "/api/product")
+                                .hasRole(PRODUCT_READ)
                                 .pathMatchers(HttpMethod.POST, "/api/product")
                                 .hasRole(PRODUCT_WRITE)
                                 .pathMatchers(HttpMethod.POST, "/api/order")

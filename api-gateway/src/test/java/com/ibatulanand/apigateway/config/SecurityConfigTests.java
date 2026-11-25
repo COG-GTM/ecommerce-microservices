@@ -88,6 +88,8 @@ class SecurityConfigTests {
 
         assertThat(status(webTestClient.get().uri("/api/product"), token))
                 .isNotIn(HttpStatus.UNAUTHORIZED.value(), HttpStatus.FORBIDDEN.value());
+        assertThat(status(webTestClient.head().uri("/api/product"), token))
+                .isNotIn(HttpStatus.UNAUTHORIZED.value(), HttpStatus.FORBIDDEN.value());
         assertThat(status(webTestClient.post().uri("/api/product"), token)).isEqualTo(HttpStatus.FORBIDDEN.value());
         assertThat(status(webTestClient.post().uri("/api/order"), token)).isEqualTo(HttpStatus.FORBIDDEN.value());
     }
