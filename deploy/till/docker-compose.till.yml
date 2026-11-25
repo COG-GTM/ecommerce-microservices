@@ -1,0 +1,193 @@
+# Morrisons till functional-test stack. Start/stop with `make till-up` / `make till-down` (see docs/morrisons-till).
+# Every service is built from this checkout; images known to break are pinned.
+name: morrisons-till
+
+x-spring-env: &spring-env
+  EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka/
+  EUREKA_INSTANCE_PREFERIPADDRESS: "true"
+  EUREKA_INSTANCE_LEASERENEWALINTERVALINSECONDS: "5"
+  EUREKA_CLIENT_REGISTRYFETCHINTERVALSECONDS: "5"
+  SPRING_CLOUD_LOADBALANCER_CACHE_TTL: 5s
+  MANAGEMENT_TRACING_ENABLED: "false"
+  MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,prometheus
+  MANAGEMENT_ENDPOINT_HEALTH_SHOWDETAILS: never
+
+x-health: &health
+  interval: 5s
+  timeout: 5s
+  retries: 60
+  start_period: 20s
+
+services:
+  mysql-order:
+    image: mysql:8.0.39
+    environment:
+      MYSQL_ROOT_PASSWORD: ${TILL_MYSQL_PASSWORD:-mysql}
+      MYSQL_DATABASE: order_service
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -p$$MYSQL_ROOT_PASSWORD --silent"]
+      <<: *health
+
+  mysql-inventory:
+    image: mysql:8.0.39
+    environment:
+      MYSQL_ROOT_PASSWORD: ${TILL_MYSQL_PASSWORD:-mysql}
+      MYSQL_DATABASE: inventory_service
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -p$$MYSQL_ROOT_PASSWORD --silent"]
+      <<: *health
+
+  mongo:
+    image: mongo:7.0
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      <<: *health
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.1
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  broker:
+    image: confluentinc/cp-kafka:7.6.1
+    depends_on: [zookeeper]
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:29092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:29092 --list >/dev/null 2>&1"]
+      <<: *health
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0.5
+    command: ["start-dev", "--import-realm", "--health-enabled=true"]
+    environment:
+      KEYCLOAK_ADMIN: ${TILL_KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${TILL_KEYCLOAK_ADMIN_PASSWORD:-admin}
+      # Tokens are issued for the browser-facing URL; the gateway validates that issuer.
+      KC_HOSTNAME_URL: http://localhost:${TILL_KEYCLOAK_PORT:-8080}
+      KC_HOSTNAME_STRICT_BACKCHANNEL: "false"
+    volumes:
+      # Keycloak only imports files named <realm>-realm.json
+      - ../../realms/spring-boot-microservices-realm.json:/opt/keycloak/data/import/spring-boot-microservices-realm.json:ro
+    ports:
+      - "${TILL_BIND_ADDRESS:-127.0.0.1}:${TILL_KEYCLOAK_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080 && printf 'GET /health/ready HTTP/1.0\\r\\n\\r\\n' >&3 && grep -q UP <&3"]
+      <<: *health
+
+  discovery-server:
+    build: { context: ../.., dockerfile: deploy/till/service.Dockerfile, args: { MODULE: discovery-server } }
+    environment:
+      <<: *spring-env
+      EUREKA_INSTANCE_HOSTNAME: discovery-server
+      EUREKA_SERVER_RESPONSECACHEUPDATEINTERVALMS: "3000"
+    ports:
+      - "${TILL_BIND_ADDRESS:-127.0.0.1}:${TILL_EUREKA_PORT:-8761}:8761"
+    healthcheck:
+      test: ["CMD", "healthcheck", "8761"]
+      <<: *health
+
+  product-service:
+    build: { context: ../.., dockerfile: deploy/till/service.Dockerfile, args: { MODULE: product-service } }
+    environment:
+      <<: *spring-env
+      SERVER_PORT: "8080"
+      SPRING_DATA_MONGODB_URI: mongodb://mongo:27017/product-service
+      CATALOGUE_SEED_GROCERY: "true"
+    depends_on:
+      mongo: { condition: service_healthy }
+      discovery-server: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "healthcheck", "8080"]
+      <<: *health
+
+  inventory-service:
+    build: { context: ../.., dockerfile: deploy/till/service.Dockerfile, args: { MODULE: inventory-service } }
+    environment:
+      <<: *spring-env
+      SERVER_PORT: "8080"
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-inventory:3306/inventory_service?createDatabaseIfNotExist=true
+      SPRING_DATASOURCE_PASSWORD: ${TILL_MYSQL_PASSWORD:-mysql}
+    depends_on:
+      mysql-inventory: { condition: service_healthy }
+      discovery-server: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "healthcheck", "8080"]
+      <<: *health
+
+  order-service:
+    build: { context: ../.., dockerfile: deploy/till/service.Dockerfile, args: { MODULE: order-service } }
+    environment:
+      <<: *spring-env
+      SERVER_PORT: "8080"
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-order:3306/order_service?createDatabaseIfNotExist=true
+      SPRING_DATASOURCE_PASSWORD: ${TILL_MYSQL_PASSWORD:-mysql}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: broker:29092
+    depends_on:
+      mysql-order: { condition: service_healthy }
+      broker: { condition: service_healthy }
+      discovery-server: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "healthcheck", "8080"]
+      <<: *health
+
+  notification-service:
+    build: { context: ../.., dockerfile: deploy/till/service.Dockerfile, args: { MODULE: notification-service } }
+    environment:
+      <<: *spring-env
+      SERVER_PORT: "8080"
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: broker:29092
+    depends_on:
+      broker: { condition: service_healthy }
+      discovery-server: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "healthcheck", "8080"]
+      <<: *health
+
+  till-service:
+    build: { context: ../.., dockerfile: deploy/till/service.Dockerfile, args: { MODULE: till-service } }
+    environment:
+      <<: *spring-env
+      SERVER_PORT: "8080"
+    depends_on:
+      discovery-server: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "healthcheck", "8080"]
+      <<: *health
+
+  api-gateway:
+    build: { context: ../.., dockerfile: deploy/till/service.Dockerfile, args: { MODULE: api-gateway } }
+    environment:
+      <<: *spring-env
+      # dev = till API open for functional testing; set TILL_GATEWAY_PROFILE=default to require a JWT everywhere
+      SPRING_PROFILES_ACTIVE: ${TILL_GATEWAY_PROFILE:-dev}
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://localhost:${TILL_KEYCLOAK_PORT:-8080}/realms/spring-boot-microservices-realm
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/spring-boot-microservices-realm/protocol/openid-connect/certs
+      DISCOVERY_SERVER_URL: http://discovery-server:8761
+    depends_on:
+      discovery-server: { condition: service_healthy }
+      keycloak: { condition: service_healthy }
+    ports:
+      - "${TILL_BIND_ADDRESS:-127.0.0.1}:${TILL_GATEWAY_PORT:-8181}:8181"
+    healthcheck:
+      test: ["CMD", "healthcheck", "8181"]
+      <<: *health
+
+  till-webapp:
+    build: { context: ../../till-webapp }
+    depends_on:
+      api-gateway: { condition: service_healthy }
+    ports:
+      - "${TILL_BIND_ADDRESS:-127.0.0.1}:${TILL_WEBAPP_PORT:-5174}:80"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]
+      <<: *health

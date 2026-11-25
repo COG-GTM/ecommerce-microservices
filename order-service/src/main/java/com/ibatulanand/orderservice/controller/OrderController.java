@@ -6,17 +6,28 @@ import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
 import lombok.RequiredArgsConstructor;
+import com.ibatulanand.orderservice.dto.OrderResponse;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 
 @RestController
 @RequestMapping("/api/order")
-@RequiredArgsConstructor
 public class OrderController {
 
     private final OrderService orderService;
+    // Spring's task executor keeps the application classloader (ForkJoin common pool threads in a fat jar do not).
+    private final Executor executor;
+
+    public OrderController(OrderService orderService, @Qualifier("applicationTaskExecutor") Executor executor) {
+        this.orderService = orderService;
+        this.executor = executor;
+    }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -24,10 +35,30 @@ public class OrderController {
     @TimeLimiter(name = "inventory")
     @Retry(name = "inventory")
     public CompletableFuture<String> placeOrder(@RequestBody OrderRequest orderRequest) {
-        return CompletableFuture.supplyAsync(() -> orderService.placeOrder(orderRequest));
+        return CompletableFuture.supplyAsync(() -> orderService.placeOrder(orderRequest), executor);
     }
 
     public CompletableFuture<String> fallbackMethod(OrderRequest orderRequest, RuntimeException runtimeException) {
-        return CompletableFuture.supplyAsync(() -> "Oops! Something went wrong, please order after some time!");
+        return CompletableFuture.supplyAsync(() -> "Oops! Something went wrong, please order after some time!", executor);
+    }
+
+    /** Till sale: synchronous, returns the persisted order so the till can print the order number on the receipt. */
+    @PostMapping("/sale")
+    public ResponseEntity<?> placeSale(@RequestBody OrderRequest orderRequest) {
+        try {
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(OrderResponse.from(orderService.placeAndReturnOrder(orderRequest)));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("error", "OUT_OF_STOCK", "message", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/{orderNumber}")
+    public ResponseEntity<OrderResponse> getOrder(@PathVariable String orderNumber) {
+        return orderService.findByOrderNumber(orderNumber)
+                .map(OrderResponse::from)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 }

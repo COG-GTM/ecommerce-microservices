@@ -20,4 +20,8 @@ public class Product {
     private String name;
     private String description;
     private BigDecimal price;
+    private String barcode;
+    private String skuCode;
+    private Integer pricePence;
+    private Boolean quickKey;
 }

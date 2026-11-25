@@ -5,6 +5,7 @@ import com.ibatulanand.productservice.dto.ProductResponse;
 import com.ibatulanand.productservice.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,7 +25,17 @@ public class ProductController {
 
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
-    public List<ProductResponse> getAllProducts() {
+    public List<ProductResponse> getAllProducts(@RequestParam(name = "quickkey", required = false) Boolean quickKey) {
+        if (Boolean.TRUE.equals(quickKey)) {
+            return productService.getQuickKeyProducts();
+        }
         return productService.getAllProducts();
+    }
+
+    @GetMapping("/barcode/{barcode}")
+    public ResponseEntity<ProductResponse> getProductByBarcode(@PathVariable String barcode) {
+        return productService.getProductByBarcode(barcode)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 }

@@ -7,7 +7,11 @@ import org.springframework.kafka.annotation.KafkaListener;
 
 @SpringBootApplication
 @Slf4j
+@lombok.RequiredArgsConstructor
 public class NotificationServiceApplication {
+
+    private final NotificationLog notificationLog;
+
     public static void main(String[] args) {
         SpringApplication.run(NotificationServiceApplication.class, args);
     }
@@ -16,5 +20,6 @@ public class NotificationServiceApplication {
     public void handleNotification(OrderPlacedEvent orderPlacedEvent) {
         // Send out an email notification
         log.info("Received Notification for Order - {}", orderPlacedEvent.getOrderNumber());
+        notificationLog.record(orderPlacedEvent);
     }
 }
