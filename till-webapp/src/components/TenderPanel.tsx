@@ -1,5 +1,6 @@
-import { useState } from 'react'
-import type { TenderType } from '../api/types'
+import { useEffect, useState } from 'react'
+import { tillApi } from '../api/client'
+import type { CashQuote, TenderType } from '../api/types'
 import { formatPence } from '../money'
 import { ApiChip } from './ApiChip'
 import { Keypad } from './Keypad'
@@ -12,20 +13,43 @@ const METHODS: { type: TenderType; title: string; sub: string }[] = [
 const NOTES = [500, 1000, 2000, 5000]
 
 interface Props {
+  basketId: string
   totalPence: number
+  paidPence: number
+  balanceDuePence: number
   busy: boolean
   declineMessage: string | null
   errorMessage: string | null
   onBack: () => void
   onCard: (type: TenderType, outcome: 'APPROVED' | 'DECLINED') => void
-  onCash: (amountTenderedPence: number) => void
+  onCash: (amountTenderedPence: number, partialPayment?: boolean) => void
   onMethodChange: () => void
 }
 
 export function TenderPanel(props: Props) {
-  const { totalPence, busy } = props
+  const { basketId, totalPence, paidPence, balanceDuePence, busy } = props
   const [method, setMethod] = useState<TenderType | null>(null)
   const [cashPence, setCashPence] = useState(0)
+  const [quote, setQuote] = useState<CashQuote | null>(null)
+
+  useEffect(() => {
+    setCashPence(0)
+  }, [paidPence])
+
+  useEffect(() => {
+    if (method !== 'CASH' || cashPence === 0) {
+      setQuote(null)
+      return
+    }
+    let current = true
+    tillApi.cashQuote(basketId, cashPence).then(
+      (q) => current && setQuote(q),
+      () => current && setQuote(null),
+    )
+    return () => {
+      current = false
+    }
+  }, [method, basketId, cashPence, paidPence])
 
   const choose = (type: TenderType) => {
     setMethod(type)
@@ -34,18 +58,25 @@ export function TenderPanel(props: Props) {
   }
   const onCashKey = (key: string) =>
     setCashPence((value) => (key === 'C' ? 0 : Math.min(Number(String(value) + key), 99_999_99)))
-  const change = cashPence - totalPence
+  const liveQuote = quote && quote.amountTenderedPence === cashPence && quote.paidPence === paidPence ? quote : null
+  const covers = cashPence >= balanceDuePence
 
   return (
     <>
       <section className="panel due" aria-label="Amount due">
         <div>
-          <div className="label">Amount due</div>
-          <div className="due-amount" data-testid="amount-due">{formatPence(totalPence)}</div>
+          <div className="label">{paidPence > 0 ? 'Left to pay' : 'Amount due'}</div>
+          <div className="due-amount" data-testid="amount-due">{formatPence(balanceDuePence)}</div>
+          {paidPence > 0 && (
+            <div className="muted paid-so-far" data-testid="paid-so-far">
+              Paid {formatPence(paidPence)} of {formatPence(totalPence)}
+            </div>
+          )}
         </div>
         <div className="panel-head-right">
           <ApiChip>POST /api/till/basket/tender</ApiChip>
-          <button type="button" className="btn outline back" data-testid="back-to-basket" disabled={busy} onClick={props.onBack}>
+          {method === 'CASH' && <ApiChip>GET /api/till/basket/:id/cash-quote</ApiChip>}
+          <button type="button" className="btn outline back" data-testid="back-to-basket" disabled={busy || paidPence > 0} onClick={props.onBack}>
             Back to basket
           </button>
         </div>
@@ -104,16 +135,31 @@ export function TenderPanel(props: Props) {
                   £{n / 100}
                 </button>
               ))}
-              <button type="button" className="btn outline note" data-testid="cash-exact" onClick={() => setCashPence(totalPence)}>Exact</button>
+              <button type="button" className="btn outline note" data-testid="cash-exact" onClick={() => setCashPence(balanceDuePence)}>Exact</button>
             </div>
             <div className="change-row">
               <span>Change due</span>
-              <span className="change" data-testid="change-due">{cashPence >= totalPence ? formatPence(change) : '—'}</span>
+              <span className="change" data-testid="change-due">
+                {covers && liveQuote ? formatPence(liveQuote.changeDuePence) : '—'}
+              </span>
             </div>
+            {cashPence > 0 && !covers && (
+              <div className="change-row remaining-row">
+                <span>Left to pay by card</span>
+                <span className="remaining" data-testid="remaining-after-cash">
+                  {liveQuote ? formatPence(liveQuote.remainingPence) : '—'}
+                </span>
+              </div>
+            )}
             {props.errorMessage && <p className="decline" data-testid="tender-error" role="alert">{props.errorMessage}</p>}
-            <button type="button" className="pay drawer" data-testid="take-cash" disabled={busy || cashPence < totalPence} onClick={() => props.onCash(cashPence)}>
+            <button type="button" className="pay drawer" data-testid="take-cash" disabled={busy || !covers} onClick={() => props.onCash(cashPence)}>
               Take cash and open drawer
             </button>
+            {cashPence > 0 && !covers && (
+              <button type="button" className="btn outline part-cash" data-testid="take-part-cash" disabled={busy} onClick={() => props.onCash(cashPence, true)}>
+                Take {formatPence(cashPence)} cash, pay the rest by card
+              </button>
+            )}
           </section>
           <section className="panel keypad-panel">
             <Keypad id="cash-key" onKey={onCashKey} />

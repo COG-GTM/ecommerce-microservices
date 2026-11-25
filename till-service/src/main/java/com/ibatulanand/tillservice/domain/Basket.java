@@ -24,4 +24,14 @@ public class Basket {
     private int savingsPence;
     private int totalPence;
     private String orderNumber;
+    /** Payments taken so far; more than one line is a split tender. */
+    private List<TenderLine> tenders = new ArrayList<>();
+
+    public int getPaidPence() {
+        return tenders.stream().mapToInt(TenderLine::amountPence).sum();
+    }
+
+    public int getBalanceDuePence() {
+        return Math.max(0, totalPence - getPaidPence());
+    }
 }

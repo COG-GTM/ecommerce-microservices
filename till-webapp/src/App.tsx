@@ -122,6 +122,8 @@ export default function App() {
       setResult(r)
       setBasket(r.basket)
       setScreen('complete')
+    } else if (r.status === 'PARTIAL') {
+      showBasket(r.basket)
     } else {
       showBasket(r.basket)
       setDeclineMessage('Card declined. Ask for another payment method.')
@@ -136,11 +138,12 @@ export default function App() {
       applyTender(await tillApi.tender(basket.basketId, type, { terminalOutcome: outcome, expectedTotalPence: basket.totalPence }))
     }, setTenderError)
 
-  const payByCash = (amountTenderedPence: number) =>
+  const payByCash = (amountTenderedPence: number, partialPayment = false) =>
     basket &&
     run(async () => {
+      setDeclineMessage(null)
       setTenderError(null)
-      applyTender(await tillApi.tender(basket.basketId, 'CASH', { amountTenderedPence, expectedTotalPence: basket.totalPence }))
+      applyTender(await tillApi.tender(basket.basketId, 'CASH', { amountTenderedPence, partialPayment, expectedTotalPence: basket.totalPence }))
     }, setTenderError)
 
   const newSale = () =>
@@ -184,7 +187,10 @@ export default function App() {
             )}
             {screen === 'tender' && basket && (
               <TenderPanel
+                basketId={basket.basketId}
                 totalPence={basket.totalPence}
+                paidPence={basket.paidPence ?? 0}
+                balanceDuePence={basket.balanceDuePence ?? basket.totalPence}
                 busy={busy}
                 declineMessage={declineMessage}
                 errorMessage={tenderError}

@@ -3,9 +3,11 @@ package com.ibatulanand.orderservice.service;
 import com.ibatulanand.orderservice.dto.InventoryResponse;
 import com.ibatulanand.orderservice.dto.OrderLineItemsDto;
 import com.ibatulanand.orderservice.dto.OrderRequest;
+import com.ibatulanand.orderservice.dto.OrderTenderDto;
 import com.ibatulanand.orderservice.event.OrderPlacedEvent;
 import com.ibatulanand.orderservice.model.Order;
 import com.ibatulanand.orderservice.model.OrderLineItems;
+import com.ibatulanand.orderservice.model.OrderTender;
 import com.ibatulanand.orderservice.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -36,6 +38,7 @@ public class OrderService {
     public Optional<Order> findByOrderNumber(String orderNumber) {
         return orderRepository.findFirstByOrderNumber(orderNumber).map(order -> {
             order.getOrderLineItemsList().size();
+            order.getTenders().size();
             return order;
         });
     }
@@ -55,6 +58,10 @@ public class OrderService {
                 .map(this::mapToDto)
                 .toList();
         order.setOrderLineItemsList(orderLineItems);
+        if (orderRequest.getTenders() != null) {
+            order.setTenders(orderRequest.getTenders().stream().map(OrderService::mapTender)
+                    .collect(java.util.stream.Collectors.toCollection(java.util.ArrayList::new)));
+        }
 
         List<String> skuCodes = order.getOrderLineItemsList().stream()
                 .map(OrderLineItems::getSkuCode)
@@ -83,6 +90,11 @@ public class OrderService {
         } else {
             throw new IllegalArgumentException("Product is not in stock, please try again later");
         }
+    }
+
+    private static OrderTender mapTender(OrderTenderDto dto) {
+        return new OrderTender(null, dto.getTenderType(), dto.getAmountPence(), dto.getTenderedPence(),
+                dto.getChangeDuePence(), dto.getAuthCode());
     }
 
     private OrderLineItems mapToDto(OrderLineItemsDto orderLineItemsDto) {

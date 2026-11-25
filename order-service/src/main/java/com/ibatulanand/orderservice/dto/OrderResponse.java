@@ -6,9 +6,14 @@ import java.math.BigDecimal;
 import java.util.List;
 
 public record OrderResponse(String orderNumber, String channel, String storeNumber, String tillId,
-                            String transactionId, String tenderType, Integer totalPence, List<Line> lines) {
+                            String transactionId, String tenderType, Integer totalPence, List<Line> lines,
+                            List<Tender> tenders) {
 
     public record Line(String skuCode, BigDecimal price, Integer quantity) {
+    }
+
+    public record Tender(String tenderType, Integer amountPence, Integer tenderedPence, Integer changeDuePence,
+                         String authCode) {
     }
 
     public static OrderResponse from(Order order) {
@@ -16,7 +21,13 @@ public record OrderResponse(String orderNumber, String channel, String storeNumb
                 : order.getOrderLineItemsList().stream()
                 .map(l -> new Line(l.getSkuCode(), l.getPrice(), l.getQuantity()))
                 .toList();
+        List<Tender> tenders = order.getTenders() == null ? List.of()
+                : order.getTenders().stream()
+                .map(t -> new Tender(t.getTenderType(), t.getAmountPence(), t.getTenderedPence(),
+                        t.getChangeDuePence(), t.getAuthCode()))
+                .toList();
         return new OrderResponse(order.getOrderNumber(), order.getChannel(), order.getStoreNumber(),
-                order.getTillId(), order.getTransactionId(), order.getTenderType(), order.getTotalPence(), lines);
+                order.getTillId(), order.getTransactionId(), order.getTenderType(), order.getTotalPence(), lines,
+                tenders);
     }
 }
