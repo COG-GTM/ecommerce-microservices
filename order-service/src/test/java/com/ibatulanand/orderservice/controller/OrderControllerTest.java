@@ -23,12 +23,16 @@ import org.springframework.transaction.support.AbstractPlatformTransactionManage
 import org.springframework.transaction.support.DefaultTransactionStatus;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -137,5 +141,15 @@ class OrderControllerTest {
 
     private static String order(String line) {
         return "{\"orderLineItemsDtoList\":[" + line + "]}";
+    }
+
+    @Test
+    void fallbackFailsWithServiceUnavailableInsteadOfCreated() {
+        OrderController controller = new OrderController(mock(OrderService.class));
+
+        CompletableFuture<String> result = controller.fallbackMethod(null, new IllegalStateException("catalog down"));
+
+        ExecutionException e = assertThrows(ExecutionException.class, result::get);
+        assertEquals(HttpStatus.SERVICE_UNAVAILABLE, ((ResponseStatusException) e.getCause()).getStatusCode());
     }
 }
