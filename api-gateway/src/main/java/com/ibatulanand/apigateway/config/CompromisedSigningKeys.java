@@ -15,6 +15,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -34,6 +35,8 @@ public final class CompromisedSigningKeys {
             "faba0bdeaec4271970113bbb290abf9df71a99a535eb2ae957280e83b6c25f9d");
 
     private final Set<String> fingerprints;
+
+    private final AtomicBoolean compromisedKeyReported = new AtomicBoolean();
 
     public CompromisedSigningKeys(Set<String> fingerprints) {
         this.fingerprints = Set.copyOf(fingerprints);
@@ -65,9 +68,9 @@ public final class CompromisedSigningKeys {
         public List<Key> selectJWSKeys(JWSHeader header, C context) throws KeySourceException {
             List<Key> keys = super.selectJWSKeys(header, context);
             List<Key> trusted = keys.stream().filter(key -> !isCompromised(key)).toList();
-            if (trusted.size() < keys.size()) {
-                log.error("Rejected a token signed for kid={} with a compromised realm signing key; "
-                        + "rotate the Keycloak realm keys", header.getKeyID());
+            if (trusted.size() < keys.size() && compromisedKeyReported.compareAndSet(false, true)) {
+                log.error("The realm still publishes a compromised signing key (kid={}); tokens signed with it are "
+                        + "rejected. Rotate the Keycloak realm keys. Further rejections are not logged", header.getKeyID());
             }
             return trusted;
         }
