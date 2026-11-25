@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.ibatulanand.tillservice.config.TillProperties;
 import com.ibatulanand.tillservice.domain.Basket;
 import com.ibatulanand.tillservice.domain.CatalogueItem;
+import com.ibatulanand.tillservice.pricing.VatRate;
 import com.ibatulanand.tillservice.web.TillException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
@@ -30,7 +31,7 @@ public class HttpServiceClients implements CatalogueClient, StockClient, OrderCl
                       String vatCode) {
         CatalogueItem toItem() {
             return new CatalogueItem(barcode, skuCode, name, pricePence == null ? 0 : pricePence,
-                    Boolean.TRUE.equals(quickKey), vatCode);
+                    Boolean.TRUE.equals(quickKey), VatRate.of(vatCode).name());
         }
     }
 
