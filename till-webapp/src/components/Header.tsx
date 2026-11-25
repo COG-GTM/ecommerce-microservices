@@ -1,13 +1,14 @@
-import type { TillSession } from '../api/types'
+import type { MoreCardMember, TillSession } from '../api/types'
 import { ApiChip } from './ApiChip'
 
 interface Props {
   session: TillSession | null
   connected: boolean
   transactionNumber: string | undefined
+  member: MoreCardMember | null
 }
 
-export function Header({ session, connected, transactionNumber }: Props) {
+export function Header({ session, connected, transactionNumber, member }: Props) {
   const txn = transactionNumber?.split('-').pop()
   return (
     <header className="till-header">
@@ -22,6 +23,11 @@ export function Header({ session, connected, transactionNumber }: Props) {
       </div>
       <div className="header-right">
         <ApiChip>GET /api/till/session</ApiChip>
+        {member && (
+          <span className="more-card" data-testid="more-card-member" title="More Card member">
+            More Card · {member.name} ····{member.cardLast4}
+          </span>
+        )}
         <span className={'backend ' + (connected ? 'up' : 'down')} data-testid="backend-status">
           <span className="dot" /> {connected ? 'Backend connected' : 'Backend offline'}
         </span>

@@ -15,6 +15,9 @@ const SHOW_API = params.get('api') === '1'
 /** ?till=<id> picks the till; E2E tests use a unique till per test so they never share a basket. */
 const TILL_ID = params.get('till') ?? undefined
 
+/** More Card numbers start 9826; the scanner routes them to the loyalty endpoint instead of a product lookup. */
+const isMoreCard = (code: string) => /^9826\d{8,15}$/.test(code.replace(/\s/g, ''))
+
 const errorText = (e: unknown) => (e instanceof TillApiError ? e.message : 'Backend unavailable')
 
 export default function App() {
@@ -92,6 +95,12 @@ export default function App() {
   const scan = (barcode: string) =>
     basket &&
     run(async () => {
+      if (isMoreCard(barcode)) {
+        const next = await tillApi.attachMember(basket.basketId, barcode)
+        setBasket(next)
+        setMessage({ kind: 'ok', text: `More Card: ${next.member?.name ?? 'member'} added` })
+        return
+      }
       const next = await tillApi.addLine(basket.basketId, barcode)
       showBasket(next)
       const line = next.lines.find((l) => l.lineId === next.lastLineId)
@@ -161,7 +170,7 @@ export default function App() {
   return (
     <ApiChipsContext.Provider value={SHOW_API}>
       <div className="till" data-screen={screen}>
-        <Header session={session} connected={connected} transactionNumber={basket?.transactionNumber} />
+        <Header session={session} connected={connected} transactionNumber={basket?.transactionNumber} member={basket?.member ?? null} />
         <main className="till-main">
           <BasketPanel basket={basket} selectedLineId={selectedLineId} onSelect={(id) => screen === 'sell' && setSelectedLineId(id)} />
           <div className={'work work-' + screen}>

@@ -1,5 +1,7 @@
 package com.ibatulanand.tillservice.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.ibatulanand.tillservice.loyalty.MoreCardMember;
 import lombok.Data;
 
 import java.util.ArrayList;
@@ -24,4 +26,8 @@ public class Basket {
     private int savingsPence;
     private int totalPence;
     private String orderNumber;
+    /** More Card holder attached to this transaction, or null for a non-member sale. */
+    private MoreCardMember member;
+    @JsonIgnore
+    private String memberCardNumber;
 }

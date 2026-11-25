@@ -39,7 +39,15 @@ public final class TillDtos {
     public record Receipt(String receiptNumber, String storeNumber, String storeName, String tillId,
                           String operatorName, String transactionNumber, String orderNumber, List<BasketLine> lines,
                           int subtotalPence, int savingsPence, int totalPence, String tenderType,
-                          int amountTenderedPence, int changeDuePence, String authCode, Instant issuedAt) {
+                          int amountTenderedPence, int changeDuePence, String authCode, Instant issuedAt,
+                          MoreCardReceipt moreCard) {
+    }
+
+    /** More Card section of the receipt; null for a non-member sale. */
+    public record MoreCardReceipt(String cardLast4, String memberName, int pointsEarned, int pointsBalance) {
+    }
+
+    public record AttachMemberRequest(@NotBlank String basketId, @NotBlank String cardNumber) {
     }
 
     public record TenderResult(String status, String tenderType, Basket basket, String orderNumber,
