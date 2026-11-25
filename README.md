@@ -271,11 +271,13 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
 
 - Zipkin UI
    - Traces for the API calls can be accessed on http://localhost:9411/zipkin/
+   - Zipkin is published on localhost only (bound to `127.0.0.1` because it has no login); from another machine use an SSH tunnel, e.g. `ssh -L 9411:localhost:9411 <docker-host>`
     ![Zipkin UI](docs/images/outputs/zipkin_ui.png)
 
 
 - Prometheus UI
     - Prometheus UI can be accessed on http://localhost:9090/
+    - Prometheus is published on localhost only (bound to `127.0.0.1` because it has no login); from another machine use an SSH tunnel, e.g. `ssh -L 9090:localhost:9090 <docker-host>`
     - Prometheus Graph Query
       ![Graph Query](docs/images/outputs/prometheus_graph.png)
     - Prometheus Targets Health
