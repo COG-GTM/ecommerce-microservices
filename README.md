@@ -172,13 +172,18 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
    cd ecommerce-microservices
    ```
 
-2. Start the containers:
+2. Create a private `.env` with a random Grafana admin password (it is gitignored; Grafana will not start without it):
+   ```shell
+   (umask 077 && openssl rand -hex 24 | awk 'NR==FNR {pw=$0; next} {gsub(/CHANGE_ME/, pw)} 1' - .env.example > .env)
+   ```
+
+3. Start the containers:
    ```shell
    docker compose up -d
    ```
 
 
-3. Confirm that the containers are up and running:
+4. Confirm that the containers are up and running:
    ```shell
    docker ps
    ```
@@ -285,7 +290,7 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
 
 - Grafana Dashboard
   - Grafana Dashboard can be accessed on http://localhost:3000/
-  - Before `docker compose up`, create `.env` from `.env.example` with a random admin password, e.g. `sed "s/CHANGE_ME/$(openssl rand -hex 24)/" .env.example > .env`. Grafana refuses to start without it, and re-applies it on every start, so an existing `grafana_data` volume also stops accepting the old password.
+  - The admin password comes from `.env` (see Deployment step 2). Grafana refuses to start without it. When it changes, Grafana applies it once to an existing `grafana_data` volume, so that volume stops accepting the old password.
   - Sign in as `GRAFANA_ADMIN_USER` (default `grafana-admin`; existing `grafana_data` volumes keep their original `admin` login) with `GRAFANA_ADMIN_PASSWORD`. Grafana listens on `127.0.0.1` only and can reach Prometheus (`http://prometheus:9090`) but not the databases.
   - To visualize the application, create a 'Data Source' and import the dashboard using `grafana-dashboard.json` file.
   - Data Source
