@@ -6,6 +6,7 @@ import com.ibatulanand.tillservice.service.TillService;
 import com.ibatulanand.tillservice.web.TillDtos.AddLineRequest;
 import com.ibatulanand.tillservice.web.TillDtos.AttachMemberRequest;
 import com.ibatulanand.tillservice.web.TillDtos.AgeCheckRequest;
+import com.ibatulanand.tillservice.web.TillDtos.CashQuote;
 import com.ibatulanand.tillservice.web.TillDtos.TenderRequest;
 import com.ibatulanand.tillservice.web.TillDtos.TenderResult;
 import com.ibatulanand.tillservice.web.TillDtos.TillSession;
@@ -66,6 +67,11 @@ public class TillController {
     @GetMapping("/basket/{basketId}")
     public Basket basket(@PathVariable String basketId) {
         return tillService.basket(basketId);
+    }
+
+    @GetMapping("/basket/{basketId}/cash-quote")
+    public CashQuote cashQuote(@PathVariable String basketId, @RequestParam int amountTenderedPence) {
+        return tillService.cashQuote(basketId, amountTenderedPence);
     }
 
     @PostMapping("/basket/lines")

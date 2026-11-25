@@ -4,7 +4,7 @@ import { formatKg, formatPence } from '../money'
 import { ApiChip } from './ApiChip'
 import { VatSummary } from './VatSummary'
 
-const PAID_BY: Record<string, string> = { CARD: 'card', CONTACTLESS: 'contactless', CASH: 'cash' }
+const PAID_BY: Record<string, string> = { CARD: 'card', CONTACTLESS: 'contactless', CASH: 'cash', SPLIT: 'cash and card' }
 
 export function SaleComplete({ result, onNewSale }: { result: TenderResult; onNewSale: () => void }) {
   const [showReceipt, setShowReceipt] = useState(false)
@@ -15,7 +15,7 @@ export function SaleComplete({ result, onNewSale }: { result: TenderResult; onNe
         <svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
       </div>
       <h2>Sale complete</h2>
-      <p className="muted paid">Paid by {PAID_BY[result.tenderType]} · {formatPence(receipt?.totalPence ?? 0)}</p>
+      <p className="muted paid">Paid by {PAID_BY[receipt?.tenderType ?? result.tenderType]} · {formatPence(receipt?.totalPence ?? 0)}</p>
       {result.tenderType === 'CASH' && (
         <div className="give-change" data-testid="give-change">
           <div>Give change</div>
@@ -58,7 +58,9 @@ export function SaleComplete({ result, onNewSale }: { result: TenderResult; onNe
           <div className="receipt-row rule"><span>Subtotal</span><span>{formatPence(receipt.subtotalPence)}</span></div>
           <div className="receipt-row"><span>Savings</span><span>{formatPence(receipt.savingsPence)}</span></div>
           <div className="receipt-row strong"><span>Total</span><span data-testid="receipt-total">{formatPence(receipt.totalPence)}</span></div>
-          <div className="receipt-row"><span className="cap">{PAID_BY[receipt.tenderType]}</span><span>{formatPence(receipt.amountTenderedPence)}</span></div>
+          {(receipt.tenders?.length ? receipt.tenders : [{ tenderType: receipt.tenderType, tenderedPence: receipt.amountTenderedPence }]).map((t, i) => (
+            <div className="receipt-row" key={i} data-testid="receipt-tender"><span className="cap">{PAID_BY[t.tenderType]}</span><span>{formatPence(t.tenderedPence)}</span></div>
+          ))}
           {receipt.changeDuePence > 0 && <div className="receipt-row"><span>Change</span><span>{formatPence(receipt.changeDuePence)}</span></div>}
           {receipt.authCode && <div className="receipt-row"><span>Auth code</span><span>{receipt.authCode}</span></div>}
           <VatSummary bands={receipt.vatSummary ?? []} testId="receipt-vat-summary" />

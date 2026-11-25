@@ -1,4 +1,4 @@
-import type { AgeDecision, Basket, Product, TenderResult, TenderType, TillSession } from './types'
+import type { AgeDecision, Basket, CashQuote, Product, TenderResult, TenderType, TillSession } from './types'
 
 const BASE = '/api/till'
 
@@ -43,6 +43,8 @@ export const tillApi = {
   ageCheck: (basketId: string, lineId: string, decision: AgeDecision) =>
     request<Basket>('/basket/lines/' + lineId + '/age-check', json('POST', { basketId, decision })),
   voidSale: (basketId: string) => request<Basket>('/basket/void', json('POST', { basketId })),
-  tender: (basketId: string, tenderType: TenderType, options: { amountTenderedPence?: number; terminalOutcome?: 'APPROVED' | 'DECLINED'; expectedTotalPence?: number } = {}) =>
+  cashQuote: (basketId: string, amountTenderedPence: number) =>
+    request<CashQuote>(`/basket/${encodeURIComponent(basketId)}/cash-quote?amountTenderedPence=${amountTenderedPence}`),
+  tender: (basketId: string, tenderType: TenderType, options: { amountTenderedPence?: number; partialPayment?: boolean; terminalOutcome?: 'APPROVED' | 'DECLINED'; expectedTotalPence?: number } = {}) =>
     request<TenderResult>('/basket/tender', json('POST', { basketId, tenderType, ...options })),
 }

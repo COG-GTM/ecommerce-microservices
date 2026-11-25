@@ -11,9 +11,11 @@ import com.ibatulanand.tillservice.domain.CatalogueItem;
 import com.ibatulanand.tillservice.loyalty.MoreCardDirectory;
 import com.ibatulanand.tillservice.loyalty.MoreCardMember;
 import com.ibatulanand.tillservice.loyalty.MoreCardProperties;
+import com.ibatulanand.tillservice.domain.TenderLine;
 import com.ibatulanand.tillservice.payment.PaymentTerminal;
 import com.ibatulanand.tillservice.pricing.BasketPricer;
 import com.ibatulanand.tillservice.web.TillDtos.MoreCardReceipt;
+import com.ibatulanand.tillservice.web.TillDtos.CashQuote;
 import com.ibatulanand.tillservice.web.TillDtos.Operator;
 import com.ibatulanand.tillservice.web.TillDtos.Receipt;
 import com.ibatulanand.tillservice.web.TillDtos.TenderRequest;
@@ -107,7 +109,7 @@ public class TillService {
      * an item sold by weight needs {@code weightGrams} and is priced at its per-kg price.
      */
     public synchronized Basket addLine(String basketId, String barcode, int quantity, Integer weightGrams) {
-        Basket basket = openForChange(basketId);
+        Basket basket = openForLineChange(basketId);
         Optional<EmbeddedPriceBarcode> label = EmbeddedPriceBarcode.parse(barcode);
         CatalogueItem item = product(label.map(EmbeddedPriceBarcode::plu).orElse(barcode));
         if (label.isEmpty() && item.soldByWeight() && weightGrams == null) {
@@ -163,7 +165,7 @@ public class TillService {
     }
 
     public synchronized Basket updateLine(String basketId, String lineId, int quantity) {
-        Basket basket = openForChange(basketId);
+        Basket basket = openForLineChange(basketId);
         BasketLine line = line(basket, lineId);
         if (line.getPricedBy() != BasketLine.PricedBy.EACH && quantity != line.getQuantity()) {
             throw new TillException(HttpStatus.UNPROCESSABLE_ENTITY, "QUANTITY_NOT_ALLOWED",
@@ -175,7 +177,7 @@ public class TillService {
     }
 
     public synchronized Basket voidLine(String basketId, String lineId) {
-        Basket basket = openForChange(basketId);
+        Basket basket = openForLineChange(basketId);
         BasketLine line = line(basket, lineId);
         basket.getLines().remove(line);
         List<BasketLine> lines = basket.getLines();
@@ -263,40 +265,73 @@ public class TillService {
         if (request.expectedTotalPence() != null && request.expectedTotalPence() != total) {
             throw new TillException(HttpStatus.CONFLICT, "TOTAL_CHANGED", "Basket total changed; review the basket before taking payment");
         }
-        int tendered = total;
-        String authCode = null;
+        int balance = basket.getBalanceDuePence();
+        TenderLine tenderLine;
         if ("CASH".equals(tenderType)) {
-            tendered = request.amountTenderedPence() == null ? total : request.amountTenderedPence();
-            if (tendered < total) {
-                throw new TillException(HttpStatus.UNPROCESSABLE_ENTITY, "INSUFFICIENT_TENDER",
-                        "Cash tendered is less than the total to pay");
+            int tendered = request.amountTenderedPence() == null ? balance : request.amountTenderedPence();
+            if (tendered <= 0) {
+                throw new TillException(HttpStatus.UNPROCESSABLE_ENTITY, "INSUFFICIENT_TENDER", "Enter the cash received");
             }
+            if (tendered < balance) {
+                if (!Boolean.TRUE.equals(request.partialPayment())) {
+                    throw new TillException(HttpStatus.UNPROCESSABLE_ENTITY, "INSUFFICIENT_TENDER",
+                            "Cash tendered is less than the total to pay");
+                }
+                basket.getTenders().add(new TenderLine("CASH", tendered, tendered, 0, null));
+                log.info("Till {} took {}p part cash on transaction {}, {}p left to pay", basket.getTillId(), tendered,
+                        basket.getTransactionNumber(), basket.getBalanceDuePence());
+                return new TenderResult("PARTIAL", tenderType, basket, null, tendered, 0, null, null, null,
+                        basket.getBasketId(), basket.getBalanceDuePence());
+            }
+            tenderLine = new TenderLine("CASH", balance, tendered, tendered - balance, null);
         } else {
-            PaymentTerminal.Authorisation auth = terminal.authorise(basket.getBasketId(), tenderType, total,
+            PaymentTerminal.Authorisation auth = terminal.authorise(basket.getBasketId(), tenderType, balance,
                     request.terminalOutcome());
             if (!auth.approved()) {
                 log.info("Till {} card declined for transaction {}", basket.getTillId(), basket.getTransactionNumber());
                 return new TenderResult("DECLINED", tenderType, basket, null, 0, 0, null, auth.declineReason(),
-                        null, basket.getBasketId());
+                        null, basket.getBasketId(), balance);
             }
-            authCode = auth.authCode();
+            tenderLine = new TenderLine(tenderType, balance, balance, 0, auth.authCode());
         }
-        String orderNumber = orders.placeSale(basket, properties.storeNumber(), tenderType);
+        basket.getTenders().add(tenderLine);
+        List<TenderLine> tenders = List.copyOf(basket.getTenders());
+        String orderTenderType = tenders.size() > 1 ? "SPLIT" : tenderType;
+        String orderNumber;
+        try {
+            orderNumber = orders.placeSale(basket, properties.storeNumber(), orderTenderType);
+        } catch (RuntimeException e) {
+            basket.getTenders().remove(basket.getTenders().size() - 1);
+            throw e;
+        }
         MoreCardReceipt moreCard = awardPoints(basket);
         basket.setOrderNumber(orderNumber);
         basket.setStatus(Basket.Status.COMPLETED);
         openBasketByTill.remove(basket.getTillId(), basket.getBasketId());
         retireClosed(basket);
         Basket next = openBasket(basket.getTillId());
-        int change = tendered - total;
+        int tenderedTotal = tenders.stream().mapToInt(TenderLine::tenderedPence).sum();
+        int changeTotal = tenders.stream().mapToInt(TenderLine::changeDuePence).sum();
         Receipt receipt = new Receipt("R-" + basket.getTransactionNumber(), properties.storeNumber(),
                 properties.storeName(), basket.getTillId(), properties.operatorName(), basket.getTransactionNumber(),
                 orderNumber, List.copyOf(basket.getLines()), basket.getSubtotalPence(), basket.getSavingsPence(),
-                total, tenderType, tendered, change, authCode, Instant.now(), basket.getVatSummary(), moreCard);
+                total, orderTenderType, tenderedTotal, changeTotal, tenderLine.authCode(), Instant.now(),
+                basket.getVatSummary(), moreCard, tenders);
         log.info("Till {} completed transaction {} as order {} ({}p {})", basket.getTillId(),
-                basket.getTransactionNumber(), orderNumber, total, tenderType);
-        return new TenderResult("APPROVED", tenderType, basket, orderNumber, tendered, change, authCode, null,
-                receipt, next.getBasketId());
+                basket.getTransactionNumber(), orderNumber, total, orderTenderType);
+        return new TenderResult("APPROVED", tenderType, basket, orderNumber, tenderLine.tenderedPence(),
+                tenderLine.changeDuePence(), tenderLine.authCode(), null, receipt, next.getBasketId(), 0);
+    }
+
+    /** Previews a cash tender without taking it, so the till never computes change itself. */
+    public CashQuote cashQuote(String basketId, int amountTenderedPence) {
+        if (amountTenderedPence < 0) {
+            throw new TillException(HttpStatus.BAD_REQUEST, "INVALID_AMOUNT", "Cash amount cannot be negative");
+        }
+        Basket basket = basket(basketId);
+        int balance = basket.getBalanceDuePence();
+        return new CashQuote(basket.getTotalPence(), basket.getPaidPence(), balance, amountTenderedPence,
+                Math.max(0, amountTenderedPence - balance), Math.max(0, balance - amountTenderedPence));
     }
 
     private MoreCardReceipt awardPoints(Basket basket) {
@@ -335,6 +370,15 @@ public class TillService {
         if (previous != null) {
             baskets.remove(previous);
         }
+    }
+
+    private Basket openForLineChange(String basketId) {
+        Basket basket = openForChange(basketId);
+        if (!basket.getTenders().isEmpty()) {
+            throw new TillException(HttpStatus.CONFLICT, "TENDER_IN_PROGRESS",
+                    "Payment has started; finish the payment or void the sale");
+        }
+        return basket;
     }
 
     private Basket openForChange(String basketId) {

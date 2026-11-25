@@ -98,8 +98,20 @@ public class HttpServiceClients implements CatalogueClient, StockClient, OrderCl
         List<Map<String, Object>> lines = basket.getLines().stream()
                 .map(HttpServiceClients::saleLine)
                 .toList();
+        List<Map<String, Object>> tenders = basket.getTenders().stream()
+                .map(t -> {
+                    Map<String, Object> tender = new java.util.HashMap<>();
+                    tender.put("tenderType", t.tenderType());
+                    tender.put("amountPence", t.amountPence());
+                    tender.put("tenderedPence", t.tenderedPence());
+                    tender.put("changeDuePence", t.changeDuePence());
+                    tender.put("authCode", t.authCode());
+                    return tender;
+                })
+                .toList();
         Map<String, Object> body = Map.of(
                 "orderLineItemsDtoList", lines,
+                "tenders", tenders,
                 "channel", "TILL",
                 "storeNumber", storeNumber,
                 "tillId", basket.getTillId(),

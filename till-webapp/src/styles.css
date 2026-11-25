@@ -288,3 +288,7 @@ h1, h2, h3, p { margin: 0; }
 .age-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .age-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; }
 .receipt-row.age-note { color: var(--muted); font-size: 12px; padding-top: 0; }
+
+.paid-so-far { margin-top: 4px; font-size: 14px; }
+.remaining-row .remaining { font-weight: 700; }
+.btn.part-cash { width: 100%; margin-top: 10px; }

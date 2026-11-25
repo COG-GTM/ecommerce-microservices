@@ -4,6 +4,7 @@ import com.ibatulanand.tillservice.domain.Basket;
 import com.ibatulanand.tillservice.domain.BasketLine;
 import com.ibatulanand.tillservice.domain.VatBand;
 import jakarta.validation.constraints.Max;
+import com.ibatulanand.tillservice.domain.TenderLine;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 
@@ -46,7 +47,12 @@ public final class TillDtos {
     }
 
     public record TenderRequest(@NotBlank String basketId, @NotBlank String tenderType, Integer amountTenderedPence,
-                                String terminalOutcome, Integer expectedTotalPence) {
+                                String terminalOutcome, Integer expectedTotalPence, Boolean partialPayment) {
+    }
+
+    /** Server-side cash preview: change due, or the balance left for another tender when the cash is short. */
+    public record CashQuote(int totalPence, int paidPence, int balanceDuePence, int amountTenderedPence,
+                            int changeDuePence, int remainingPence) {
     }
 
     public record Receipt(String receiptNumber, String storeNumber, String storeName, String tillId,
@@ -54,7 +60,8 @@ public final class TillDtos {
                           int subtotalPence, int savingsPence, int totalPence, String tenderType,
                           int amountTenderedPence, int changeDuePence, String authCode, Instant issuedAt,
                           List<VatBand> vatSummary,
-                          MoreCardReceipt moreCard) {
+                          MoreCardReceipt moreCard,
+                          List<TenderLine> tenders) {
     }
 
     /** More Card section of the receipt; null for a non-member sale. */
@@ -66,6 +73,6 @@ public final class TillDtos {
 
     public record TenderResult(String status, String tenderType, Basket basket, String orderNumber,
                                int amountTenderedPence, int changeDuePence, String authCode, String declineReason,
-                               Receipt receipt, String nextBasketId) {
+                               Receipt receipt, String nextBasketId, int balanceDuePence) {
     }
 }
