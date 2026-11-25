@@ -83,13 +83,14 @@ class NotificationPoisonRecordTest {
                 afterPlainText, afterWrongShape, spoofedHeader, afterTombstone, afterMissingOrderNumber}) {
             awaitTrue(() -> output.getOut().contains("Received Notification for Order - " + orderNumber));
         }
-        assertThat(countOccurrences(output.getOut(), "Skipping notification record " + TOPIC + "-0@"))
-                .isEqualTo(2);
-        assertThat(output.getOut())
+        String out = output.getOut();
+        int skipped = countOccurrences(out, "Skipping notification record " + TOPIC + "-0@");
+        int missingOrderNumber = countOccurrences(out, "without an order number");
+        assertThat(missingOrderNumber).as("tombstone and {} skipped by the listener").isEqualTo(2);
+        assertThat(skipped - missingOrderNumber).as("decode failures skipped by the error handler").isEqualTo(2);
+        assertThat(out)
                 .doesNotContain(payloadMarker)
                 .doesNotContain("Received Notification for Order - null");
-        assertThat(countOccurrences(output.getOut(), "Skipping notification record without an order number"))
-                .isEqualTo(2);
     }
 
     @Test

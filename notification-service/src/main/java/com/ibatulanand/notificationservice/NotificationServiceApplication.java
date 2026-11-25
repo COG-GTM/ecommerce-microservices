@@ -7,6 +7,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.core.NestedExceptionUtils;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.listener.DefaultErrorHandler;
+import org.springframework.kafka.support.KafkaHeaders;
+import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.util.StringUtils;
 
@@ -28,9 +30,12 @@ public class NotificationServiceApplication {
     }
 
     @KafkaListener(topics = "notificationTopic")
-    public void handleNotification(@Payload(required = false) OrderPlacedEvent orderPlacedEvent) {
+    public void handleNotification(@Payload(required = false) OrderPlacedEvent orderPlacedEvent,
+                                   @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
+                                   @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
+                                   @Header(KafkaHeaders.OFFSET) long offset) {
         if (orderPlacedEvent == null || !StringUtils.hasText(orderPlacedEvent.getOrderNumber())) {
-            log.warn("Skipping notification record without an order number");
+            log.warn("Skipping notification record {}-{}@{} without an order number", topic, partition, offset);
             return;
         }
         // Send out an email notification
