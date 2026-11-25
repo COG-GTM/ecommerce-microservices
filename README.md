@@ -176,7 +176,8 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
    ```shell
    docker compose up -d --build
    ```
-   The six application images are built locally from the `Dockerfile` (no prebuilt application images are pulled), and every third-party image is pinned by tag and `sha256` digest.
+   The six application images are built locally from the `Dockerfile` (no prebuilt application images are pulled). Third-party images are pinned to exact versions (the official MySQL and MongoDB images also by `sha256` digest).
+   MySQL and MongoDB cannot open data directories written by a newer major version, so if `./mysql_*` or `./mongo-data` were created by a newer release than the pinned one, remove them (or raise the pin) before starting.
 
 
 3. Confirm that the containers are up and running:
