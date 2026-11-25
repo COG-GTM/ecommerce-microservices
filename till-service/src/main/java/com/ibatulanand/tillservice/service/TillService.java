@@ -517,6 +517,10 @@ public class TillService {
         }
         pricer.price(basket);
         int tendered = request.amountTenderedPence() == null ? basket.getTotalPence() : request.amountTenderedPence();
+        if (tendered < basket.getTotalPence()) {
+            throw new TillException(HttpStatus.UNPROCESSABLE_ENTITY, "INSUFFICIENT_TENDER",
+                    "Cash tendered " + tendered + "p is less than the total " + basket.getTotalPence() + "p");
+        }
         String orderNumber = orders.placeSale(basket, properties.storeNumber(), "CASH", "offline-" + request.saleId());
         log.info("Till {} synced offline sale {} as order {} ({}p)", loggable(basket.getTillId()),
                 loggable(request.saleId()), orderNumber, basket.getTotalPence());

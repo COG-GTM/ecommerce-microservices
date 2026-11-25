@@ -50,13 +50,15 @@ The demo story is a store estate moving off a legacy till application one capabi
    `LegacyPriceFeedCatalogueClient` implements `CatalogueClient`, or a feed job writes into product-service. The till
    contract does not change.
 3. **Strangling:** each Jira ticket replaces or adds one capability behind the facade (multi-buy as a
-   `PricingRule`, VAT as `VatAnalysis` in `BasketPricer`, card declines behind `PaymentTerminal`, store-and-forward as a queued `OrderClient`) and adds its
+   `PricingRule`, VAT as `VatAnalysis` in `BasketPricer`, card declines behind `PaymentTerminal`, store-and-forward as an offline queue in the webapp) and adds its
    own E2E spec. The legacy path is retired once the spec passes against the modern path.
 
 ## Contract
 
-Base path through the gateway: `http://localhost:8181/api/till`. All money is **integer pence, GBP**. Clients never
-compute totals; they render `subtotalPence`, `savingsPence` and `totalPence` from the last response.
+Base path through the gateway: `http://localhost:8181/api/till`. All money is **integer pence, GBP**. Online, clients never
+compute totals; they render `subtotalPence`, `savingsPence` and `totalPence` from the last response. The one exception
+is offline mode (MBA-3940): the webapp prices its local basket from the cached catalogue, and replay records those
+prices.
 
 | Method | Path | Body | Returns |
 | --- | --- | --- | --- |

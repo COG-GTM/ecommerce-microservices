@@ -14,6 +14,7 @@ import { formatKg, formatPence } from './money'
 import {
   OfflineStore,
   addLocalLine,
+  MAX_OFFLINE_LINES,
   completeOffline,
   isHealthy,
   isLocal,
@@ -98,6 +99,8 @@ export default function App() {
   const syncingRef = useRef(false)
   const reconnectingRef = useRef(false)
   const [weightError, setWeightError] = useState<string | null>(null)
+  /** Server basket whose lines were carried into the local basket when the till went offline. */
+  const carriedRef = useRef<{ server: string; local: string } | null>(null)
 
   const showBasket = useCallback((next: Basket) => {
     setBasket(next)
@@ -122,7 +125,8 @@ export default function App() {
     try {
       for (const sale of offlineStore.queue()) {
         try {
-          await tillApi.syncOfflineSale(sale)
+          const ack = await tillApi.syncOfflineSale(sale)
+          if (!ack?.orderNumber) throw new Error('no order number in the sync response')
           offlineStore.remove(sale.saleId)
           synced++
         } catch (e) {
@@ -142,11 +146,17 @@ export default function App() {
     if (reconnectingRef.current) return
     reconnectingRef.current = true
     try {
-      const next = offlineStore.abandonedBasket() === s.basketId ? await tillApi.voidSale(s.basketId) : await tillApi.basket(s.basketId)
-      offlineStore.setAbandonedBasket(null)
-      // Keep anything scanned into the local basket while the request was in flight; it is sold offline instead.
       const current = basketRef.current
-      if (!isLocal(current) || current?.lines.length === 0) {
+      const keepLocal = isLocal(current) && (current?.lines.length ?? 0) > 0
+      const carried = carriedRef.current
+      // Void the server basket only when its lines were sold offline, or still sit in the local basket to be sold there.
+      const sold = offlineStore.abandonedBasket() === s.basketId
+        || (keepLocal && carried?.server === s.basketId && carried.local === current?.basketId)
+      const next = sold ? await tillApi.voidSale(s.basketId) : await tillApi.basket(s.basketId)
+      offlineStore.setAbandonedBasket(null)
+      carriedRef.current = null
+      // Keep anything scanned into the local basket while the request was in flight; it is sold offline instead.
+      if (!isLocal(basketRef.current) || basketRef.current?.lines.length === 0) {
         showBasket(next)
         if (next.paidPence > 0) setScreen('tender')
       }
@@ -204,8 +214,9 @@ export default function App() {
     if (!offline || !session) return
     setQuickKeys((keys) => (keys.length ? keys : offlineStore.quickKeys()))
     if (basket?.status === 'COMPLETED' || isLocal(basket)) return
-    if (basket) offlineStore.setAbandonedBasket(basket.basketId)
-    showBasket(newOfflineBasket(session, basket?.lines ?? []))
+    const local = newOfflineBasket(session, basket?.lines ?? [])
+    if (basket) carriedRef.current = { server: basket.basketId, local: local.basketId }
+    showBasket(local)
   }, [offline, session, basket, newOfflineBasket, showBasket])
 
   const run = async (action: () => Promise<void>, onError: (text: string) => void) => {
@@ -242,6 +253,9 @@ export default function App() {
         const product = offlineStore.catalogue()[barcode]
         if (!product) throw new TillApiError(404, 'NOT_CACHED', `Item ${barcode} is not available offline`)
         if (product.soldByWeight || product.minimumAge) throw new TillApiError(422, 'ONLINE_ONLY', `${product.name} needs the till online (weighed or age-restricted)`)
+        if (basket.lines.length >= MAX_OFFLINE_LINES && !basket.lines.some((l) => l.barcode === product.barcode)) {
+          throw new TillApiError(422, 'BASKET_FULL', `An offline sale holds at most ${MAX_OFFLINE_LINES} different items`)
+        }
         showBasket(addLocalLine(basket, product))
         setMessage({ kind: 'ok', text: `Added ${product.name}` })
         return
@@ -313,16 +327,28 @@ export default function App() {
       : await tillApi.updateLine(basket.basketId, selectedLine.lineId, selectedLine.quantity + delta)),
     (text) => setMessage({ kind: 'error', text }))
 
+  /** The carried server basket's lines were sold or voided offline, so reconnect voids it too, even after a reload. */
+  const abandonCarriedBasket = (local: Basket) => {
+    if (carriedRef.current?.local === local.basketId) offlineStore.setAbandonedBasket(carriedRef.current.server)
+  }
+
   const voidLine = () =>
     basket && selectedLine &&
     run(async () => {
-      showBasket(isLocal(basket) ? voidLocalLine(basket, selectedLine.lineId) : await tillApi.voidLine(basket.basketId, selectedLine.lineId))
+      if (isLocal(basket)) {
+        const next = voidLocalLine(basket, selectedLine.lineId)
+        if (next.lines.length === 0) abandonCarriedBasket(basket)
+        showBasket(next)
+      } else {
+        showBasket(await tillApi.voidLine(basket.basketId, selectedLine.lineId))
+      }
       setMessage({ kind: 'ok', text: `Voided ${selectedLine.name}` })
     }, (text) => setMessage({ kind: 'error', text }))
 
   const voidSale = () =>
     basket &&
     run(async () => {
+      if (isLocal(basket)) abandonCarriedBasket(basket)
       if (isLocal(basket) && session) {
         showBasket(newOfflineBasket(session))
         setMessage({ kind: 'ok', text: 'Sale voided' })
@@ -396,6 +422,7 @@ export default function App() {
       if (isLocal(basket) && session) {
         const { sale, result: r } = completeOffline(basket, session, amountTenderedPence, newOfflineBasket(session))
         offlineStore.enqueue(sale)
+        abandonCarriedBasket(basket)
         setQueued(offlineStore.queue().length)
         applyTender(r)
         if (!offline) void flushQueue()
@@ -414,10 +441,15 @@ export default function App() {
         try {
           showBasket(await tillApi.basket(result.nextBasketId))
         } catch (e) {
-          if (!isUnreachable(e) || !session) throw e
-          markOffline()
-          showBasket(newOfflineBasket(session))
-          return
+          if (isUnreachable(e) && session) {
+            markOffline()
+            showBasket(newOfflineBasket(session))
+            return
+          }
+          if (!(e instanceof TillApiError) || e.code !== 'UNKNOWN_BASKET') throw e
+          // till-service restarted since the sale, so the next basket id changed: open the session's current basket.
+          const s = await tillApi.session(TILL_ID)
+          showBasket(await tillApi.basket(s.basketId))
         }
         await loadSession()
       } else if (session) {

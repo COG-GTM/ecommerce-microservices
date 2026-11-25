@@ -3,6 +3,8 @@ import { TillApiError } from '../api/client'
 import type { Basket, BasketLine, Product, TenderResult, TillSession } from '../api/types'
 
 export const LOCAL_BASKET_PREFIX = 'offline-'
+/** Matches the till-service limit on lines in one replayed offline sale. */
+export const MAX_OFFLINE_LINES = 200
 
 export interface OfflineSale {
   saleId: string
@@ -97,7 +99,7 @@ export class OfflineStore {
     this.write(this.queueKey, this.queue().filter((s) => s.saleId !== saleId))
   }
 
-  /** Server basket left open when the till went offline mid-sale; its lines were sold offline, so it is voided on reconnect. */
+  /** Server basket whose lines were sold in an offline sale; it is voided on reconnect, even after a reload. */
   abandonedBasket(): string | null {
     return this.read(`morrisons-till.abandoned-basket.${this.tillKey}`, null)
   }
