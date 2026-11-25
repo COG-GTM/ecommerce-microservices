@@ -49,8 +49,8 @@ The demo story is a store estate moving off a legacy till application one capabi
 2. **Bridging:** a legacy system (for example the nightly price file) is wrapped behind one of the ports. For example a
    `LegacyPriceFeedCatalogueClient` implements `CatalogueClient`, or a feed job writes into product-service. The till
    contract does not change.
-3. **Strangling:** each Jira ticket replaces or adds one capability behind the facade (VAT and multi-buy as
-   `PricingRule`s, card declines behind `PaymentTerminal`, store-and-forward as a queued `OrderClient`) and adds its
+3. **Strangling:** each Jira ticket replaces or adds one capability behind the facade (multi-buy as a
+   `PricingRule`, VAT as `VatAnalysis` in `BasketPricer`, card declines behind `PaymentTerminal`, store-and-forward as a queued `OrderClient`) and adds its
    own E2E spec. The legacy path is retired once the spec passes against the modern path.
 
 ## Contract
@@ -151,7 +151,8 @@ Example: three 1p standard-rated lines give 1p VAT on the 3p band (per-line roun
 
 | Ticket | Where it plugs in |
 | --- | --- |
-| VAT, multi-buys, More Card loyalty | new `PricingRule` bean(s), which add `Adjustment`s (savings) or VAT lines; the UI already renders `savingsPence` |
+| Multi-buys, More Card loyalty | new `PricingRule` bean(s), which add `Adjustment`s (savings); the UI already renders `savingsPence`, and `VatAnalysis` apportions them to VAT bands |
+| VAT rates | `VatRate` (codes and rates) and `VatAnalysis` (per-band rounding), applied by `BasketPricer` after the rules |
 | Weighed items, age-restricted items | product fields plus a line attribute; a `TillService.addLine` guard returns a new error code |
 | Cash/change, card terminal declines | `TillService.tender`, `PaymentTerminal` (decline reasons in `declineReason`) |
 | Refunds | new `/api/till/refund/**` endpoints plus an order-service refund call |
