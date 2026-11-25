@@ -1,0 +1,9 @@
+**/target/
+.git/
+.idea/
+docs/
+mysql_order/
+mysql_inventory/
+mongo-data/
+mysql_keycloak_data/
+grafana_data/

@@ -172,10 +172,11 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
    cd ecommerce-microservices
    ```
 
-2. Start the containers:
+2. Build the service images from this repository's source and start the containers:
    ```shell
-   docker compose up -d
+   docker compose up -d --build
    ```
+   The six application images are built locally from the `Dockerfile` (no prebuilt application images are pulled), and every third-party image is pinned by tag and `sha256` digest.
 
 
 3. Confirm that the containers are up and running:
