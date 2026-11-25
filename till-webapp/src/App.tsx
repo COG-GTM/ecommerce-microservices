@@ -65,6 +65,7 @@ export default function App() {
       if (!cancelled) {
         showBasket(b)
         setQuickKeys(keys)
+        if (b.paidPence > 0) setScreen('tender')
       }
     })().catch(() => setConnected(false))
     const timer = window.setInterval(loadSession, 15000)
