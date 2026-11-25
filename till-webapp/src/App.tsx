@@ -144,7 +144,7 @@ export default function App() {
       }
       const s = await tillApi.session(TILL_ID)
       showBasket(await tillApi.basket(s.basketId))
-      setMessage({ kind: 'ok', text: `Sale ${latest.transactionNumber} already completed` })
+      setMessage({ kind: 'ok', text: `Sale ${latest.transactionNumber} was already ${latest.status === 'VOIDED' ? 'voided' : 'completed'}` })
       setScreen('sell')
     }).catch(() => undefined)
   }
