@@ -244,6 +244,8 @@ services:
     # Only on the monitoring network: Grafana reaches Prometheus but not the databases.
     networks:
       - monitoring
+    depends_on:
+      - prometheus
     entrypoint: ["/bin/sh", "/usr/local/bin/grafana-entrypoint.sh"]
     volumes:
       - ./grafana_data:/var/lib/grafana
