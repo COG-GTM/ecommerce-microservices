@@ -183,6 +183,8 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
    docker ps
    ```
 
+> **Note:** `order-service` reads its database credentials from `SPRING_DATASOURCE_USERNAME` and `SPRING_DATASOURCE_PASSWORD` (set in `docker-compose.yml`). Export them when running the service outside Docker Compose. Its actuator exposes only `/actuator/health` (no details) and `/actuator/prometheus`.
+
 
 ## Usage
 
