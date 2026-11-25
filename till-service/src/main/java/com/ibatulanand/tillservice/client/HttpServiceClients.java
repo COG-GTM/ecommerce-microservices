@@ -117,7 +117,9 @@ public class HttpServiceClients implements CatalogueClient, StockClient, OrderCl
                 "tillId", basket.getTillId(),
                 "transactionId", basket.getTransactionNumber(),
                 "tenderType", tenderType,
-                "totalPence", basket.getTotalPence());
+                "totalPence", basket.getTotalPence(),
+                // One sale per basket: order-service returns the existing order if this request is repeated.
+                "idempotencyKey", basket.getBasketId());
         try {
             OrderDto order = webClientBuilder.build().post()
                     .uri(properties.orderServiceUrl() + "/api/order/sale")

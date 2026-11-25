@@ -47,9 +47,9 @@ public class GroceryCatalogueSeeder implements ApplicationRunner {
      * for a weight; counter labels carry the PLU and price in a prefix-2 EAN-13 (e.g. 2002101003490 = PLU 2101, £3.49).
      */
     static final List<SeedItem> WEIGHED_ITEMS = List.of(
-            new SeedItem("2101", "MOR-DELI-HAM-KG", "Deli honey roast ham", 1290),
-            new SeedItem("2201", "MOR-TOMATO-LOOSE-KG", "Loose tomatoes", 220),
-            new SeedItem("2202", "MOR-ONION-LOOSE-KG", "Loose brown onions", 99));
+            new SeedItem("2101", "MOR-DELI-HAM-KG", "Deli honey roast ham", 1290, "Z", false),
+            new SeedItem("2201", "MOR-TOMATO-LOOSE-KG", "Loose tomatoes", 220, "Z", false),
+            new SeedItem("2202", "MOR-ONION-LOOSE-KG", "Loose brown onions", 99, "Z", false));
 
     private final ProductRepository productRepository;
 
@@ -77,6 +77,7 @@ public class GroceryCatalogueSeeder implements ApplicationRunner {
             product.setPrice(BigDecimal.valueOf(item.pricePence(), 2));
             product.setQuickKey(false);
             product.setSoldByWeight(true);
+            product.setVatCode(item.vatCode());
             productRepository.save(product);
         }
         log.info("Seeded {} grocery and {} weighed products for the till", ITEMS.size(), WEIGHED_ITEMS.size());

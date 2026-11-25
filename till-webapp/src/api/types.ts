@@ -94,6 +94,8 @@ export interface Basket {
 }
 
 export type TenderType = 'CARD' | 'CONTACTLESS' | 'CASH'
+/** Simulated PIN pad result; TIMEOUT models a charge whose response never reached the till. */
+export type TerminalOutcome = 'APPROVED' | 'DECLINED' | 'TIMEOUT'
 
 export interface TenderLine {
   tenderType: TenderType
@@ -142,7 +144,7 @@ export interface MoreCardReceipt {
 }
 
 export interface TenderResult {
-  status: 'APPROVED' | 'DECLINED' | 'PARTIAL'
+  status: 'APPROVED' | 'DECLINED' | 'PARTIAL' | 'TIMEOUT'
   tenderType: TenderType
   basket: Basket
   orderNumber: string | null
@@ -153,6 +155,8 @@ export interface TenderResult {
   receipt: Receipt | null
   nextBasketId: string
   balanceDuePence: number
+  /** Key of this tender attempt; resend it to retry after a terminal timeout. */
+  idempotencyKey: string
 }
 
 export interface ApiError {

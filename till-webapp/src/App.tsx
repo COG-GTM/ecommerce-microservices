@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { TillApiError, tillApi } from './api/client'
-import type { AgeDecision, Basket, Product, TenderResult, TenderType, TillSession } from './api/types'
+import type { AgeDecision, Basket, Product, TenderResult, TenderType, TerminalOutcome, TillSession } from './api/types'
 import { AgeCheckPrompt } from './components/AgeCheckPrompt'
 import { ApiChipsContext } from './components/ApiChip'
 import { BasketPanel } from './components/BasketPanel'
@@ -23,6 +23,14 @@ const isMoreCard = (code: string) => /^9826\d{8,15}$/.test(code.replace(/\s/g, '
 
 const errorText = (e: unknown) => (e instanceof TillApiError ? e.message : 'Backend unavailable')
 
+const newAttemptKey = () =>
+  typeof crypto.randomUUID === 'function'
+    ? crypto.randomUUID()
+    : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`
+
+const DECLINED_MESSAGE = 'Card declined. Ask for another payment method.'
+const TIMEOUT_MESSAGE = 'No response from the PIN pad. Retry the payment; the customer will not be charged twice.'
+
 export default function App() {
   const [session, setSession] = useState<TillSession | null>(null)
   const [connected, setConnected] = useState(false)
@@ -34,6 +42,8 @@ export default function App() {
   const [message, setMessage] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null)
   const [declineMessage, setDeclineMessage] = useState<string | null>(null)
   const [tenderError, setTenderError] = useState<string | null>(null)
+  /** Set while a card attempt timed out: retries must resend this key so the customer is charged once. */
+  const [unresolvedAttemptKey, setUnresolvedAttemptKey] = useState<string | null>(null)
   const [result, setResult] = useState<TenderResult | null>(null)
   const [weighing, setWeighing] = useState<Product | null>(null)
   const [ageCheckLineId, setAgeCheckLineId] = useState<string | null>(null)
@@ -178,6 +188,7 @@ export default function App() {
     }, (text) => setMessage({ kind: 'error', text }))
 
   const applyTender = (r: TenderResult) => {
+    setUnresolvedAttemptKey(r.status === 'TIMEOUT' ? r.idempotencyKey : null)
     if (r.status === 'APPROVED') {
       setResult(r)
       setBasket(r.basket)
@@ -186,16 +197,17 @@ export default function App() {
       showBasket(r.basket)
     } else {
       showBasket(r.basket)
-      setDeclineMessage('Card declined. Ask for another payment method.')
+      setDeclineMessage(r.status === 'TIMEOUT' ? TIMEOUT_MESSAGE : DECLINED_MESSAGE)
     }
   }
 
-  const payByCard = (type: TenderType, outcome: 'APPROVED' | 'DECLINED') =>
+  const payByCard = (type: TenderType, outcome: TerminalOutcome) =>
     basket &&
     run(async () => {
       setDeclineMessage(null)
       setTenderError(null)
-      applyTender(await tillApi.tender(basket.basketId, type, { terminalOutcome: outcome, expectedTotalPence: basket.totalPence }))
+      const idempotencyKey = unresolvedAttemptKey ?? newAttemptKey()
+      applyTender(await tillApi.tender(basket.basketId, type, { terminalOutcome: outcome, expectedTotalPence: basket.totalPence, idempotencyKey }))
     }, setTenderError)
 
   const payByCash = (amountTenderedPence: number, partialPayment = false) =>
@@ -258,6 +270,7 @@ export default function App() {
                 balanceDuePence={basket.balanceDuePence ?? basket.totalPence}
                 busy={busy}
                 declineMessage={declineMessage}
+                paymentUnresolved={unresolvedAttemptKey !== null}
                 errorMessage={tenderError}
                 onBack={() => setScreen('sell')}
                 onCard={payByCard}

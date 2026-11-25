@@ -12,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -52,6 +53,12 @@ public class OrderController {
             return ResponseEntity.status(HttpStatus.CONFLICT)
                     .body(Map.of("error", "OUT_OF_STOCK", "message", e.getMessage()));
         }
+    }
+
+    /** Every order recorded for a till transaction; a correctly retried tender yields exactly one. */
+    @GetMapping("/transaction/{transactionId}")
+    public List<OrderResponse> getOrdersForTransaction(@PathVariable String transactionId) {
+        return orderService.findByTransactionId(transactionId).stream().map(OrderResponse::from).toList();
     }
 
     @GetMapping("/{orderNumber}")

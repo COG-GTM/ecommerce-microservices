@@ -47,7 +47,8 @@ public final class TillDtos {
     }
 
     public record TenderRequest(@NotBlank String basketId, @NotBlank String tenderType, Integer amountTenderedPence,
-                                String terminalOutcome, Integer expectedTotalPence, Boolean partialPayment) {
+                                String terminalOutcome, Integer expectedTotalPence, Boolean partialPayment,
+                                String idempotencyKey) {
     }
 
     /** Server-side cash preview: change due, or the balance left for another tender when the cash is short. */
@@ -73,6 +74,7 @@ public final class TillDtos {
 
     public record TenderResult(String status, String tenderType, Basket basket, String orderNumber,
                                int amountTenderedPence, int changeDuePence, String authCode, String declineReason,
-                               Receipt receipt, String nextBasketId, int balanceDuePence) {
+                               Receipt receipt, String nextBasketId, int balanceDuePence,
+                               String idempotencyKey) {
     }
 }

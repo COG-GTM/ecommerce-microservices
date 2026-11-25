@@ -58,7 +58,7 @@ export class TillPage {
     await expect(this.page.getByTestId('amount-due')).toBeVisible()
   }
 
-  async payByCard(outcome: 'approved' | 'declined', method: 'card' | 'contactless' = 'card') {
+  async payByCard(outcome: 'approved' | 'declined' | 'timeout', method: 'card' | 'contactless' = 'card') {
     await this.page.getByTestId(`tender-${method}`).click()
     await expect(this.page.getByTestId('pinpad-wait')).toBeVisible()
     await this.page.getByTestId(`simulate-${outcome}`).click()

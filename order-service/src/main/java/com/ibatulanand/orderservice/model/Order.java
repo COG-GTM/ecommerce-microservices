@@ -26,6 +26,9 @@ public class Order {
     private String transactionId;
     private String tenderType;
     private Integer totalPence;
+    /** Till sale key (one per basket); a repeated sale request with the same key returns the existing order. */
+    @Column(unique = true)
+    private String idempotencyKey;
     @OneToMany(cascade = CascadeType.ALL)
     private List<OrderLineItems> orderLineItemsList;
     @OneToMany(cascade = CascadeType.ALL)
