@@ -150,14 +150,14 @@ export default function App() {
   )
 
   // Going offline: keep selling from the cached catalogue in a local basket, carrying over any lines already scanned.
+  // Also re-runs when a server response lands after the till went offline, so a late server basket is converted too.
   useEffect(() => {
     if (!offline || !session) return
     setQuickKeys((keys) => (keys.length ? keys : offlineStore.quickKeys()))
-    const current = basketRef.current
-    if (current?.status === 'COMPLETED' || isLocal(current)) return
-    if (current) abandonedBasketRef.current = current.basketId
-    showBasket(newOfflineBasket(session, current?.lines ?? []))
-  }, [offline, session, newOfflineBasket, showBasket])
+    if (basket?.status === 'COMPLETED' || isLocal(basket)) return
+    if (basket) abandonedBasketRef.current = basket.basketId
+    showBasket(newOfflineBasket(session, basket?.lines ?? []))
+  }, [offline, session, basket, newOfflineBasket, showBasket])
 
   const run = async (action: () => Promise<void>, onError: (text: string) => void) => {
     setBusy(true)

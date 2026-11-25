@@ -72,7 +72,7 @@ test.describe('MBA-3940 offline resilience', () => {
     expect(new Set(orders.map((o) => o.idempotencyKey)).size).toBe(2)
   })
 
-  test('card already chosen is withdrawn when the till goes offline', async ({ till, offlineTill: offline }) => {
+  test('card already chosen is withdrawn when the till goes offline; the sale is finished in cash', async ({ till, offlineTill: offline, offlineBackend }) => {
     await till.open()
     await till.quickKey('1001')
     await till.pay()
@@ -82,6 +82,13 @@ test.describe('MBA-3940 offline resilience', () => {
     await offline.expectOffline()
     await expect(till.page.getByTestId('pinpad-wait')).toBeHidden()
     await offline.expectCardUnavailable()
+
+    // The basket scanned online is finished offline in cash and syncs once.
+    await offline.payCashOffline(5)
+    await offline.expectChange('£3.45')
     await offline.restoreNetwork()
+    await offline.expectQueued(0)
+    const [order] = await offlineBackend.expectOrdersForTill(till.tillId, 1)
+    expect(order).toMatchObject({ tenderType: 'CASH', totalPence: 155 })
   })
 })
