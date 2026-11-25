@@ -148,9 +148,10 @@ class WeighedItemsApiTest {
 
     @Test
     void cataloguedPrefix2BarcodeIsSoldAsTheCatalogueItem() throws Exception {
-        CatalogueItem gift = new CatalogueItem("2123456789012", "MOR-GIFT-CARD", "Gift card", 1000, false);
-        when(services.findByBarcode("2123456789012")).thenReturn(Optional.of(gift));
-        JsonNode line = add(Map.of("barcode", "2123456789012"), status().isCreated()).get("lines").get(0);
+        String barcode = "212345678901" + EmbeddedPriceBarcode.checkDigit("212345678901");
+        CatalogueItem gift = new CatalogueItem(barcode, "MOR-GIFT-CARD", "Gift card", 1000, false);
+        when(services.findByBarcode(barcode)).thenReturn(Optional.of(gift));
+        JsonNode line = add(Map.of("barcode", barcode), status().isCreated()).get("lines").get(0);
         assertThat(line.get("pricedBy").asText()).isEqualTo("EACH");
         assertThat(line.get("linePence").asInt()).isEqualTo(1000);
     }
