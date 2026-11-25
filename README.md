@@ -172,16 +172,26 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
    cd ecommerce-microservices
    ```
 
-2. Create a `.env` file (git-ignored) with your own database passwords:
+2. Create a `.env` file (git-ignored) and set every password in it:
    ```shell
    cp .env.example .env
    ```
    The order database is initialised from `mysql-order-init/`: the schema is created by root, and the
    service connects as `ORDER_DB_APP_USER`, which only has `SELECT`/`INSERT`/`UPDATE`/`DELETE` on
-   `order_service`. These scripts only run on an empty `./mysql_order` directory, so for an existing
-   one, run `mysql-order-init/02-app-user.sh` inside the container or recreate the directory.
-   When running `order-service` outside Docker, set `SPRING_DATASOURCE_USERNAME` and
-   `SPRING_DATASOURCE_PASSWORD` to that account.
+   `order_service`. These scripts only run on an empty `./mysql_order` directory. For an existing one,
+   start `mysql-order`, then apply them with the data directory's **current** root password
+   (re-running also updates the application account's password):
+   ```shell
+   export MYSQL_ROOT_PASSWORD='<current root password>'
+   docker compose exec -e MYSQL_ROOT_PASSWORD mysql-order bash -c \
+     'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -uroot order_service < /docker-entrypoint-initdb.d/01-schema.sql \
+      && /docker-entrypoint-initdb.d/02-app-user.sh'
+   ```
+   Then remove the old shared login and rotate root to the value in `.env`:
+   `DROP USER IF EXISTS 'ibatulanand'@'%'; ALTER USER 'root'@'%' IDENTIFIED BY '<new root password>';`
+   (repeat for `'root'@'localhost'`).
+   To run `order-service` on the host against this database, set `SPRING_DATASOURCE_USERNAME`,
+   `SPRING_DATASOURCE_PASSWORD` and `SPRING_DATASOURCE_URL=jdbc:mysql://localhost:3307/order_service`.
 
 3. Start the containers:
    ```shell
