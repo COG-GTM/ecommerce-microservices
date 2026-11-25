@@ -174,7 +174,7 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
 
 2. Configure database credentials. `docker-compose.yml` has no built-in database passwords and refuses to start until `.env` provides them. Generate a `.env` (gitignored, readable only by you) with a distinct random value for every password:
    ```shell
-   (umask 077 && set -C && awk '!/^#/ && /_PASSWORD=$/{c="openssl rand -hex 24"; c|getline v; close(c); $0=$0 v}1' .env.example > .env)
+   (umask 077 && set -C && command -v openssl >/dev/null && awk '!/^#/ && /_PASSWORD=$/{c="openssl rand -hex 24"; c|getline v; close(c); $0=$0 v}1' .env.example > .env)
    ```
    - MySQL (3307, 3308) and MongoDB (27017) are published on `127.0.0.1` only (`DB_BIND_ADDRESS`).
    - MongoDB requires authentication: a root user plus a `readWrite` user for `product-service`, created by `mongo-init/` on first start.
