@@ -21,7 +21,8 @@ echo "==> Waiting for till API via gateway (Eureka registration + catalogue seed
 deadline=$((SECONDS + ${TILL_WAIT_TIMEOUT:-420}))
 until curl -fs "$GATEWAY/api/till/session?tillId=healthcheck" | grep -q '"backendConnected":true' \
    && [[ "$(curl -fs "$GATEWAY/api/till/products?quickkey=true" | grep -o '"barcode"' | wc -l)" -ge 8 ]] \
-   && curl -fs "$WEBAPP/api/till/products/1001" >/dev/null; do
+   && curl -fs "$WEBAPP/api/till/products/1001" >/dev/null \
+   && curl -fs "$WEBAPP/api/till/products/4002" >/dev/null; do
   if (( SECONDS > deadline )); then
     echo "Till stack did not become ready; recent logs:" >&2
     "${COMPOSE[@]}" logs --tail 40 api-gateway till-service product-service >&2
