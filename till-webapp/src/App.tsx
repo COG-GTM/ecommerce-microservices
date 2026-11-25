@@ -135,7 +135,17 @@ export default function App() {
 
   const tenderFailed = (text: string) => {
     setTenderError(text)
-    if (basket) tillApi.basket(basket.basketId).then(setBasket, () => undefined)
+    if (!basket) return
+    tillApi.basket(basket.basketId).then(async (latest) => {
+      if (latest.status === 'OPEN') {
+        setBasket(latest)
+        return
+      }
+      const s = await tillApi.session(TILL_ID)
+      showBasket(await tillApi.basket(s.basketId))
+      setMessage({ kind: 'ok', text: `Sale ${latest.transactionNumber} already completed` })
+      setScreen('sell')
+    }).catch(() => undefined)
   }
 
   const payByCard = (type: TenderType, outcome: 'APPROVED' | 'DECLINED') =>
