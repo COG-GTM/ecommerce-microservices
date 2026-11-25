@@ -125,6 +125,7 @@ class WeighedItemsApiTest {
     void weightIsValidated() throws Exception {
         add(Map.of("barcode", "2201", "weightGrams", 0), status().isBadRequest());
         add(Map.of("barcode", "2201", "weightGrams", 30_001), status().isBadRequest());
+        add(Map.of("barcode", "2201", "weightGrams", 30_000.9), status().isBadRequest());
         assertThat(add(Map.of("barcode", "1001", "weightGrams", 500), status().isBadRequest()).get("error").asText())
                 .isEqualTo("NOT_SOLD_BY_WEIGHT");
     }
