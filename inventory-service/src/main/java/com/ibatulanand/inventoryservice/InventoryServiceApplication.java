@@ -28,6 +28,10 @@ public class InventoryServiceApplication {
             for (String sku : GROCERY_SKUS) {
                 seed.put(sku, 500);
             }
+            // Price-feed demo SKUs (barcodes 4001-4003 in product-service)
+            for (String sku : PRICE_FEED_SKUS) {
+                seed.put(sku, 500);
+            }
             seed.forEach((sku, quantity) -> {
                 if (!inventoryRepository.existsBySkuCode(sku)) {
                     Inventory inventory = new Inventory();
@@ -42,5 +46,7 @@ public class InventoryServiceApplication {
     static final List<String> GROCERY_SKUS = List.of(
             "MOR-MILK-SS-4PT", "MOR-BREAD-WM-800", "MOR-EGGS-FR-6", "MOR-BANANA-5",
             "MOR-OJ-1L", "MOR-CHEDDAR-MAT-400", "MOR-CHICKEN-BF-600", "MOR-CARROT-1KG");
+
+    static final List<String> PRICE_FEED_SKUS = List.of("MOR-TEA-BAGS-80", "MOR-COFFEE-INST-200", "MOR-DIGESTIVE-400");
 
 }
