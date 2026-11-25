@@ -27,7 +27,7 @@ test('offline sale replay is idempotent: same sale twice is one order', async ({
   expect((await again.json()).orderNumber).toBe(body.orderNumber)
 
   const orders = await new OfflineBackend(request).expectOrdersForTill(till, 1)
-  expect(orders[0]).toMatchObject({ orderNumber: body.orderNumber, channel: 'TILL', tenderType: 'CASH', totalPence: 310, idempotencyKey: `offline-${saleId}` })
+  expect(orders[0]).toMatchObject({ orderNumber: body.orderNumber, channel: 'TILL', tenderType: 'CASH', totalPence: 310 })
 })
 
 test('offline sale replay rejects card and unknown items', async ({ request }) => {

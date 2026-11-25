@@ -7,7 +7,6 @@ import { test as base } from './till'
 
 export interface TillOrderView extends OrderView {
   transactionId: string
-  idempotencyKey: string | null
 }
 
 /** Read side for offline sales: every order order-service stored for a till. */

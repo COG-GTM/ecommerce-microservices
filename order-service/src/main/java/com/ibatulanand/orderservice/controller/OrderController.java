@@ -37,9 +37,12 @@ public class OrderController {
     @TimeLimiter(name = "inventory")
     @Retry(name = "inventory")
     public CompletableFuture<String> placeOrder(@RequestBody OrderRequest orderRequest) {
-        // Idempotency keys belong to till sales only, so an online order can never claim a till basket's key.
+        // Till identifiers belong to till sales only, so an online order can never claim a till basket's key
+        // or appear in a till transaction lookup.
         orderRequest.setIdempotencyKey(null);
         orderRequest.setTenders(null);
+        orderRequest.setTillId(null);
+        orderRequest.setTransactionId(null);
         return CompletableFuture.supplyAsync(() -> orderService.placeOrder(orderRequest), executor);
     }
 

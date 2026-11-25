@@ -147,6 +147,16 @@ class CardTerminalIdempotencyTest {
     }
 
     @Test
+    void aTimedOutKeyCannotBeUsedOnAnotherBasket() throws Exception {
+        String key = "k-" + UUID.randomUUID();
+        tender(basketId, key, "TIMEOUT", status().isOk());
+        String other = newBasket();
+        add(other, status().isCreated());
+        assertThat(tender(other, key, "APPROVED", status().isConflict()).get("error").asText())
+                .isEqualTo("IDEMPOTENCY_KEY_REUSED");
+    }
+
+    @Test
     void malformedKeysAreRejected() throws Exception {
         assertThat(tender(basketId, "bad\nkey", "APPROVED", status().isBadRequest()).get("error").asText())
                 .isEqualTo("INVALID_IDEMPOTENCY_KEY");

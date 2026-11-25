@@ -46,6 +46,7 @@ const newAttemptKey = () =>
 interface CardAttempt {
   basketId: string
   key: string
+  tenderType: TenderType
   /** The terminal timed out or the response was lost: the basket stays locked until this key is retried. */
   unresolved: boolean
 }
@@ -58,8 +59,12 @@ const loadAttempt = (): CardAttempt | null => {
   }
 }
 const saveAttempt = (attempt: CardAttempt | null) => {
-  if (attempt) sessionStorage.setItem(ATTEMPT_STORAGE_KEY, JSON.stringify(attempt))
-  else sessionStorage.removeItem(ATTEMPT_STORAGE_KEY)
+  try {
+    if (attempt) sessionStorage.setItem(ATTEMPT_STORAGE_KEY, JSON.stringify(attempt))
+    else sessionStorage.removeItem(ATTEMPT_STORAGE_KEY)
+  } catch {
+    // Storage unavailable (private mode, quota): the attempt still lives in memory for this page.
+  }
 }
 
 const DECLINED_MESSAGE = 'Card declined. Ask for another payment method.'
@@ -365,13 +370,14 @@ export default function App() {
       setDeclineMessage(null)
       setTenderError(null)
       // Reuse the key until the attempt settles, so a retry after a timeout or a lost response is never a second charge.
-      const attempt = cardAttempt?.basketId === basket.basketId ? cardAttempt : { basketId: basket.basketId, key: newAttemptKey(), unresolved: false }
+      const attempt = cardAttempt?.basketId === basket.basketId ? cardAttempt : { basketId: basket.basketId, key: newAttemptKey(), tenderType: type, unresolved: false }
       setCardAttempt(attempt)
       let r: TenderResult
       try {
         r = await tillApi.tender(basket.basketId, type, { terminalOutcome: outcome, expectedTotalPence: basket.totalPence, idempotencyKey: attempt.key, expectedBalanceDuePence: basket.balanceDuePence })
       } catch (e) {
-        if (!(e instanceof TillApiError)) {
+        // No response, or a server failure that may follow a card approval: keep the basket on this attempt's retry.
+        if (!(e instanceof TillApiError) || e.status >= 500) {
           setCardAttempt({ ...attempt, unresolved: true })
           setDeclineMessage(TIMEOUT_MESSAGE)
           return
@@ -465,6 +471,7 @@ export default function App() {
                 cardAvailable={cardAvailable}
                 declineMessage={declineMessage}
                 paymentUnresolved={paymentUnresolved}
+                unresolvedTenderType={paymentUnresolved ? cardAttempt?.tenderType : undefined}
                 errorMessage={tenderError}
                 onBack={() => setScreen('sell')}
                 onCard={payByCard}

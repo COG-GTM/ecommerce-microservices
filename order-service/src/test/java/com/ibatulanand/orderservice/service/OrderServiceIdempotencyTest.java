@@ -8,8 +8,14 @@ import com.ibatulanand.orderservice.model.Order;
 import com.ibatulanand.orderservice.repository.OrderRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
+
+import java.math.BigDecimal;
+import java.util.function.Function;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -100,5 +106,22 @@ class OrderServiceIdempotencyTest {
         request.setTotalPence(155);
         request.setIdempotencyKey(idempotencyKey);
         return request;
+    }
+
+    @Test
+    void aNewSaleIsSavedWithItsIdempotencyKey() {
+        WebClient.Builder inventory = mock(WebClient.Builder.class, Mockito.RETURNS_DEEP_STUBS);
+        when(inventory.build().get().uri(anyString(), any(Function.class)).retrieve()
+                .bodyToMono(InventoryResponse[].class))
+                .thenReturn(Mono.just(new InventoryResponse[]{new InventoryResponse("milk", true)}));
+        when(repository.findFirstByIdempotencyKey("basket-2")).thenReturn(Optional.empty());
+
+        new OrderService(repository, inventory, kafka).placeAndReturnOrder(OrderRequest.builder()
+                .idempotencyKey("basket-2").channel("TILL")
+                .orderLineItemsDtoList(List.of(new OrderLineItemsDto(null, "milk", BigDecimal.ONE, 1))).build());
+
+        ArgumentCaptor<Order> saved = ArgumentCaptor.forClass(Order.class);
+        verify(repository).save(saved.capture());
+        assertThat(saved.getValue().getIdempotencyKey()).isEqualTo("basket-2");
     }
 }

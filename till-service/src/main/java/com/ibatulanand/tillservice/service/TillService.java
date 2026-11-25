@@ -348,6 +348,10 @@ public class TillService {
                 throw new TillException(HttpStatus.CONFLICT, "PAYMENT_UNRESOLVED",
                         "The last card payment timed out; retry it before taking another payment");
             }
+            if (unresolved == null && unresolvedAttemptByBasket.containsValue(key)) {
+                throw new TillException(HttpStatus.CONFLICT, "IDEMPOTENCY_KEY_REUSED",
+                        "Idempotency key already used for another basket");
+            }
             openForChange(basket.getBasketId(), unresolved != null);
             if (unresolved != null && "CASH".equals(tenderType)) {
                 throw new TillException(HttpStatus.CONFLICT, "PAYMENT_UNRESOLVED",
