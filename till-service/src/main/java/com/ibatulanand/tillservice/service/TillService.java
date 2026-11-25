@@ -19,6 +19,7 @@ import com.ibatulanand.tillservice.web.TillDtos.CashQuote;
 import com.ibatulanand.tillservice.web.TillDtos.OfflineSaleLine;
 import com.ibatulanand.tillservice.web.TillDtos.OfflineSaleRequest;
 import com.ibatulanand.tillservice.web.TillDtos.OfflineSaleResult;
+import com.ibatulanand.tillservice.pricing.VatRate;
 import com.ibatulanand.tillservice.web.TillDtos.Operator;
 import com.ibatulanand.tillservice.web.TillDtos.Receipt;
 import com.ibatulanand.tillservice.web.TillDtos.TenderRequest;
@@ -166,13 +167,13 @@ public class TillService {
         if (label.isPresent()) {
             line = new BasketLine(UUID.randomUUID().toString(), barcode, item.skuCode(), item.name(), 1,
                     label.get().pricePence(), 0, BasketLine.PricedBy.LABEL, null);
-            line.setVatCode(item.vatCode());
+            line.setVatCode(VatRate.of(item.vatCode()).name());
             applyAgeRestriction(line, item);
             basket.getLines().add(line);
         } else if (weightGrams != null) {
             line = new BasketLine(UUID.randomUUID().toString(), item.barcode(), item.skuCode(), item.name(), 1,
                     item.pricePence(), 0, BasketLine.PricedBy.WEIGHT, weightGrams);
-            line.setVatCode(item.vatCode());
+            line.setVatCode(VatRate.of(item.vatCode()).name());
             applyAgeRestriction(line, item);
             basket.getLines().add(line);
         } else {
@@ -182,7 +183,7 @@ public class TillService {
             if (line == null) {
                 line = new BasketLine(UUID.randomUUID().toString(), item.barcode(), item.skuCode(), item.name(),
                         0, item.pricePence(), 0);
-                line.setVatCode(item.vatCode());
+                line.setVatCode(VatRate.of(item.vatCode()).name());
             applyAgeRestriction(line, item);
                 basket.getLines().add(line);
             }

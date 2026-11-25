@@ -32,6 +32,7 @@ class VatApiTest {
 
     static final CatalogueItem MILK = new CatalogueItem("1001", "MOR-MILK-SS-4PT", "Semi skimmed milk 4 pints", 155, true, "Z");
     static final CatalogueItem CHOCOLATE = new CatalogueItem("4001", "MOR-CHOC-BAR-100", "Milk chocolate bar 100g", 120, false, "S");
+    static final CatalogueItem UNCODED = new CatalogueItem("9001", "MOR-UNCODED", "Uncoded item", 100, false);
     static final CatalogueItem WASHING_UP = new CatalogueItem("4002", "MOR-WASHUP-500", "Washing up liquid 500ml", 135, false, "S");
 
     @Autowired
@@ -49,6 +50,7 @@ class VatApiTest {
         when(services.findByBarcode("1001")).thenReturn(Optional.of(MILK));
         when(services.findByBarcode("4001")).thenReturn(Optional.of(CHOCOLATE));
         when(services.findByBarcode("4002")).thenReturn(Optional.of(WASHING_UP));
+        when(services.findByBarcode("9001")).thenReturn(Optional.of(UNCODED));
         when(services.isInStock(anyString())).thenReturn(true);
         when(services.placeSale(any(), anyString(), anyString())).thenReturn("ORDER-VAT");
         basketId = read(mvc.perform(get("/api/till/session?tillId=" + UUID.randomUUID())).andExpect(status().isOk())
@@ -68,6 +70,14 @@ class VatApiTest {
         assertThat(vat).hasSize(2);
         assertBand(vat.get(0), "Z", 0, 155, 0, 155);
         assertBand(vat.get(1), "S", 20, 312, 63, 375);
+    }
+
+    @Test
+    void itemWithoutVatCodeIsLabelledStandardRated() throws Exception {
+        JsonNode basket = add("9001", 1);
+
+        assertThat(basket.get("lines").get(0).get("vatCode").asText()).isEqualTo("S");
+        assertBand(basket.get("vatSummary").get(0), "S", 20, 83, 17, 100);
     }
 
     @Test

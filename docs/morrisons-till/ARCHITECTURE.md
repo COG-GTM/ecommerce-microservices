@@ -49,8 +49,8 @@ The demo story is a store estate moving off a legacy till application one capabi
 2. **Bridging:** a legacy system (for example the nightly price file) is wrapped behind one of the ports. For example a
    `LegacyPriceFeedCatalogueClient` implements `CatalogueClient`, or a feed job writes into product-service. The till
    contract does not change.
-3. **Strangling:** each Jira ticket replaces or adds one capability behind the facade (VAT and multi-buy as
-   `PricingRule`s, card declines behind `PaymentTerminal`, store-and-forward as a queued `OrderClient`) and adds its
+3. **Strangling:** each Jira ticket replaces or adds one capability behind the facade (multi-buy as a
+   `PricingRule`, VAT as `VatAnalysis` in `BasketPricer`, card declines behind `PaymentTerminal`, store-and-forward as a queued `OrderClient`) and adds its
    own E2E spec. The legacy path is retired once the spec passes against the modern path.
 
 ## Contract
@@ -108,7 +108,7 @@ still retry.
 
 // TenderResult
 { "status": "APPROVED", "tenderType": "CARD", "basket": { /* Basket, status COMPLETED */ },
-  "orderNumber": "8df1…", "amountTenderedPence": 350, "changeDuePence": 0, "authCode": "419508",
+  "orderNumber": "8df1…", "amountTenderedPence": 140, "changeDuePence": 0, "authCode": "419508",
   "declineReason": null, "receipt": { /* Receipt */ }, "nextBasketId": "c2d3…" }
 // Declined: status DECLINED, basket still OPEN with all lines, orderNumber/receipt null, nextBasketId = same basket.
 // Part cash (CASH with partialPayment: true and less than balanceDuePence): status PARTIAL, basket still OPEN,
@@ -121,8 +121,8 @@ still retry.
 // Receipt
 { "receiptNumber": "R-0417-07-0001", "storeNumber": "0417", "storeName": "Bradford Demo", "tillId": "07",
   "operatorName": "Demo Operator", "transactionNumber": "0417-07-0001", "orderNumber": "8df1…",
-  "lines": [ /* BasketLine */ ], "subtotalPence": 190, "savingsPence": 0, "totalPence": 190,
-  "tenderType": "CARD", "amountTenderedPence": 350, "changeDuePence": 0, "authCode": "419508", "issuedAt": "2026-11-25T14:36:16Z",
+  "lines": [ /* BasketLine */ ], "subtotalPence": 190, "savingsPence": 50, "totalPence": 140,
+  "tenderType": "CARD", "amountTenderedPence": 140, "changeDuePence": 0, "authCode": "419508", "issuedAt": "2026-11-25T14:36:16Z",
   "vatSummary": [ /* VatBand, same as the basket */ ], "moreCard": null }  // member sale: { "cardLast4": "0001", "memberName": "Test Member One", "pointsEarned": 20, "pointsBalance": 1220 }
 
 // Error (any 4xx/5xx)
@@ -193,7 +193,8 @@ yoghurt 3 for £3.50, still water/cola 2 for £2.00, and a £3.50 meal deal (san
 
 | Ticket | Where it plugs in |
 | --- | --- |
-| VAT, multi-buys, More Card loyalty | new `PricingRule` bean(s), which add `Adjustment`s (savings) or VAT lines; the UI already renders `savingsPence` |
+| Multi-buys, More Card loyalty | new `PricingRule` bean(s), which add `Adjustment`s (savings); the UI already renders `savingsPence`, and `VatAnalysis` apportions them to VAT bands |
+| VAT rates | `VatRate` (codes and rates) and `VatAnalysis` (per-band rounding), applied by `BasketPricer` after the rules |
 | Weighed items, age-restricted items | product fields plus a line attribute; a `TillService.addLine` guard returns a new error code |
 | Cash/change, card terminal declines and timeouts | `TillService.tender`, `PaymentTerminal` (decline reasons in `declineReason`, retries keyed by `idempotencyKey`) |
 | Refunds | `/api/till/refund/**` (MBA-3939); order-service stores a negative `REFUND` order linked to the sale and emits a `REFUND` event |
