@@ -14,7 +14,8 @@ import java.util.Optional;
 public class NotificationLog {
 
     public record Notification(String orderNumber, String channel, String storeNumber, String tillId,
-                               String transactionId, String tenderType, Integer totalPence, String message, Instant receivedAt) {
+                               String transactionId, String tenderType, Integer totalPence, String message, Instant receivedAt,
+                               String eventType, String originalOrderNumber) {
     }
 
     private static final int CAPACITY = 200;
@@ -24,7 +25,8 @@ public class NotificationLog {
         Notification notification = new Notification(event.getOrderNumber(), event.getChannel(),
                 event.getStoreNumber(), event.getTillId(), event.getTransactionId(),
                 event.getTenderType(), event.getTotalPence(),
-                "Received Notification for Order - " + event.getOrderNumber(), Instant.now());
+                "Received Notification for Order - " + event.getOrderNumber(), Instant.now(),
+                event.getEventType() == null ? "SALE" : event.getEventType(), event.getOriginalOrderNumber());
         entries.addFirst(notification);
         while (entries.size() > CAPACITY) {
             entries.removeLast();

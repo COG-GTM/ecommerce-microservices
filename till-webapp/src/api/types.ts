@@ -88,6 +88,51 @@ export interface TenderResult {
   nextBasketId: string
 }
 
+export interface RefundableLine {
+  skuCode: string
+  name: string
+  unitPricePence: number
+  soldQuantity: number
+  refundedQuantity: number
+  refundableQuantity: number
+}
+
+/** A completed sale found by receipt/order number, with what is still refundable against it. */
+export interface RefundableSale {
+  orderNumber: string
+  transactionId: string
+  storeNumber: string
+  tillId: string
+  tenderType: TenderType
+  totalPence: number
+  refundedPence: number
+  refundablePence: number
+  lines: RefundableLine[]
+  refunds: string[]
+}
+
+export interface RefundedLine {
+  skuCode: string
+  name: string
+  quantity: number
+  unitPricePence: number
+  lineTotalPence: number
+}
+
+export interface RefundResult {
+  status: 'REFUNDED'
+  refundNumber: string
+  originalOrderNumber: string
+  transactionNumber: string
+  tillId: string
+  operatorName: string
+  tenderType: TenderType
+  refundPence: number
+  lines: RefundedLine[]
+  remaining: RefundableSale
+  issuedAt: string
+}
+
 export interface ApiError {
   error: string
   message: string

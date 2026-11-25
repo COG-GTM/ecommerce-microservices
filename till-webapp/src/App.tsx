@@ -4,11 +4,12 @@ import type { Basket, Product, TenderResult, TenderType, TillSession } from './a
 import { ApiChipsContext } from './components/ApiChip'
 import { BasketPanel } from './components/BasketPanel'
 import { Header } from './components/Header'
+import { RefundPanel } from './components/RefundPanel'
 import { SaleComplete } from './components/SaleComplete'
 import { SellPanel } from './components/SellPanel'
 import { TenderPanel } from './components/TenderPanel'
 
-type Screen = 'sell' | 'tender' | 'complete'
+type Screen = 'sell' | 'tender' | 'complete' | 'refund'
 
 const params = new URLSearchParams(window.location.search)
 const SHOW_API = params.get('api') === '1'
@@ -180,6 +181,7 @@ export default function App() {
                   resetTenderState()
                   setScreen('tender')
                 }}
+                onRefund={() => setScreen('refund')}
               />
             )}
             {screen === 'tender' && basket && (
@@ -195,6 +197,7 @@ export default function App() {
               />
             )}
             {screen === 'complete' && result && <SaleComplete result={result} onNewSale={newSale} />}
+            {screen === 'refund' && <RefundPanel tillId={TILL_ID} onExit={() => setScreen('sell')} />}
           </div>
         </main>
       </div>

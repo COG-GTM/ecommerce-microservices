@@ -6,4 +6,11 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface OrderRepository extends JpaRepository<Order, Long> {
     java.util.Optional<Order> findFirstByOrderNumber(String orderNumber);
 
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    java.util.Optional<Order> findWithLockByOrderNumber(String orderNumber);
+
+    java.util.List<Order> findByTransactionIdOrderByIdDesc(String transactionId);
+
+    java.util.List<Order> findByOriginalOrderNumber(String originalOrderNumber);
+
 }
