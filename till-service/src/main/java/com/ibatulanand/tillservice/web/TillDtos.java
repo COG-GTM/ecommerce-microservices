@@ -4,6 +4,7 @@ import com.ibatulanand.tillservice.domain.Basket;
 import com.ibatulanand.tillservice.domain.BasketLine;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 import java.time.Instant;
 import java.util.List;
@@ -47,7 +48,7 @@ public final class TillDtos {
     public record MoreCardReceipt(String cardLast4, String memberName, int pointsEarned, int pointsBalance) {
     }
 
-    public record AttachMemberRequest(@NotBlank String basketId, @NotBlank String cardNumber) {
+    public record AttachMemberRequest(@NotBlank String basketId, @NotBlank @Size(max = 32) String cardNumber) {
     }
 
     public record TenderResult(String status, String tenderType, Basket basket, String orderNumber,
