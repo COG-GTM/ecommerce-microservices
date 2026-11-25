@@ -101,7 +101,7 @@ compute totals; they render `subtotalPence`, `savingsPence` and `totalPence` fro
 // Receipt
 { "receiptNumber": "R-0417-07-0001", "storeNumber": "0417", "storeName": "Bradford Demo", "tillId": "07",
   "operatorName": "Demo Operator", "transactionNumber": "0417-07-0001", "orderNumber": "8df1…",
-  "lines": [ /* BasketLine */ ], "subtotalPence": 190, "savingsPence": 0, "totalPence": 190,
+  "lines": [ /* BasketLine */ ], "subtotalPence": 450, "savingsPence": 100, "totalPence": 350,
   "tenderType": "CARD", "amountTenderedPence": 350, "changeDuePence": 0, "authCode": "419508", "issuedAt": "2026-11-25T14:36:16Z" }
 
 // Error (any 4xx/5xx)
