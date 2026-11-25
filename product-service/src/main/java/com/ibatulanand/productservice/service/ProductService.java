@@ -6,7 +6,11 @@ import com.ibatulanand.productservice.model.Product;
 import com.ibatulanand.productservice.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -14,6 +18,9 @@ import java.util.List;
 @RequiredArgsConstructor
 @Slf4j
 public class ProductService {
+
+    public static final int DEFAULT_PAGE_SIZE = 20;
+    public static final int MAX_PAGE_SIZE = 100;
 
     private final ProductRepository productRepository;
 
@@ -28,9 +35,13 @@ public class ProductService {
         log.info("Product {} is saved", product.getId());
     }
 
-    public List<ProductResponse> getAllProducts() {
-        List<Product> products = productRepository.findAll();
-        return products.stream().map(this::mapToProductResponse).toList();
+    public List<ProductResponse> getAllProducts(int page, int size) {
+        if (page < 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "page must not be negative");
+        }
+        int pageSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
+        PageRequest pageRequest = PageRequest.of(page, pageSize, Sort.by("id"));
+        return productRepository.findAll(pageRequest).stream().map(this::mapToProductResponse).toList();
     }
 
     private ProductResponse mapToProductResponse(Product product) {

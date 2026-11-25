@@ -3,6 +3,7 @@ package com.ibatulanand.productservice.controller;
 import com.ibatulanand.productservice.dto.ProductRequest;
 import com.ibatulanand.productservice.dto.ProductResponse;
 import com.ibatulanand.productservice.service.ProductService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -18,13 +19,15 @@ public class ProductController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public void createProduct(@RequestBody ProductRequest productRequest) {
+    public void createProduct(@Valid @RequestBody ProductRequest productRequest) {
         productService.createProduct(productRequest);
     }
 
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
-    public List<ProductResponse> getAllProducts() {
-        return productService.getAllProducts();
+    public List<ProductResponse> getAllProducts(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "" + ProductService.DEFAULT_PAGE_SIZE) int size) {
+        return productService.getAllProducts(page, size);
     }
 }

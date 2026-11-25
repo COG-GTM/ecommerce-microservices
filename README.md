@@ -214,6 +214,7 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
     - Method: POST
     - Endpoint: http://localhost:8181/api/product
     - Authorization: Use the OAuth 2.0 token fetched, following the previous step.
+    - Validation: `name` (max 200 chars) and `description` (max 2000 chars) are required, `price` is required, `>= 0` with at most 10 integer and 2 fraction digits. Bodies over 32 KB are rejected with `413`, invalid fields with `400`.
     - Body: 
       ```json
       {
@@ -228,7 +229,8 @@ With a focus on scalability, resilience, and real-time interaction, Micro Market
   
   - GET /api/product
     - Method: GET
-    - Endpoint: http://localhost:8181/api/product
+    - Endpoint: http://localhost:8181/api/product?page=0&size=20
+    - Paging: `page` (default `0`) and `size` (default `20`, capped at `100`); products are sorted by id.
     - Authorization: Use the OAuth 2.0 token fetched, following the previous step.
     - Output:
         ![Postman](docs/images/outputs/product_api_get_postman.png)
